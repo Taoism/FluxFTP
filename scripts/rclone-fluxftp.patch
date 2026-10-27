@@ -1,0 +1,172 @@
+diff --git a/backend/onedrive/onedrive.go b/backend/onedrive/onedrive.go
+index daef4d8..cb36607 100644
+--- a/backend/onedrive/onedrive.go
++++ b/backend/onedrive/onedrive.go
+@@ -84,7 +84,7 @@ var (
+ 		Scopes:       scopeAccess,
+ 		ClientID:     rcloneClientID,
+ 		ClientSecret: obscure.MustReveal(rcloneEncryptedClientSecret),
+-		RedirectURL:  oauthutil.RedirectLocalhostURL,
++		RedirectURL:  "http://localhost:18342/",
+ 	}
+ 
+ 	graphAPIEndpoint = map[string]string{
+@@ -545,6 +545,7 @@ func chooseDrive(ctx context.Context, name string, m configmap.Mapper, srv *rest
+ 	}
+ 
+ 	drives := api.DrivesResponse{}
++	defaultDriveID := ""
+ 
+ 	// We don't have the final ID yet?
+ 	// query Microsoft Graph
+@@ -560,18 +561,14 @@ func chooseDrive(ctx context.Context, name string, m configmap.Mapper, srv *rest
+ 			meDrive := api.DriveResource{}
+ 			_, meDriveErr := srv.CallJSON(ctx, &meDriveOpts, nil, &meDrive)
+ 			if meDriveErr == nil {
+-				found := false
++				defaultDriveID = meDrive.DriveID
++				ordered := []api.DriveResource{meDrive}
+ 				for _, drive := range drives.Drives {
+-					if drive.DriveID == meDrive.DriveID {
+-						found = true
+-						break
++					if drive.DriveID != meDrive.DriveID {
++						ordered = append(ordered, drive)
+ 					}
+ 				}
+-				// add the me drive if not found already
+-				if !found {
+-					fs.Debugf(nil, "Adding %v to drives list from /me/drive", meDrive)
+-					drives.Drives = append(drives.Drives, meDrive)
+-				}
++				drives.Drives = ordered
+ 			} else if drivesErr != nil {
+ 				return fs.ConfigError("driveid", fmt.Sprintf("Failed to query available drives: /me/drives: %v; /me/drive: %v\nEnter the drive ID manually instead", drivesErr, meDriveErr))
+ 			}
+@@ -590,6 +587,9 @@ func chooseDrive(ctx context.Context, name string, m configmap.Mapper, srv *rest
+ 	}
+ 	return fs.ConfigChoose("driveid_final", "config_driveid", "Select drive you want to use", len(drives.Drives), func(i int) (string, string) {
+ 		drive := drives.Drives[i]
++		if drive.DriveID == defaultDriveID {
++			return drive.DriveID, fmt.Sprintf("%s (%s) — default drive", drive.DriveName, drive.DriveType)
++		}
+ 		return drive.DriveID, fmt.Sprintf("%s (%s)", drive.DriveName, drive.DriveType)
+ 	})
+ }
+diff --git a/lib/oauthutil/oauthutil.go b/lib/oauthutil/oauthutil.go
+index 37d2f11..98f147f 100644
+--- a/lib/oauthutil/oauthutil.go
++++ b/lib/oauthutil/oauthutil.go
+@@ -954,6 +954,10 @@ func configSetup(ctx context.Context, id, name string, m configmap.Mapper, oauth
+ 	if err != nil {
+ 		return "", err
+ 	}
++	bindAddress, err := callbackAddress(oauthConfig.RedirectURL)
++	if err != nil {
++		return "", err
++	}
+ 
+ 	// Prepare webserver
+ 	server := newAuthServer(opt, bindAddress, state, authURL)
+@@ -1013,6 +1017,22 @@ func configSetup(ctx context.Context, id, name string, m configmap.Mapper, oauth
+ 	return auth.Code, nil
+ }
+ 
++// callbackAddress binds localhost redirects to their requested IPv4 loopback port.
++func callbackAddress(redirect string) (string, error) {
++	u, err := url.Parse(redirect)
++	if err != nil {
++		return "", errors.New("invalid OAuth callback URL")
++	}
++	if u.Scheme == "http" && u.Hostname() == "localhost" && u.Port() != "" {
++		port, err := strconv.Atoi(u.Port())
++		if err != nil || port < 1 || port > 65535 {
++			return "", errors.New("invalid OAuth callback port")
++		}
++		return net.JoinHostPort("127.0.0.1", u.Port()), nil
++	}
++	return bindAddress, nil
++}
++
+ // Exchange the code for a token
+ func configExchange(ctx context.Context, name string, m configmap.Mapper, oauthConfig *Config, code string) error {
+ 	ctx = Context(ctx, fshttp.NewClient(ctx))
+diff --git a/lib/oauthutil/fluxftp_callback_test.go b/lib/oauthutil/fluxftp_callback_test.go
+new file mode 100644
+--- /dev/null
++++ b/lib/oauthutil/fluxftp_callback_test.go
+@@ -0,0 +1,25 @@
++package oauthutil
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++)
++
++func TestLocalhostCallbackAddress(t *testing.T) {
++	for _, tc := range []struct{ redirect, address string }{
++		{"http://localhost:18342/", "127.0.0.1:18342"},
++		{RedirectLocalhostURL, bindAddress},
++		{RedirectURL, bindAddress},
++		{RedirectPublicURL, bindAddress},
++		{RedirectPublicSecureURL, bindAddress},
++	} {
++		address, err := callbackAddress(tc.redirect)
++		require.NoError(t, err)
++		require.Equal(t, tc.address, address)
++	}
++	for _, redirect := range []string{"http://localhost:99999/", "http://localhost:0/", "http://localhost:bad/"} {
++		_, err := callbackAddress(redirect)
++		require.Error(t, err)
++	}
++}
+diff --git a/backend/onedrive/fluxftp_drive_test.go b/backend/onedrive/fluxftp_drive_test.go
+new file mode 100644
+--- /dev/null
++++ b/backend/onedrive/fluxftp_drive_test.go
+@@ -0,0 +1,44 @@
++package onedrive
++
++import (
++	"context"
++	"encoding/json"
++	"net/http"
++	"net/http/httptest"
++	"testing"
++
++	"github.com/rclone/rclone/backend/onedrive/api"
++	"github.com/rclone/rclone/fs/config/configmap"
++	"github.com/rclone/rclone/lib/rest"
++	"github.com/stretchr/testify/require"
++)
++
++func TestFluxFTPDefaultDriveSelection(t *testing.T) {
++	for _, included := range []bool{true, false} {
++		t.Run(map[bool]string{true: "included", false: "missing"}[included], func(t *testing.T) {
++			primary := api.DriveResource{DriveID: "primary", DriveName: "OneDrive", DriveType: "personal"}
++			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++				w.Header().Set("Content-Type", "application/json")
++				if r.URL.Path == "/me/drive" {
++					require.NoError(t, json.NewEncoder(w).Encode(primary))
++					return
++				}
++				require.Equal(t, "/me/drives", r.URL.Path)
++				drives := []api.DriveResource{{DriveID: "other", DriveName: "Other", DriveType: "personal"}}
++				if included {
++					drives = append(drives, primary)
++				}
++				require.NoError(t, json.NewEncoder(w).Encode(api.DrivesResponse{Drives: drives}))
++			}))
++			defer server.Close()
++			out, err := chooseDrive(context.Background(), "test", configmap.Simple{}, rest.NewClient(server.Client()),
++				chooseDriveOpt{opts: rest.Opts{Method: "GET", RootURL: server.URL, Path: "/me/drives"}})
++			require.NoError(t, err)
++			require.Equal(t, "primary", out.Option.Default)
++			require.Len(t, out.Option.Examples, 2)
++			require.Equal(t, "primary", out.Option.Examples[0].Value)
++			require.Contains(t, out.Option.Examples[0].Help, "default drive")
++			require.Equal(t, "other", out.Option.Examples[1].Value)
++		})
++	}
++}

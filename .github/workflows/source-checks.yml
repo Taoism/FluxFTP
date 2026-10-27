@@ -1,0 +1,17 @@
+name: Windows source checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest tests/test_verification_reports.py tests/test_folder_sync.py tests/test_tools_menu.py tests/test_deployments.py -q
+      - run: python -m fluxftp --smoke-test
