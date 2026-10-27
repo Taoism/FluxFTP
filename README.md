@@ -6,9 +6,15 @@ interface inspired by classic file-transfer clients.
 
 **Version: 0.113.0 · License: MIT · Primary platform: Windows x64**
 
-This repository contains source code and tests. A public binary release has not
-been published yet. See [Building from source](docs/BUILDING.md) to run or package
-a development build. Other platforms are experimental.
+Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
+Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.
+Keep `_internal` beside the executable. No Python installation is required.
+The package is unsigned; Windows may display an unknown-publisher warning.
+SHA-256 checksums are provided with each release.
+
+This repository also contains source code and tests. See
+[Building from source](docs/BUILDING.md) to run or package a development build.
+Other platforms are experimental.
 
 ## Features
 

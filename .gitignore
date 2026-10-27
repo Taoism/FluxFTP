@@ -31,7 +31,8 @@ application.ini
 sites.json
 queue.json
 workspaces.json
-credentials*
+credentials.json
+credentials.enc
 cloud.conf
 cloud-accounts.json
 known_hosts
