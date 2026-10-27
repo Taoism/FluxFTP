@@ -31,7 +31,26 @@ Other platforms are experimental.
 
 ## Screenshots
 
-These screenshots use synthetic demonstration paths and contain no live accounts.
+### Main interface — public Windows release
+
+Captured directly from the public **FluxFTP 0.113.0 Windows executable**, using
+temporary default settings. The disconnected workspace shows the two file panes,
+connection controls, logs and transfer queue without exposing saved accounts.
+
+![FluxFTP 0.113.0 main interface from the public Windows build](docs/screenshots/main-interface.png)
+
+<details>
+<summary>Main interface with enlarged display scaling</summary>
+
+The same public executable at 150% display scaling:
+
+![FluxFTP public build main interface at enlarged display scaling](docs/screenshots/main-interface-large-text.png)
+
+</details>
+
+### Feature dialogs
+
+These earlier dialog examples use synthetic demonstration paths and contain no live accounts.
 
 ![Deployment preview with reviewed overwrite and upload actions](docs/screenshots/deployment.png)
 
