@@ -1419,14 +1419,22 @@ class Pane(QWidget):
         selected = self.selected()
         if not selected:
             return
-        message = f"Permanently delete {len(selected)} selected item(s)? Only empty folders can be deleted."
+        message = f"Permanently delete {len(selected)} selected item(s)?"
+        if self.mode == 'Remote':
+            message += " Selected folders and all their contents will be permanently deleted."
+            if any(e.is_link for e in selected):
+                self.window.error('Symbolic links cannot be deleted through this action.')
+                return
+        else:
+            message += " Only empty folders can be deleted."
         if self.mode == 'Local':
             if not self.window.confirm_action('delete_local', 'Delete local files', message):
                 return
         elif self.window.preferences.value("Confirm/delete", True, type=bool) and QMessageBox.question(self, "Delete selected items", message) != QMessageBox.StandardButton.Yes:
             return
         paths = [(self.join(e.name), e.is_dir) for e in selected]
-        self.mutate(lambda c: [c.remove(p, d) for p, d in paths],
+        from .core import remove_remote_items
+        self.mutate(lambda c: remove_remote_items(c, paths),
                     lambda: [Path(p).rmdir() if d else Path(p).unlink() for p, d in paths])
 
 

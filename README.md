@@ -4,7 +4,7 @@ A Windows desktop client for FTP, FTPS, SFTP and cloud storage. FluxFTP combines
 two-pane workspaces, recoverable transfer queues and deployment tools in a Qt
 interface inspired by classic file-transfer clients.
 
-**Version: 0.113.0 · License: MIT · Primary platform: Windows x64**
+**Version: 0.114.0 · License: MIT · Primary platform: Windows x64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.
@@ -15,6 +15,15 @@ SHA-256 checksums are provided with each release.
 This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.
 Other platforms are experimental.
+
+## Changes in 0.114.0
+
+- Retry uploads in Binary mode when a server explicitly rejects the initial ASCII
+  upload. This fixes NFO/SFV uploads in Auto mode and M3U files configured as ASCII,
+  preserving their original bytes. Other permission errors do not trigger fallback.
+- Right-click Delete now removes nonempty remote folders and their contents after
+  the configured confirmation. Deletion scans the selection first and refuses roots,
+  unsafe paths, symbolic links and directory shortcuts. Local folders must still be empty.
 
 ## Features
 

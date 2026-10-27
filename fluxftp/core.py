@@ -108,6 +108,41 @@ class Cancelled(Exception):
     pass
 
 
+class AsciiUploadRejected(ftplib.error_perm):
+    """The server refused STOR before accepting any ASCII payload."""
+
+
+def remove_remote_items(connection, items):
+    """Preflight selected trees, then delete children before their directories."""
+    plan, seen = [], set()
+
+    def visit(path, is_dir, depth=0):
+        path = posixpath.normpath(remote_path(path))
+        if path in ('/', '.', '..') or not path.startswith('/'):
+            raise ValueError('Refusing to delete a remote root or relative path.')
+        if path in seen:
+            return
+        seen.add(path)
+        if depth > 100 or len(seen) > 10000:
+            raise ValueError('Remote deletion exceeds the directory scan limit.')
+        if is_dir:
+            if any(part.startswith('+') for part in path.split('/')):
+                raise ValueError('Remote directory shortcuts cannot be recursively deleted.')
+            for entry in connection.list(path):
+                name = entry.name
+                if not name or name in ('.', '..') or any(c in name for c in '/\\\r\n\x00'):
+                    raise ValueError('Unsafe name in remote deletion listing.')
+                if entry.is_link:
+                    raise ValueError('Remote folder contains a symbolic link; remove it separately first.')
+                visit(posixpath.join(path, name), entry.is_dir, depth + 1)
+        plan.append((path, is_dir))
+
+    for path, is_dir in items:
+        visit(path, is_dir)
+    for path, is_dir in plan:
+        connection.remove(path, is_dir)
+
+
 def safe_name(name):
     if not name or name in (".", "..") or any(c in name for c in "/\\\r\n\x00"):
         raise ValueError(f"Unsafe file name: {name!r}")
@@ -1210,7 +1245,16 @@ class Connection:
                 with local.open("rb") as src:
                     src.seek(offset)
                     if ascii_mode:
-                        self._ascii_upload(src, remote, chunks_sent)
+                        try:
+                            self._ascii_upload(src, remote, chunks_sent)
+                        except AsciiUploadRejected:
+                            if cancel.is_set():
+                                raise Cancelled('Cancelled')
+                            self.trace.event('Server refuses ASCII uploads; retrying this file in Binary mode.')
+                            ascii_mode = False
+                            src.seek(0)
+                            offset = 0
+                            self.ftp.storbinary("STOR " + remote, src, 16384, chunks_sent)
                     else:
                         self.ftp.storbinary("STOR " + remote, src, 16384, chunks_sent, rest=offset if resume else None)
         else:
@@ -1342,7 +1386,15 @@ class Connection:
     def _ascii_upload(self, stream, remote, callback, append=False):
         self.ftp.voidcmd("TYPE A")
         pending = b""
-        with self.ftp.transfercmd(("APPE " if append else "STOR ") + remote) as data:
+        try:
+            data_connection = self.ftp.transfercmd(("APPE " if append else "STOR ") + remote)
+        except ftplib.error_perm as error:
+            message = str(error).casefold()
+            if (not append and message.startswith(('550 ', '553 ')) and 'ascii' in message
+                    and any(word in message for word in ('not allowed', 'not supported', 'disabled', 'forbidden'))):
+                raise AsciiUploadRejected(str(error)) from error
+            raise
+        with data_connection as data:
             while block := stream.read(16384):
                 raw = pending + block
                 pending = b"\r" if raw.endswith(b"\r") else b""

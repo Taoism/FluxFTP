@@ -31,7 +31,7 @@ def servers(tmp_path):
     certfile.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     keyfile.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.TraditionalOpenSSL, serialization.NoEncryption()))
     running = []
-    def start(tls=False, no_mlsd=False, implicit=False, mode_z=False, atomic_rename=False, hash_support=False, fxp_tls=None, stall_retr=False, legacy_replies=False, xdupe=False, extra_account=None):
+    def start(tls=False, no_mlsd=False, implicit=False, mode_z=False, atomic_rename=False, hash_support=False, fxp_tls=None, stall_retr=False, legacy_replies=False, xdupe=False, extra_account=None, reject_ascii_upload=False):
         root = tmp_path / f"root{len(running)}"
         root.mkdir()
         auth = DummyAuthorizer()
@@ -43,6 +43,12 @@ def servers(tmp_path):
             from mode_z_server import compressed_handler
             base = compressed_handler(base)
         class Handler(base):
+            if reject_ascii_upload:
+                def ftp_STOR(self, file, mode='w'):
+                    if self._current_type == 'a':
+                        self.respond('553 Error: upload in ASCII mode is not allowed!')
+                    else:
+                        return super().ftp_STOR(file, mode)
             if xdupe:
                 proto_cmds = dict(base.proto_cmds, **{'SITE XDUPE': dict(perm=None, auth=True, arg=True, help='SITE XDUPE 3')})
                 def ftp_SITE_XDUPE(self, line):
