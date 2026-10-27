@@ -180,7 +180,11 @@ def test_buffered_recovery_preserves_each_sync_fingerprint(window, tmp_path):
     window.discard_queue_jobs(list(window.queue_jobs))
     window.restore_queue_items(saved)
     window.play_queue()
-    wait_idle(window)
+    # This checks durable recovery and contents, not transfer throughput.
+    # Hosted Windows runners can need more than 45 seconds for 270 jobs,
+    # each with queue/history writes. Keep the wait bounded without imposing
+    # a workstation-speed requirement on the shared CI runner.
+    wait_idle(window, timeout=180)
     assert len(list(target.iterdir())) == 270
     assert all(p.read_bytes() == (target / p.name).read_bytes() for p in source.iterdir())
 
