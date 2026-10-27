@@ -100,7 +100,7 @@ def parse_list_entry(line):
         raise ValueError("Unsupported LIST response format. Enable 'Use MLSD if available' or use a server with Unix/DOS listings.")
     if entry.name in (".", ".."):
         return None
-    safe_name(entry.name)
+    safe_remote_name(entry.name)
     return entry
 
 
@@ -143,9 +143,15 @@ def remove_remote_items(connection, items):
         connection.remove(path, is_dir)
 
 
-def safe_name(name):
+def safe_remote_name(name):
+    """Validate one remote path component without imposing Windows disk rules."""
     if not name or name in (".", "..") or any(c in name for c in "/\\\r\n\x00"):
         raise ValueError(f"Unsafe file name: {name!r}")
+    return name
+
+
+def safe_name(name):
+    safe_remote_name(name)
     if os.name == "nt" and (any(c in name for c in '<>:"|?*') or name.endswith((".", " "))
                             or name.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}):
         raise ValueError(f"Unsupported Windows file name: {name!r}")

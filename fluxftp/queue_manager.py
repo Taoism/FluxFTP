@@ -445,7 +445,7 @@ class QueueManager(BufferedQueue):
 
     def clear_finished_download(self, job):
         """Clear successes after reporting, retaining folder totals until it finishes."""
-        if job.get('route') != 'Download' or job.get('state') != 'complete' or job.get('transfer_outcome', 'complete') not in ('complete', 'skipped'):
+        if job.get('route') not in ('Download', 'Upload') or job.get('state') != 'complete' or job.get('transfer_outcome', 'complete') not in ('complete', 'skipped'):
             return
         group = job.get('queue_group')
         if not group:

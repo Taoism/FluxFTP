@@ -4,7 +4,7 @@ A Windows desktop client for FTP, FTPS, SFTP and cloud storage. FluxFTP combines
 two-pane workspaces, recoverable transfer queues and deployment tools in a Qt
 interface inspired by classic file-transfer clients.
 
-**Version: 0.114.0 · License: MIT · Primary platform: Windows x64**
+**Version: 0.116.0 · License: MIT · Primary platform: Windows x64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.
@@ -15,6 +15,16 @@ SHA-256 checksums are provided with each release.
 This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.
 Other platforms are experimental.
+
+## Changes in 0.116.0
+
+- Successful uploads automatically leave the queue after their history is recorded.
+  Completed folder files disappear as they finish; the folder clears when finished.
+  Failed and pending transfers remain available.
+- Includes the 0.115.0 fix for server-generated progress entries such as
+  `[#:::::::::::::]-  9% Complete`: valid remote names no longer fail Windows filename
+  validation during listing and block unrelated uploads. Local filename restrictions
+  and remote path safety checks remain enforced.
 
 ## Changes in 0.114.0
 
