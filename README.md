@@ -12,6 +12,9 @@ Keep `_internal` beside the executable. No Python installation is required.
 The package is unsigned; Windows may display an unknown-publisher warning.
 SHA-256 checksums are provided with each release.
 
+[Browse the complete screenshot gallery](docs/SCREENSHOTS.md) — 101 captures across
+workspaces, connections, transfers, trust, cloud, automation and every settings page.
+
 This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.
 Other platforms are experimental.
@@ -116,37 +119,16 @@ this changes queue display cleanup only and never deletes source/destination fil
 
 ## Screenshots
 
-### Main interface — public Windows release
+The [FluxFTP 0.122.0 gallery](docs/SCREENSHOTS.md) contains 101 screenshots grouped
+into 12 feature areas. They capture the actual application widgets with isolated
+settings and fictional sample data; no personal accounts or credentials are shown.
 
-Captured directly from the public **FluxFTP 0.113.0 Windows executable**, using
-temporary default settings. The disconnected workspace shows the two file panes,
-connection controls, logs and transfer queue without exposing saved accounts.
+[![FluxFTP workspace and transfer queue](docs/screenshots/workspace-workspace-and-transfer-queue.png)](docs/SCREENSHOTS.md)
 
-![FluxFTP 0.113.0 main interface from the public Windows build](docs/screenshots/main-interface.png)
-
-<details>
-<summary>Main interface with enlarged display scaling</summary>
-
-The same public executable at 150% display scaling:
-
-![FluxFTP public build main interface at enlarged display scaling](docs/screenshots/main-interface-large-text.png)
-
-</details>
-
-### Feature dialogs
-
-These earlier dialog examples use synthetic demonstration paths and contain no live accounts.
-
-![Deployment preview with reviewed overwrite and upload actions](docs/screenshots/deployment.png)
-
-<details>
-<summary>Bandwidth settings and deployment profile</summary>
-
-![Shared bandwidth limits and daily schedule](docs/screenshots/bandwidth.png)
-
-![Deployment profile editor](docs/screenshots/deployment-profile.png)
-
-</details>
+Explore [queue and transfer controls](docs/gallery/transfers.md),
+[TLS/SSH trust and diagnostics](docs/gallery/trust-and-diagnostics.md),
+[sync and deployments](docs/gallery/sync-and-deployment.md),
+[automation](docs/gallery/automation.md), or [all Options pages](docs/gallery/options.md).
 
 ## Run from source
 

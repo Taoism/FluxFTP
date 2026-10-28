@@ -1,0 +1,612 @@
+{
+  "version": "0.122.0",
+  "sample_data": true,
+  "screenshots": [
+    {
+      "title": "Workspace and transfer queue",
+      "group": "Workspace",
+      "file": "workspace-workspace-and-transfer-queue.png",
+      "caption": "Sample directory listings and held/failed jobs."
+    },
+    {
+      "title": "Black theme",
+      "group": "Workspace",
+      "file": "workspace-black-theme.png",
+      "caption": "Same demonstration workspace with a different application theme."
+    },
+    {
+      "title": "Dark Grey theme",
+      "group": "Workspace",
+      "file": "workspace-dark-grey-theme.png",
+      "caption": "Same demonstration workspace with a different application theme."
+    },
+    {
+      "title": "Light theme",
+      "group": "Workspace",
+      "file": "workspace-light-theme.png",
+      "caption": "Same demonstration workspace with a different application theme."
+    },
+    {
+      "title": "Midnight theme",
+      "group": "Workspace",
+      "file": "workspace-midnight-theme.png",
+      "caption": "Same demonstration workspace with a different application theme."
+    },
+    {
+      "title": "Queue controls",
+      "group": "Transfers",
+      "file": "transfers-queue-controls.png",
+      "caption": "Hold, pause, resume, stop, retry and queue management commands."
+    },
+    {
+      "title": "Active-transfer controls",
+      "group": "Transfers",
+      "file": "transfers-active-transfer-controls.png",
+      "caption": "Illustrative active state; the worker is not started."
+    },
+    {
+      "title": "File",
+      "group": "Menus",
+      "file": "menus-file.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "Edit",
+      "group": "Menus",
+      "file": "menus-edit.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "Mark",
+      "group": "Menus",
+      "file": "menus-mark.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "View",
+      "group": "Menus",
+      "file": "menus-view.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "FTP",
+      "group": "Menus",
+      "file": "menus-ftp.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "Tools",
+      "group": "Menus",
+      "file": "menus-tools.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "Help",
+      "group": "Menus",
+      "file": "menus-help.png",
+      "caption": "Disabled items are unavailable or unimplemented; their presence is not a feature claim."
+    },
+    {
+      "title": "Queue",
+      "group": "Menus",
+      "file": "menus-queue.png",
+      "caption": ""
+    },
+    {
+      "title": "Commands",
+      "group": "Menus",
+      "file": "menus-commands.png",
+      "caption": ""
+    },
+    {
+      "title": "Compare folders",
+      "group": "Menus",
+      "file": "menus-compare-folders.png",
+      "caption": ""
+    },
+    {
+      "title": "Schedule queued transfers",
+      "group": "Transfers",
+      "file": "transfers-schedule-queued-transfers.png",
+      "caption": ""
+    },
+    {
+      "title": "Conditional transfer",
+      "group": "Transfers",
+      "file": "transfers-conditional-transfer.png",
+      "caption": ""
+    },
+    {
+      "title": "Site Manager",
+      "group": "Connections",
+      "file": "connections-site-manager.png",
+      "caption": ""
+    },
+    {
+      "title": "Import sites",
+      "group": "Connections",
+      "file": "connections-import-sites.png",
+      "caption": ""
+    },
+    {
+      "title": "General",
+      "group": "Site properties",
+      "file": "site-properties-general.png",
+      "caption": ""
+    },
+    {
+      "title": "Bookmark",
+      "group": "Site properties",
+      "file": "site-properties-bookmark.png",
+      "caption": ""
+    },
+    {
+      "title": "URL",
+      "group": "Site properties",
+      "file": "site-properties-url.png",
+      "caption": ""
+    },
+    {
+      "title": "Display",
+      "group": "Site properties",
+      "file": "site-properties-display.png",
+      "caption": ""
+    },
+    {
+      "title": "Connection",
+      "group": "Site properties",
+      "file": "site-properties-connection.png",
+      "caption": ""
+    },
+    {
+      "title": "Account",
+      "group": "Site properties",
+      "file": "site-properties-account.png",
+      "caption": ""
+    },
+    {
+      "title": "Ident",
+      "group": "Site properties",
+      "file": "site-properties-ident.png",
+      "caption": ""
+    },
+    {
+      "title": "Proxy Server",
+      "group": "Site properties",
+      "file": "site-properties-proxy-server.png",
+      "caption": ""
+    },
+    {
+      "title": "List Mode",
+      "group": "Site properties",
+      "file": "site-properties-list-mode.png",
+      "caption": ""
+    },
+    {
+      "title": "SSL",
+      "group": "Site properties",
+      "file": "site-properties-ssl.png",
+      "caption": ""
+    },
+    {
+      "title": "SFTP",
+      "group": "Site properties",
+      "file": "site-properties-sftp.png",
+      "caption": ""
+    },
+    {
+      "title": "Transfer",
+      "group": "Site properties",
+      "file": "site-properties-transfer.png",
+      "caption": ""
+    },
+    {
+      "title": "Skip List",
+      "group": "Site properties",
+      "file": "site-properties-skip-list.png",
+      "caption": ""
+    },
+    {
+      "title": "Priority",
+      "group": "Site properties",
+      "file": "site-properties-priority.png",
+      "caption": ""
+    },
+    {
+      "title": "File Exists",
+      "group": "Site properties",
+      "file": "site-properties-file-exists.png",
+      "caption": ""
+    },
+    {
+      "title": "Notification",
+      "group": "Site properties",
+      "file": "site-properties-notification.png",
+      "caption": ""
+    },
+    {
+      "title": "SCP connection",
+      "group": "Connections",
+      "file": "connections-scp-connection.png",
+      "caption": "Legacy SCP payloads use verified SSH; browsing requires SFTP."
+    },
+    {
+      "title": "TLS certification report",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-tls-certification-report.png",
+      "caption": "Illustrative report, not a live certificate check."
+    },
+    {
+      "title": "SSH trust report",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-ssh-trust-report.png",
+      "caption": "Illustrative SSH report."
+    },
+    {
+      "title": "Connection diagnostics",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-connection-diagnostics.png",
+      "caption": "Illustrative report."
+    },
+    {
+      "title": "Key Manager",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-key-manager.png",
+      "caption": "Sample key metadata; no key is saved."
+    },
+    {
+      "title": "Generate key or certificate",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-generate-key-or-certificate.png",
+      "caption": ""
+    },
+    {
+      "title": "Import key or certificate",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-import-key-or-certificate.png",
+      "caption": ""
+    },
+    {
+      "title": "SSH host fingerprint approval",
+      "group": "Trust and diagnostics",
+      "file": "trust-and-diagnostics-ssh-host-fingerprint-approval.png",
+      "caption": "Disposable demonstration key; no trust is saved."
+    },
+    {
+      "title": "Cloud accounts",
+      "group": "Cloud",
+      "file": "cloud-cloud-accounts.png",
+      "caption": "Illustrative account rows; no linked accounts."
+    },
+    {
+      "title": "Add cloud account",
+      "group": "Cloud",
+      "file": "cloud-add-cloud-account.png",
+      "caption": "Provider setup before authorization."
+    },
+    {
+      "title": "Test cloud access",
+      "group": "Cloud",
+      "file": "cloud-test-cloud-access.png",
+      "caption": "Read-only connection test setup; no test is run."
+    },
+    {
+      "title": "Synchronize folders",
+      "group": "Sync and deployment",
+      "file": "sync-and-deployment-synchronize-folders.png",
+      "caption": ""
+    },
+    {
+      "title": "Deployment profile",
+      "group": "Sync and deployment",
+      "file": "sync-and-deployment-deployment-profile.png",
+      "caption": ""
+    },
+    {
+      "title": "Deployment preview and rollback controls",
+      "group": "Sync and deployment",
+      "file": "sync-and-deployment-deployment-preview-and-rollback-controls.png",
+      "caption": "Illustrative plan; no deployment has run."
+    },
+    {
+      "title": "Watch-and-upload folders",
+      "group": "Sync and deployment",
+      "file": "sync-and-deployment-watch-and-upload-folders.png",
+      "caption": ""
+    },
+    {
+      "title": "Watch rule",
+      "group": "Sync and deployment",
+      "file": "sync-and-deployment-watch-rule.png",
+      "caption": ""
+    },
+    {
+      "title": "Scheduled automation",
+      "group": "Automation",
+      "file": "automation-scheduled-automation.png",
+      "caption": ""
+    },
+    {
+      "title": "Script Designer",
+      "group": "Automation",
+      "file": "automation-script-designer.png",
+      "caption": "Illustrative script step."
+    },
+    {
+      "title": "Script step",
+      "group": "Automation",
+      "file": "automation-script-step.png",
+      "caption": ""
+    },
+    {
+      "title": "Command Designer",
+      "group": "Automation",
+      "file": "automation-command-designer.png",
+      "caption": ""
+    },
+    {
+      "title": "Unified bandwidth management",
+      "group": "Transfers",
+      "file": "transfers-unified-bandwidth-management.png",
+      "caption": ""
+    },
+    {
+      "title": "File conflict choices",
+      "group": "Transfers",
+      "file": "transfers-file-conflict-choices.png",
+      "caption": ""
+    },
+    {
+      "title": "History and verification exports",
+      "group": "Transfers",
+      "file": "transfers-history-and-verification-exports.png",
+      "caption": "Illustrative history; no transfer has run."
+    },
+    {
+      "title": "Queue recovery",
+      "group": "Transfers",
+      "file": "transfers-queue-recovery.png",
+      "caption": ""
+    },
+    {
+      "title": "Search all queued files",
+      "group": "Transfers",
+      "file": "transfers-search-all-queued-files.png",
+      "caption": ""
+    },
+    {
+      "title": "Manual download",
+      "group": "Transfers",
+      "file": "transfers-manual-download.png",
+      "caption": ""
+    },
+    {
+      "title": "TFTP transfer",
+      "group": "Transfers",
+      "file": "transfers-tftp-transfer.png",
+      "caption": ""
+    },
+    {
+      "title": "Remote text editor",
+      "group": "Files",
+      "file": "files-remote-text-editor.png",
+      "caption": "Sample text loaded locally; Save is not used."
+    },
+    {
+      "title": "File association editor",
+      "group": "Files",
+      "file": "files-file-association-editor.png",
+      "caption": ""
+    },
+    {
+      "title": "Active edit sessions",
+      "group": "Files",
+      "file": "files-active-edit-sessions.png",
+      "caption": ""
+    },
+    {
+      "title": "External editor upload review",
+      "group": "Files",
+      "file": "files-external-editor-upload-review.png",
+      "caption": "No external application is launched and no file is uploaded."
+    },
+    {
+      "title": "Setup wizard",
+      "group": "Getting started",
+      "file": "getting-started-setup-wizard.png",
+      "caption": ""
+    },
+    {
+      "title": "Built-in help",
+      "group": "Getting started",
+      "file": "getting-started-built-in-help.png",
+      "caption": ""
+    },
+    {
+      "title": "General",
+      "group": "Options",
+      "file": "options-general.png",
+      "caption": ""
+    },
+    {
+      "title": "SSL",
+      "group": "Options",
+      "file": "options-ssl.png",
+      "caption": ""
+    },
+    {
+      "title": "Sites",
+      "group": "Options",
+      "file": "options-sites.png",
+      "caption": ""
+    },
+    {
+      "title": "Connection",
+      "group": "Options",
+      "file": "options-connection.png",
+      "caption": ""
+    },
+    {
+      "title": "Key Manager",
+      "group": "Options",
+      "file": "options-key-manager.png",
+      "caption": ""
+    },
+    {
+      "title": "Cloud Accounts",
+      "group": "Options",
+      "file": "options-cloud-accounts.png",
+      "caption": ""
+    },
+    {
+      "title": "Ident",
+      "group": "Options",
+      "file": "options-ident.png",
+      "caption": ""
+    },
+    {
+      "title": "Keep Alive",
+      "group": "Options",
+      "file": "options-keep-alive.png",
+      "caption": ""
+    },
+    {
+      "title": "Proxy Server",
+      "group": "Options",
+      "file": "options-proxy-server.png",
+      "caption": ""
+    },
+    {
+      "title": "List Mode",
+      "group": "Options",
+      "file": "options-list-mode.png",
+      "caption": ""
+    },
+    {
+      "title": "Data connection",
+      "group": "Options",
+      "file": "options-data-connection.png",
+      "caption": ""
+    },
+    {
+      "title": "Transfer",
+      "group": "Options",
+      "file": "options-transfer.png",
+      "caption": ""
+    },
+    {
+      "title": "ASCII List",
+      "group": "Options",
+      "file": "options-ascii-list.png",
+      "caption": ""
+    },
+    {
+      "title": "Skip List",
+      "group": "Options",
+      "file": "options-skip-list.png",
+      "caption": ""
+    },
+    {
+      "title": "File Exists",
+      "group": "Options",
+      "file": "options-file-exists.png",
+      "caption": ""
+    },
+    {
+      "title": "Queue",
+      "group": "Options",
+      "file": "options-queue.png",
+      "caption": ""
+    },
+    {
+      "title": "Priority",
+      "group": "Options",
+      "file": "options-priority.png",
+      "caption": ""
+    },
+    {
+      "title": "Compress/Cache",
+      "group": "Options",
+      "file": "options-compress-cache.png",
+      "caption": ""
+    },
+    {
+      "title": "Misc.",
+      "group": "Options",
+      "file": "options-misc.png",
+      "caption": ""
+    },
+    {
+      "title": "Display",
+      "group": "Options",
+      "file": "options-display.png",
+      "caption": ""
+    },
+    {
+      "title": "Sort",
+      "group": "Options",
+      "file": "options-sort.png",
+      "caption": ""
+    },
+    {
+      "title": "Highlights",
+      "group": "Options",
+      "file": "options-highlights.png",
+      "caption": ""
+    },
+    {
+      "title": "Font",
+      "group": "Options",
+      "file": "options-font.png",
+      "caption": ""
+    },
+    {
+      "title": "Color",
+      "group": "Options",
+      "file": "options-color.png",
+      "caption": ""
+    },
+    {
+      "title": "Layout",
+      "group": "Options",
+      "file": "options-layout.png",
+      "caption": ""
+    },
+    {
+      "title": "Themes",
+      "group": "Options",
+      "file": "options-themes.png",
+      "caption": ""
+    },
+    {
+      "title": "Status bar",
+      "group": "Options",
+      "file": "options-status-bar.png",
+      "caption": ""
+    },
+    {
+      "title": "Mouse Action",
+      "group": "Options",
+      "file": "options-mouse-action.png",
+      "caption": ""
+    },
+    {
+      "title": "File Associations",
+      "group": "Options",
+      "file": "options-file-associations.png",
+      "caption": ""
+    },
+    {
+      "title": "Event Notification",
+      "group": "Options",
+      "file": "options-event-notification.png",
+      "caption": ""
+    },
+    {
+      "title": "Confirm",
+      "group": "Options",
+      "file": "options-confirm.png",
+      "caption": ""
+    }
+  ]
+}

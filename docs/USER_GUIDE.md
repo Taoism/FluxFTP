@@ -1,5 +1,7 @@
 # FluxFTP user guide
 
+See the [screenshot gallery](SCREENSHOTS.md) for illustrated feature and settings pages.
+
 ## Connections and diagnostics
 
 Use Tools → Site Manager to save connections. FTP is unencrypted; FTPS and SFTP
