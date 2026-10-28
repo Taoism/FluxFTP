@@ -45,7 +45,7 @@ Run the source-only checks used by the lightweight CI workflow:
 
 ```powershell
 $env:QT_QPA_PLATFORM = 'offscreen'
-.\.venv\Scripts\python.exe -m pytest tests/test_verification_reports.py tests/test_folder_sync.py tests/test_tools_menu.py tests/test_deployments.py -q
+.\.venv\Scripts\python.exe -m pytest tests/test_verification_reports.py tests/test_folder_sync.py tests/test_tools_menu.py tests/test_deployments.py tests/test_trust_service.py tests/test_queue_storage_service.py tests/test_protocol_adapter.py tests/test_job_model.py tests/test_queue_engine.py -q
 ```
 
 For full regression testing, build the cloud backend first:

@@ -111,14 +111,15 @@ def install(window, prepared):
                 if dialog.wasCanceled(): raise Cancelled('Queue operation cancelled')
                 kind, value = next(work)
                 if kind == 'single':
-                    window.restore_queue_items([value])
+                    window.restore_queue_items([value], identities_checked=True)
                 else:
                     first, spool = value
                     group = first.get('queue_group')
                     root = dict(first, directory=True, state='queued', name=group['name'] if group else 'Buffered queue',
                                 crc_job=False, held=False, scheduled_at=None, manual_order=None)
+                    root.pop('job_id', None)  # This is a new summary, not the first file.
                     if group: root.update(src=group['src'], dst=group['dst'])
-                    window.restore_queue_items([root])
+                    window.restore_queue_items([root], identities_checked=True)
                     parent = window.queue_jobs[-1]
                     detach(window.queue, parent['row'])
                     for index in reversed(range(window.queue.topLevelItemCount())):

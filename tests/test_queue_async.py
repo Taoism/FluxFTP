@@ -130,8 +130,8 @@ def test_cancelled_gui_install_rolls_back_partial_rows(window, tmp_path, monkeyp
     prepared = Prepared()
     prepared.singles = [descriptor(tmp_path, name=f'dir{i}', directory=True) for i in range(300)]
     original = window.restore_queue_items
-    def restore(items):
-        original(items)
+    def restore(items, **kwargs):
+        original(items, **kwargs)
         if len(window.queue_jobs) == 3:
             for dialog in window.findChildren(QProgressDialog):
                 if dialog.isVisible(): dialog.cancel()

@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (QFileDialog, QInputDialog, QMessageBox, QDialog, 
     QLineEdit, QSpinBox, QCheckBox, QDialogButtonBox, QLabel, QDateTimeEdit, QMenu, QApplication, QStyle)
 
 from .queue_manager import read_queue
-from .priority_rules import priority_rank
 from .core import Site, Cancelled
 from .queue_tree import selected_rows
 from shiboken6 import isValid
@@ -28,6 +27,15 @@ class QueueMenu(QObject):
         self.actions = {}
         self.cleared = []
         self.add(self.menu, 'Transfer Queue', window.play_queue)
+        self.add(self.menu, 'Pause Queue Between Files', self.pause_queue)
+        self.add(self.menu, 'Pause Selected Transfers', self.pause_selected)
+        self.add(self.menu, 'Resume Selected Transfers', self.resume_selected)
+        self.add(self.menu, 'Pause All Transfers', self.pause_all)
+        self.add(self.menu, 'Stop Selected Transfers', window.cancel_selected)
+        self.add(self.menu, 'Stop All Transfers', window.stop_queue)
+        self.actions['Pause Selected Transfers'].setToolTip('Pause native file payloads at the next checkpoint. Active FXP, cloud and deployment jobs cannot be paused this way.')
+        self.actions['Pause All Transfers'].setToolTip('Hold queued jobs and pause active native file payloads. Active FXP, cloud and deployment jobs continue.')
+        self.actions['Stop All Transfers'].setToolTip('Cancel pending jobs and request cancellation of active transfers; partial files may remain.')
         self.add(self.menu, 'Add the selected to queue', self.add_selected, 'Ctrl+Q')
         self.add(self.menu, 'Conditional Transfer…', self.conditional)
         self.add(self.menu, 'Clear Current Queue Files', self.clear_current)
@@ -108,6 +116,8 @@ class QueueMenu(QObject):
         w = self.window
         menu = QMenu(w.queue)
         menu.addAction(self.actions['Transfer Queue'])
+        for label in ('Pause Queue Between Files', 'Pause Selected Transfers', 'Resume Selected Transfers', 'Pause All Transfers', 'Stop Selected Transfers', 'Stop All Transfers'):
+            menu.addAction(self.actions[label])
         self.actions['Transfer Queue'].setIcon(w.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
         menu.addSeparator()
         menu.addAction(self.actions['Clear Current Queue Files'])
@@ -137,8 +147,6 @@ class QueueMenu(QObject):
         action = menu.addAction('Transfer selected queue', self.transfer_selected)
         action.setEnabled(any(j.get('state') in ('queued', 'failed') and not j.get('editing') and not self.active_job(j) for j in chosen))
         menu.addSeparator()
-        action = menu.addAction('Cancel Selected Transfers', w.cancel_selected)
-        action.setEnabled(any(j.get('state') in ('queued', 'active') for j in chosen))
         action = menu.addAction('Open Source Folder', self.open_source)
         action.setEnabled(len(chosen) == 1 and 'src' in chosen[0])
         for title, field in [('Copy Source Path', 'src'), ('Copy Destination Path', 'dst')]:
@@ -154,6 +162,27 @@ class QueueMenu(QObject):
         jobs = self.selected()
         if len(jobs) == 1 and 'src' in jobs[0]:
             self.window.enter_queue_source(jobs[0])
+
+    def pause_queue(self):
+        if not self.window.paused: self.window.toggle_pause()
+
+    def pause_selected(self):
+        from .transfer_control import pause_jobs
+        pause_jobs(self.window, self.selected())
+        self.update()
+
+    def pause_all(self):
+        self.pause_queue()
+        from .transfer_control import pause_jobs
+        pause_jobs(self.window, self.window.queue_jobs)
+        self.update()
+
+    def resume_selected(self):
+        from .transfer_control import resume_active
+        resume_active(self.window, self.selected())
+        self.transfer_selected()
+        self.window.save_queue_state()
+        self.update()
 
     def transfer_selected(self):
         w = self.window
@@ -216,7 +245,15 @@ class QueueMenu(QObject):
         can_add = bool(source and source[0].selected())
         self.actions['Add the selected to queue'].setEnabled(can_add)
         self.actions['Conditional Transfer…'].setEnabled(can_add)
-        self.actions['Transfer Queue'].setEnabled(any(job.get('state') in ('queued', 'failed') for job in w.queue_jobs))
+        self.actions['Transfer Queue'].setEnabled(any(job.get('state') in ('queued', 'failed') or job.get('held') for job in w.queue_jobs))
+        self.actions['Pause Queue Between Files'].setEnabled(not w.paused)
+        eligible = lambda j: j.get('state') in ('queued', 'active') and not j.get('editing')
+        from .transfer_control import can_pause
+        self.actions['Pause Selected Transfers'].setEnabled(any(can_pause(j) and not j.get('held') for j in selected))
+        self.actions['Resume Selected Transfers'].setEnabled(any(j.get('held') or j.get('state') == 'failed' for j in selected))
+        self.actions['Pause All Transfers'].setEnabled(any(can_pause(j) and not j.get('held') for j in w.queue_jobs))
+        self.actions['Stop Selected Transfers'].setEnabled(any(eligible(j) for j in selected))
+        self.actions['Stop All Transfers'].setEnabled(bool(w.pending or w.active))
         current = [job for job in w.queue_jobs if job['workspace'] is w.tabs.currentWidget()]
         self.actions['Clear Current Queue Files'].setEnabled(bool(current) and not any(
             job.get('state') == 'active' or job.get('editing') or self.active_job(job) for job in current))
@@ -237,8 +274,8 @@ class QueueMenu(QObject):
 
     @staticmethod
     def schedule_key(job, rules):
-        order = job.get('manual_order')
-        return (0, order) if order is not None else (1, priority_rank(job.get('name', job['row'].text(0)), rules))
+        from .queue_engine import schedule_key
+        return schedule_key(job, rules)
 
     def tick(self):
         if getattr(self.window, '_queue_operation_depth', 0) or getattr(self.window, '_queue_commit', False): return
@@ -385,6 +422,7 @@ class QueueMenu(QObject):
         for index, job in self.cleared:
             if not isValid(job['workspace']) or w.tabs.indexOf(job['workspace']) < 0:
                 job['workspace'] = w.tabs.currentWidget()
+            job = w.new_queue_job(job)
             if 'src' in job:
                 job['task'] = w.make_queue_task(job)
             w.queue_jobs.insert(min(index, len(w.queue_jobs)), job)

@@ -19,7 +19,7 @@ def show_sync(window):
         window.error('Wait for both panes to load and connect each remote pane before synchronizing.')
         return
     sites = [replace(p.site, timezone='') if p.mode == 'Remote' else None for p in panes]
-    if all(sites) and not any(s.cloud_account for s in sites) and any(s.protocol == 'SFTP · SSH' for s in sites):
+    if all(sites) and not any(s.cloud_account for s in sites) and any(s.protocol in ('SFTP · SSH', 'SCP · SSH') for s in sites):
         window.error('SFTP server-to-server synchronization requires relay support. Use a local folder as one side.')
         return
     try:

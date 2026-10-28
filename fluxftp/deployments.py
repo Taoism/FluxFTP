@@ -1,4 +1,5 @@
 """Reviewed local-to-remote deployments with durable backups and guarded rollback."""
+from .queue_metadata import validate_profile, validate_job
 from contextlib import contextmanager
 from dataclasses import asdict, replace
 import json
@@ -15,18 +16,6 @@ from .transfer_reliability import digest
 from .watch_upload import excluded
 
 
-def validate_profile(value):
-    required = {'name', 'source', 'site', 'destination', 'excludes', 'verification'}
-    if not isinstance(value, dict) or set(value) != required: raise ValueError('Invalid deployment profile.')
-    if any(not isinstance(value[key], str) or not value[key] or len(value[key]) > 32768 or any(ord(c) < 32 for c in value[key])
-           for key in ('name', 'source', 'site', 'destination')): raise ValueError('Invalid deployment name or location.')
-    if not Path(value['source']).is_absolute(): raise ValueError('Deployment source must be an absolute local folder.')
-    from .automation import remote_path
-    remote_path(value['destination'])
-    if value['verification'] not in ('Checksum readback', 'Size only'): raise ValueError('Invalid deployment verification policy.')
-    if not isinstance(value['excludes'], list) or len(value['excludes']) > 100 or any(not isinstance(p, str) or len(p) > 500 for p in value['excludes']):
-        raise ValueError('Invalid deployment exclusions.')
-    return value
 
 
 def preview(profile, connection, cancel):
@@ -82,26 +71,6 @@ def remote_digest(connection, path, cancel):
         return digest(None, local, 'SHA-256', cancel)
 
 
-def validate_job(value):
-    if not isinstance(value, dict) or set(value) != {'id', 'profile', 'files', 'rollback'}:
-        raise ValueError('Invalid deployment queue metadata.')
-    if not isinstance(value['id'], str) or not re.fullmatch('[0-9a-f]{32}', value['id']): raise ValueError('Invalid deployment revision.')
-    validate_profile(value['profile'])
-    if type(value['rollback']) is not bool or not isinstance(value['files'], list) or not 1 <= len(value['files']) <= 10000:
-        raise ValueError('Invalid deployment file plan.')
-    seen = set()
-    for file in value['files']:
-        if not isinstance(file, dict) or set(file) != {'relative', 'source', 'destination', 'source_sha256'}:
-            raise ValueError('Invalid deployment file metadata.')
-        validate_spec(dict(source_root=value['profile']['source'], destination_root=value['profile']['destination'],
-            relative=file['relative'], source=file['source'], destination=file['destination']))
-        if file['source']['directory'] or (file['destination'] and file['destination']['directory']):
-            raise ValueError('Deployment plans contain files only.')
-        if not isinstance(file['source_sha256'], str) or not re.fullmatch('[0-9a-f]{64}', file['source_sha256']):
-            raise ValueError('Invalid deployment source checksum.')
-        if file['relative'].casefold() in seen: raise ValueError('Duplicate deployment path.')
-        seen.add(file['relative'].casefold())
-    return value
 
 
 def revision_path(window, identity):

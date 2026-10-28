@@ -16,7 +16,7 @@ def test_folder_popup_survives_repeated_native_context_events(window, tmp_path, 
     commands = window.queue_commands
     started = []
     monkeypatch.setattr(window, 'start_next', lambda: started.append(True))
-    expected = ['Transfer Queue', 'Clear Current Queue Files', 'Delete', 'Edit Queue…',
+    expected = ['Transfer Queue', 'Pause Queue Between Files', 'Pause Selected Transfers', 'Resume Selected Transfers', 'Pause All Transfers', 'Stop Selected Transfers', 'Stop All Transfers', 'Clear Current Queue Files', 'Delete', 'Edit Queue…',
         'Move Queues', 'Failed Queue', 'Queue Information…', 'Load Queue from file…',
         'Save Queue to file…', 'Schedule Queue to Task…', 'On Transfer Completed', 'Transfer selected queue']
     seen = []
@@ -27,7 +27,7 @@ def test_folder_popup_survives_repeated_native_context_events(window, tmp_path, 
             if isinstance(popup, QMenu):
                 try:
                     actions = [a for a in popup.actions() if not a.isSeparator()]
-                    seen.append(([a.text() for a in actions[:12]], actions[0].isEnabled()))
+                    seen.append(([a.text() for a in actions[:18]], actions[0].isEnabled()))
                     if attempt == 2:
                         actions[0].trigger()
                 finally:
@@ -57,7 +57,7 @@ def test_context_reference_order_and_safe_states(window):
     job = selected_job(window)
     menu = window.queue_commands.context_menu()
     names = [a.text() for a in menu.actions() if not a.isSeparator()]
-    assert names[:12] == ['Transfer Queue', 'Clear Current Queue Files', 'Delete', 'Edit Queue…',
+    assert names[:18] == ['Transfer Queue', 'Pause Queue Between Files', 'Pause Selected Transfers', 'Resume Selected Transfers', 'Pause All Transfers', 'Stop Selected Transfers', 'Stop All Transfers', 'Clear Current Queue Files', 'Delete', 'Edit Queue…',
         'Move Queues', 'Failed Queue', 'Queue Information…', 'Load Queue from file…',
         'Save Queue to file…', 'Schedule Queue to Task…', 'On Transfer Completed', 'Transfer selected queue']
     assert window.queue_commands.delete_action.shortcut().toString() == 'Del'

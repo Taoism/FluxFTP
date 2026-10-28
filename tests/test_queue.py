@@ -33,6 +33,7 @@ def job_for(window, task, route='Download', name='item'):
     window.queue.addTopLevelItem(row)
     job = dict(row=row, task=task, route=route, workspace=window.tabs.currentWidget(),
                source_site=None, destination_site=None, state='queued', retries=0)
+    job = window.new_queue_job(job)
     window.queue_jobs.append(job)
     window.pending.append(job)
     return job

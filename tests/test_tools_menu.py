@@ -6,7 +6,7 @@ from test_queue import window
 
 def test_tools_reference_and_shortcuts(window, monkeypatch):
     assert [a.text() if not a.isSeparator() else '---' for a in window.tools_menu.actions()] == [
-        'Queue', 'Transfer History…', 'Unified Bandwidth Management…', '---', 'Site Manager…', 'Connection Diagnostics…', 'Add to site manager…', '---', 'Command',
+        'Queue', 'Transfer History…', 'Unified Bandwidth Management…', '---', 'Site Manager…', 'Certification Checker…', 'Connection Diagnostics…', 'Add to site manager…', '---', 'Command',
         'Command Designer…', 'Send Raw Command…', '---', 'Compare folder contents\tCtrl+D',
         'Synchronize Folders…', 'Deployment Profiles…', 'View RAW Directory…', '---', 'Watch-and-upload Folders…', 'Script Designer…', 'Scheduled Automation…', '---', 'Languages', '---',
         'Layout', '---', 'Hotkey Manager…', 'Manual Download from Site…', 'TFTP Transfer…', '---',

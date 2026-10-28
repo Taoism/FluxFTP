@@ -4,7 +4,7 @@ A Windows desktop client for FTP, FTPS, SFTP and cloud storage. FluxFTP combines
 two-pane workspaces, recoverable transfer queues and deployment tools in a Qt
 interface inspired by classic file-transfer clients.
 
-**Version: 0.116.0 · License: MIT · Primary platform: Windows x64**
+**Source version: 0.122.0 · License: MIT · Primary platform: Windows x64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.
@@ -15,6 +15,72 @@ SHA-256 checksums are provided with each release.
 This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.
 Other platforms are experimental.
+
+## Independent trust and queue storage services — 0.122.0
+
+Connections, the Certification Checker and trust prompts now share a Qt-independent
+service for TLS pin scope, certificate validity, SSH fingerprints and known-host
+persistence. TLS pin acceptance changes the live profile only after a successful
+save. Desktop dialogs remain responsible for explicit trust approval.
+
+Queue validation, atomic writes, import checks, disk buffers and snapshot readers
+now run independently of Qt. The desktop captures job state and schedules I/O;
+storage uses plain descriptors and stable job IDs. Existing version-1 recovery
+and exported queue files remain compatible.
+
+## Protocol adapter contract and capabilities — 0.121.0
+
+A shared adapter contract now delegates file operations, payload transfers and
+native checksum queries to existing connection backends. Immutable capabilities
+drive route selection, payload pause, conflict-dialog resume choices and direct
+FXP admission. SCP and cloud do not advertise byte-offset resume; native server
+checksums remain conditional on negotiated extensions. Cloud-managed resumable
+sessions are distinct from byte-offset resume. Holding queued jobs remains
+available for every backend. Connection and trust implementations remain in
+place for incremental migration.
+
+## Queue engine and desktop controller — 0.120.0
+
+A Qt-independent queue engine now owns pending and active work, admission limits,
+priorities, retry budgets and cancellation bookkeeping. The desktop controller
+connects workers, trust dialogs, progress, history and completion actions to that
+engine. Existing controls, concurrency policy and recovery files are preserved.
+Menus and storage share engine-owned state through compatibility properties while
+those modules migrate incrementally.
+
+## Independent transfer job model — 0.119.0
+
+Transfer jobs now have stable IDs and explicit lifecycle states in a Qt-independent
+model. A Qt adapter displays model changes while the existing scheduler continues
+to run transfers. IDs survive retry, queue recovery and clear/restore, including
+disk-buffered files. Importing existing live work assigns distinct IDs. Older
+version-1 queue files remain supported. Scheduler extraction is a later step.
+
+## Completion-marker queue cleanup — 0.118.0
+
+Skipped informational rows such as `( 709M 10F - COMPLETE - Pop 2026 )` now
+belong to the parent folder that discovered them. They remain while that folder
+is queued or has unfinished/failed work, then clear when its parent is removed
+from the queue, including explicit queue removal. Matching uses the existing
+case-insensitive `- COMPLETE -` marker pattern. Ordinary skipped rows and markers
+belonging to other folders remain independent. Transfer logs are retained;
+this changes queue display cleanup only and never deletes source/destination files.
+
+## Changes in 0.117.0
+
+- Tools → Certification Checker reports TLS certificate validity, fingerprints,
+  negotiated security and CA/hostname versus saved-pin trust. SSH reports verified
+  host-key fingerprints; unknown keys are not saved. Reports export to JSON.
+  Revocation and organizational certifications are outside this check.
+- Queue and context-menu controls hold selected jobs, pause native payloads at
+  progress checkpoints, resume selected jobs, or stop selected/all transfers.
+  Queue pause remains between files. Active FXP, cloud and deployment operations
+  cannot be paused mid-operation; queued jobs can still be held.
+- SCP · SSH transfers payloads with legacy SCP over verified SSH. Browsing and
+  metadata require SFTP; the server must also provide scp and a POSIX-compatible
+  shell. Passwords, SSH keys and managed identities are supported. Nested folders
+  use the ordinary queue. SCP does not support byte-offset resume; choose Overwrite
+  or SFTP. Downloads publish only after checked completion.
 
 ## Changes in 0.116.0
 

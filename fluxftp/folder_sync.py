@@ -168,38 +168,7 @@ def compare(left, right, mode='Left → Right', rule='Size and time', tolerance=
     return rows
 
 
-def validate_spec(spec):
-    if not isinstance(spec, dict) or set(spec) - {'source_root', 'destination_root', 'relative', 'source', 'destination', 'operation'} or not {'source_root', 'destination_root', 'relative', 'source', 'destination'} <= set(spec):
-        raise ValueError('Invalid synchronization metadata.')
-    if spec.get('operation', 'copy') not in ('copy', 'delete'):
-        raise ValueError('Invalid synchronization operation.')
-    deleting = spec.get('operation') == 'delete'
-    if deleting and (spec['source'] is not None or not spec['destination'] or spec['destination'].get('directory')):
-        raise ValueError('Mirror deletion must refer to a destination file absent from the source.')
-    for key in ('source_root', 'destination_root', 'relative'):
-        value = spec[key]
-        if not isinstance(value, str) or not value or len(value) > 32768 or any(ord(c) < 32 for c in value):
-            raise ValueError('Invalid synchronization path.')
-    relative = spec['relative']
-    if relative.startswith('/') or '\\' in relative or any(part in ('', '.', '..') for part in relative.split('/')):
-        raise ValueError('Invalid relative synchronization path.')
-    for part in relative.split('/'): safe_name(part)
-    for key in ('source', 'destination'):
-        value = spec[key]
-        if value is None and (key == 'destination' or deleting and key == 'source'): continue
-        if not isinstance(value, dict) or set(value) not in ({'directory', 'link', 'size', 'modified'}, {'directory', 'link', 'size', 'modified', 'hash_algorithm', 'digest'}):
-            raise ValueError('Invalid synchronization fingerprint.')
-        if 'digest' in value:
-            import re
-            lengths = {'SHA-256': 64, 'SHA-1': 40, 'MD5': 32}
-            length = lengths.get(value['hash_algorithm'], 0)
-            if not length or not isinstance(value['digest'], str) or not re.fullmatch('[0-9a-f]{' + str(length) + '}', value['digest']):
-                raise ValueError('Invalid synchronization checksum.')
-        if type(value['directory']) is not bool or value['link'] is not False or type(value['size']) is not int or not 0 <= value['size'] <= 2**63 - 1:
-            raise ValueError('Invalid synchronization file metadata.')
-        if not isinstance(value['modified'], str) or len(value['modified']) > 128:
-            raise ValueError('Invalid synchronization timestamp.')
-    return spec
+from .queue_metadata import validate_spec
 
 
 def lookup(connection, root, relative):

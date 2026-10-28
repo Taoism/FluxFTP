@@ -26,6 +26,12 @@ def checked(cancel):
 
 
 def algorithms(connection):
+    if connection is None: return set(ALGORITHMS)
+    from .protocol_adapter import adapter_for
+    return adapter_for(connection).hash_algorithms()
+
+
+def _backend_algorithms(connection):
     if connection is None:
         return set(ALGORITHMS)
     if getattr(connection, 'is_cloud', False):
@@ -52,7 +58,9 @@ def algorithms(connection):
 
 def digest(connection, path, algorithm, cancel):
     try:
-        return _digest(connection, path, algorithm, cancel)
+        if connection is None: return _digest(connection, path, algorithm, cancel)
+        from .protocol_adapter import adapter_for
+        return adapter_for(connection).digest(path, algorithm, cancel)
     except (OSError, ftplib.Error, ValueError) as error:
         raise ReliabilityError('Hash verification failed: ' + str(error)) from error
 

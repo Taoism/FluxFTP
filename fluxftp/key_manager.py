@@ -50,7 +50,7 @@ class KeyAccess(QObject):
         record = self.store.metadata().get(site.managed_key)
         if record is None:
             raise ValueError('Managed key not found. Select an existing key in site properties.')
-        expected = 'ssh' if site.protocol == PROTOCOLS[3] else 'tls'
+        expected = 'ssh' if site.protocol in (PROTOCOLS[3], 'SCP · SSH') else 'tls'
         if site.protocol == PROTOCOLS[4] or record['kind'] != expected:
             raise ValueError('The selected key is incompatible with this connection protocol.')
         password = ''

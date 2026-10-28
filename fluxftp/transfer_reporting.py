@@ -46,6 +46,9 @@ def update_group(window, row):
     parent.setData(1, PROGRESS_ROLE, percent)
     parent.setData(3, Qt.ItemDataRole.UserRole, [done, total])
     parent.setData(4, Qt.ItemDataRole.UserRole, total)
+    from .queue_tree import JOB_ID_ROLE
+    model_job = getattr(window, 'job_views', {}).get(parent.data(0, JOB_ID_ROLE))
+    if model_job is not None: model_job.model.set('size', total)
     from .transfer_speed import RollingSpeed
     meter = parent.data(0, SPEED_ROLE)
     if meter is None:

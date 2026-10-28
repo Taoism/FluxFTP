@@ -28,11 +28,12 @@ def relay(source, destination, src, dst, cancel, progress, resume=False):
         with tempfile.TemporaryDirectory(prefix='fluxftp-sftp-relay-') as directory:
             local = Path(directory) / 'payload'
             source.transfer_options.check_space(local, total)
-            source.transfer(local, src, False, cancel, lambda done, _: progress(done, total * 2), False)
+            from .protocol_adapter import adapter_for
+            adapter_for(source).transfer(local, src, False, cancel, lambda done, _: progress(done, total * 2), False)
             if cancel.is_set(): raise Cancelled('Cancelled')
             if local.stat().st_size != total or source.size(src) != total:
                 raise OSError('Relay source size changed during download')
-            destination.transfer(local, dst, True, cancel,
+            adapter_for(destination).transfer(local, dst, True, cancel,
                                  lambda done, _: progress(total + done, total * 2), resume)
             if cancel.is_set(): raise Cancelled('Cancelled')
             progress(total * 2, total * 2)

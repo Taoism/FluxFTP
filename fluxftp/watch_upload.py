@@ -1,4 +1,5 @@
 """Persistent, opt-in local folder watches feeding guarded ordinary queue jobs."""
+from .queue_metadata import validate_tag
 import fnmatch
 import json
 import posixpath
@@ -40,16 +41,6 @@ def validate_watch(raw):
     return item
 
 
-def validate_tag(tag):
-    if not isinstance(tag, dict) or set(tag) != {'id', 'relative', 'fingerprint'}:
-        raise ValueError('Invalid watch queue metadata.')
-    from .folder_sync import validate_spec
-    if not isinstance(tag['id'], str) or not tag['id'] or len(tag['id']) > 100:
-        raise ValueError('Invalid watch identity.')
-    validate_spec(dict(source_root='/', destination_root='/', relative=tag['relative'],
-                       source=tag['fingerprint'], destination=None))
-    if tag['fingerprint']['directory']: raise ValueError('Watches queue regular files only.')
-    return tag
 
 
 def stable_candidates(files, observations, acknowledged, now, settle):

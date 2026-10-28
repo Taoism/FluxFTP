@@ -47,8 +47,10 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
         if options.conflict_prompt or action == 'Ask':
             if conflict is None:
                 raise ValueError('This transfer requires a File Exists choice; start it from the queue.')
+            from .protocol_adapter import supports_resume
             action = conflict(dict(src=src, dst=dst, source_size=source_size, target_size=target_size,
-                can_resume=target_size < source_size and not (destination and (options.atomic_upload or getattr(destination, 'is_cloud', False))) and not options.ascii(src)))
+                can_resume=target_size < source_size and not (destination and options.atomic_upload)
+                and not options.ascii(src) and supports_resume(source, destination)))
             if cancel.is_set(): raise Cancelled('Cancelled')
             if action not in ('Auto Resume', 'Auto Skip', 'Auto Rename', 'Auto Overwrite'):
                 raise Cancelled('File conflict cancelled')

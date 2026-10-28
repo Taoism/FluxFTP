@@ -23,6 +23,13 @@ def ssh_server(tmp_path, request):
     transports = []
 
     class Auth(paramiko.ServerInterface):
+        def check_channel_exec_request(self, channel, command):
+            handler = getattr(request.node, 'scp_handler', None)
+            if handler is None:
+                return False
+            threading.Thread(target=handler, args=(channel, command, root), daemon=True).start()
+            return True
+
         def check_auth_publickey(self, username, public_key):
             allowed = root / 'authorized_keys'
             return (paramiko.AUTH_SUCCESSFUL if username == 'user' and allowed.exists()

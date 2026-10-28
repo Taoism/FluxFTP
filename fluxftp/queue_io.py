@@ -1,4 +1,5 @@
 """Worker I/O with GUI-owned snapshots and serialized recovery-file writes."""
+from .queue_storage import StorageSnapshot, import_file
 import json
 from copy import deepcopy
 from dataclasses import asdict
@@ -45,15 +46,12 @@ def background(window, label, function, cancelable=True):
     return result[0] if result else None
 
 
-class Snapshot:
-    def __init__(self, window):
-        self.parts = []
-        self.count = 0
-        self.closed = False
-        deferred = tuple(getattr(window, 'deferred_queue', ()))
+class Snapshot(StorageSnapshot):
+    def __init__(self, window, include_deferred=True):
+        super().__init__()
+        deferred = tuple(getattr(window, 'deferred_queue', ())) if include_deferred else ()
         if deferred:
-            self.parts.append(('items', deferred, None))
-            self.count += len(deferred)
+            self.add_items(deferred)
         keep_failed = window.preferences.value('Queue/keep_failed', True, type=bool)
         try:
             for job in sorted(window.queue_jobs, key=lambda job: bool(job.get('buffered'))):
@@ -67,47 +65,15 @@ class Snapshot:
                         overrides['scheduled_at'] = None
                     if job.get('held'): overrides['held'] = True
                     elif job.get('buffer_release'): overrides['held'] = False
-                    reader = job['buffer'].open_reader()
-                    # Pin this WAL version before the GUI can retire/refill files.
-                    reader.db.execute('BEGIN')
-                    reader.db.execute('SELECT id FROM items LIMIT 1').fetchone()
-                    self.parts.append(('buffer', reader, overrides))
-                    self.count += len(job['buffer'])
+                    self.add_buffer(job['buffer'], overrides)
                 elif 'src' in job and job.get('state') in ('queued', 'active', 'failed'):
                     if job['state'] == 'failed' and not keep_failed: continue
-                    item = {key: job[key] for key in ('src', 'dst', 'name', 'directory', 'resume', 'state')}
-                    item.update(retries=job.get('retries', 0), size=job['row'].data(4, Qt.ItemDataRole.UserRole),
-                        held=job.get('held', False), automatic=job.get('automatic', False),
-                        manual_order=job.get('manual_order'), scheduled_at=job.get('scheduled_at'),
-                        source_side=job.get('source_side', 1), destination_side=job.get('destination_side', 2),
-                        workspace=max(0, window.tabs.indexOf(job['workspace'])),
-                        crc_job=job.get('crc_job', False), crc_attempt=job.get('crc_attempt', 0), crc_root=job.get('crc_root', ''))
-                    for key in ('source_site', 'destination_site'):
-                        item[key] = asdict(job[key]) if job.get(key) else None
-                    for key in ('sync', 'queue_group'):
-                        if job.get(key): item[key] = deepcopy(job[key])
-                    self.parts.append(('items', (item,), None))
-                    self.count += 1
+                    from .queue_job import snapshot
+                    item = deepcopy(snapshot(window, job))
+                    self.add_items((item,))
         except Exception:
             self.close()
             raise
-
-    def __iter__(self):
-        for kind, source, overrides in self.parts:
-            if kind == 'items':
-                yield from source
-            else:
-                for payload, in source.db.execute('SELECT payload FROM items ORDER BY priority,position,id'):
-                    item = json.loads(payload)
-                    item.update(overrides)
-                    yield item
-
-    def close(self):
-        if self.closed: return
-        self.closed = True
-        for kind, source, _ in self.parts:
-            if kind == 'buffer': source.close()
-        self.parts.clear()
 
 
 class QueueWriter(QObject):
@@ -193,31 +159,3 @@ def export(window, path):
         background(window, 'Exporting queue…', lambda worker: write_queue(path, snapshot, worker.cancel))
     finally:
         snapshot.close()
-
-
-def import_file(path, cancel):
-    import os
-    import posixpath
-    from pathlib import Path
-    from .queue_manager import read_queue
-    saved = read_queue(path, cancel)
-    def identity(site):
-        return (site['host'].casefold(), site['port'], site['username'].casefold(), site['protocol'])
-    for item in saved:
-        checked(cancel)
-        for key in ('source', 'destination'):
-            value = item['src' if key == 'source' else 'dst']
-            if item[key + '_site']:
-                if not value.startswith('/') or '..' in value.split('/'):
-                    raise ValueError('Remote queue paths must be absolute without parent-directory segments.')
-            elif not Path(value).is_absolute():
-                raise ValueError('Local queue paths must be absolute.')
-        if not item['source_site'] and not item['destination_site']:
-            src, dst = (os.path.normcase(os.path.abspath(item[key])) for key in ('src', 'dst'))
-            if src == dst or (item['directory'] and dst.startswith(src.rstrip(os.sep) + os.sep)):
-                raise ValueError('Local queue source and destination overlap.')
-        elif item['source_site'] and item['destination_site'] and identity(item['source_site']) == identity(item['destination_site']):
-            src, dst = (posixpath.normpath(item[key]) for key in ('src', 'dst'))
-            if src == dst or (item['directory'] and dst.startswith(src.rstrip('/') + '/')):
-                raise ValueError('Remote queue source and destination overlap.')
-    return saved

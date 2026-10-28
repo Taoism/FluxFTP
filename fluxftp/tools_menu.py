@@ -26,6 +26,8 @@ class ToolsMenu(QObject):
         self.add('Unified Bandwidth Management…', window.bandwidth_control.show)
         self.menu.addSeparator()
         self.add('Site Manager…', window.manage_sites, 'F3', QStyle.StandardPixmap.SP_DirOpenIcon)
+        from .certification import show_certification
+        self.add('Certification Checker…', lambda: show_certification(window))
         from .connection_diagnostics import show_diagnostics
         self.add('Connection Diagnostics…', lambda: show_diagnostics(window))
         self.add('Add to site manager…')

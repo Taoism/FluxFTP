@@ -463,7 +463,7 @@ class SitesDialog(QDialog):
         except RuntimeError as error:
             QMessageBox.warning(self, "Secure password storage unavailable", str(error))
             return
-        if not password and not profile.get('cloud_account') and profile.get('username', '').casefold() != 'anonymous' and not (profile.get('managed_key') and profile.get('protocol') == 'SFTP · SSH'):
+        if not password and not profile.get('cloud_account') and profile.get('username', '').casefold() != 'anonymous' and not (profile.get('managed_key') and profile.get('protocol') in ('SFTP · SSH', 'SCP · SSH')):
             password, accepted = QInputDialog.getText(self, "Test site", f"Password for {profile.get('username', '')}@{profile.get('host', '')}:", QLineEdit.EchoMode.Password)
             if not accepted:
                 return

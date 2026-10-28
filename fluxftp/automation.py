@@ -1,4 +1,5 @@
 """Durable, single-owner automation; scripts are data, never executable Python."""
+from .queue_metadata import remote_path
 import copy
 import json
 import os
@@ -31,12 +32,6 @@ def command_plan(lines):
     return plan
 
 
-def remote_path(value):
-    if not isinstance(value, str) or not value.startswith('/') or re.search(r'[\x00-\x1f\x7f]', value):
-        raise ValueError('Enter an absolute remote path beginning with /.')
-    if '..' in value.split('/'):
-        raise ValueError('Remote paths cannot contain parent-directory segments.')
-    return posixpath.normpath(value)
 
 
 def validate_script(raw):
@@ -116,7 +111,7 @@ def saved_connection(window, name, unattended=True, direction=None):
         site, password = transfer_account(window, site, password, direction)
     if not password and site.username.casefold() == 'anonymous':
         password = window.preferences.value('General/anonymous_email', 'anonymous@fluxftp.local', type=str)
-    if not password and not site.cloud_account and not site.managed_key and site.protocol != PROTOCOLS[3]:
+    if not password and not site.cloud_account and not site.managed_key and site.protocol not in (PROTOCOLS[3], 'SCP · SSH'):
         raise ValueError('Save the site password in Site Manager before testing or scheduling it.')
     connection = window.new_connection(site, password)
     if unattended:

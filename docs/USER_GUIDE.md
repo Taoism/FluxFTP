@@ -63,3 +63,19 @@ They consume local space and remain until manually removed. Keep them for as lon
 as rollback is needed. Deployment and sync profiles are not included in the app's
 configuration-backup exports. Deployments are exclusive within the app's queue,
 but cannot lock out external writers and are not atomic website releases.
+
+## Changes in 0.117.0
+
+- Tools → Certification Checker reports TLS certificate validity, fingerprints,
+  negotiated security and CA/hostname versus saved-pin trust. SSH reports verified
+  host-key fingerprints; unknown keys are not saved. Reports export to JSON.
+  Revocation and organizational certifications are outside this check.
+- Queue and context-menu controls hold selected jobs, pause native payloads at
+  progress checkpoints, resume selected jobs, or stop selected/all transfers.
+  Queue pause remains between files. Active FXP, cloud and deployment operations
+  cannot be paused mid-operation; queued jobs can still be held.
+- SCP · SSH transfers payloads with legacy SCP over verified SSH. Browsing and
+  metadata require SFTP; the server must also provide scp and a POSIX-compatible
+  shell. Passwords, SSH keys and managed identities are supported. Nested folders
+  use the ordinary queue. SCP does not support byte-offset resume; choose Overwrite
+  or SFTP. Downloads publish only after checked completion.

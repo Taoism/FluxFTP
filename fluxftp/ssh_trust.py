@@ -11,53 +11,13 @@ import paramiko
 from PySide6.QtCore import QObject, Signal, Qt, QTimer, QThread
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
 
-_lock = RLock()
+from .trust_service import fingerprint, remember, VerifiedPolicy
 
 
-def fingerprint(key):
-    return 'SHA256:' + base64.b64encode(hashlib.sha256(key.asbytes()).digest()).decode().rstrip('=')
 
 
-def remember(path, host, key):
-    with _lock:
-        path = Path(path)
-        keys = paramiko.HostKeys()
-        if path.exists(): keys.load(str(path))
-        previous = keys.lookup(host)
-        if previous and (key.get_name() not in previous or previous[key.get_name()] != key):
-            raise paramiko.SSHException('The SSH host key changed while confirming trust. Connection refused.')
-        keys.add(host, key.get_name(), key)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        fd, name = tempfile.mkstemp(prefix='.known-hosts-', dir=path.parent)
-        os.close(fd)
-        try:
-            keys.save(name)
-            with open(name, 'r+b') as stream: os.fsync(stream.fileno())
-            os.replace(name, path)
-        finally:
-            if os.path.exists(name): os.unlink(name)
 
 
-class VerifiedPolicy(paramiko.MissingHostKeyPolicy):
-    def __init__(self, path, verify):
-        self.path, self.verify = Path(path), verify
-
-    def missing_host_key(self, client, hostname, key):
-        from .core import Cancelled
-        # Another worker may have confirmed this host since SSHClient loaded it.
-        with _lock:
-            keys = paramiko.HostKeys()
-            if self.path.exists(): keys.load(str(self.path))
-            old = keys.lookup(hostname)
-            if old:
-                if key.get_name() not in old or old[key.get_name()] != key:
-                    raise paramiko.SSHException('SSH host key changed. Connection refused; verify it with the server administrator.')
-                client.get_host_keys().add(hostname, key.get_name(), key)
-                return
-        if not self.verify(hostname, key):
-            raise Cancelled('SSH fingerprint verification cancelled.')
-        remember(self.path, hostname, key)
-        client.get_host_keys().add(hostname, key.get_name(), key)
 
 
 class TrustDialog(QDialog):

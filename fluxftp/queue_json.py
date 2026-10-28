@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from threading import Event
-from .core import Cancelled
+from .connection_model import Cancelled
 
 LIMIT = 256 * 1024 * 1024
 

@@ -49,7 +49,9 @@ def main():
     import shutil
     system32 = Path(os.environ['WINDIR']) / 'System32'
     for name in ('icuuc.dll', 'icu.dll'):
-        shutil.copy2(system32 / name, staged / '_internal' / name)
+        # System DLLs can be read-only; do not copy that flag into generated
+        # staging files, where it prevents PyInstaller from rebuilding.
+        shutil.copyfile(system32 / name, staged / '_internal' / name)
     # Check the actual bundled DLLs, independently of the Python used above.
     import ctypes
     crypto = ctypes.CDLL(str(staged / "_internal" / "libcrypto-3.dll"))

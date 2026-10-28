@@ -1,4 +1,5 @@
 """Durable, credential-free queue descriptions and desktop queue lifecycle."""
+from .queue_storage import read_queue, write_queue
 import json
 import os
 import sqlite3
@@ -24,104 +25,29 @@ class FolderPaused(Exception):
     """Return a streaming folder to the durable queue at a file boundary."""
 
 
-def read_queue(path, cancel=None):
-    from .queue_json import queue_items
-    jobs = []
-    for raw in queue_items(path, cancel):
-        if not isinstance(raw, dict): raise ValueError('Invalid queue job.')
-        item = {}
-        for name in ('source_site', 'destination_site'):
-            value = raw.get(name)
-            if value is not None:
-                site = Site(**value)
-                validate_site(site)
-                value = asdict(site)
-            item[name] = value
-        for name in ('src', 'dst', 'name'):
-            value = raw.get(name)
-            if not isinstance(value, str) or not value or any(ord(c) < 32 for c in value):
-                raise ValueError('Invalid queue path or name.')
-            item[name] = value
-        for name in ('directory', 'resume'):
-            if type(raw.get(name)) is not bool: raise ValueError('Invalid queue flag.')
-            item[name] = raw[name]
-        item['automatic'] = raw.get('automatic', False)
-        if type(item['automatic']) is not bool: raise ValueError('Invalid automatic transfer flag.')
-        group = raw.get('queue_group')
-        if group is not None:
-            if not isinstance(group, dict) or set(group) != {'id', 'name', 'src', 'dst'} or any(
-                not isinstance(value, str) or not value or len(value) > 32768 or any(ord(c) < 32 for c in value)
-                for value in group.values()):
-                raise ValueError('Invalid queue folder group.')
-            item['queue_group'] = group
-        for name in ('workspace', 'retries'):
-            value = raw.get(name, 0)
-            if type(value) is not int or not 0 <= value <= (99 if name == 'workspace' else 999):
-                raise ValueError('Invalid queue counter.')
-            item[name] = value
-        if raw.get('state') not in ('queued', 'active', 'failed'):
-            raise ValueError('Invalid queue state.')
-        item['state'] = raw['state']
-        item['size'] = raw.get('size')
-        if item['size'] is not None and (type(item['size']) is not int or not 0 <= item['size'] <= 2**63 - 1):
-            raise ValueError('Invalid queued file size.')
-        item['held'] = raw.get('held', False)
-        item['manual_order'] = raw.get('manual_order')
-        if item['manual_order'] is not None and (type(item['manual_order']) is not int or not 0 <= item['manual_order'] <= 2**63 - 1):
-            raise ValueError('Invalid manual queue order')
-        item['scheduled_at'] = raw.get('scheduled_at')
-        if item['scheduled_at'] is not None and (type(item['scheduled_at']) is not int or not 0 <= item['scheduled_at'] <= 253402300799):
-            raise ValueError('Invalid scheduled queue time')
-        if type(item['held']) is not bool: raise ValueError('Invalid queue hold flag')
-        for key, default in (('source_side', 1), ('destination_side', 2)):
-            item[key] = raw.get(key, default)
-            if type(item[key]) is not int or item[key] not in (1, 2): raise ValueError('Invalid queue pane side')
-        item['crc_job'] = raw.get('crc_job', False)
-        item['crc_attempt'] = raw.get('crc_attempt', 0)
-        item['crc_root'] = raw.get('crc_root', '')
-        if 'sync' in raw:
-            from .folder_sync import validate_spec
-            item['sync'] = validate_spec(raw['sync'])
-        if 'deployment' in raw:
-            from .deployments import validate_job
-            item['deployment'] = validate_job(raw['deployment'])
-            profile = item['deployment']['profile']
-            if item.get('sync') or item['source_site'] is not None or not item['destination_site'] or not item['directory'] or item['src'] != profile['source'] or item['dst'] != profile['destination']:
-                raise ValueError('Deployment queue endpoints do not match the approved plan.')
-        if 'watch' in raw:
-            from .watch_upload import validate_tag
-            item['watch'] = validate_tag(raw['watch'])
-            if not item.get('sync') or item['sync']['source'] != item['watch']['fingerprint'] or item['sync']['relative'] != item['watch']['relative'] or item['sync'].get('operation', 'copy') != 'copy':
-                raise ValueError('Watch metadata must match the guarded upload.')
-        if type(item['crc_job']) is not bool or type(item['crc_attempt']) is not int or not 0 <= item['crc_attempt'] <= 999 or not isinstance(item['crc_root'], str):
-            raise ValueError('Invalid CRC queue metadata')
-        jobs.append(item)
-    return jobs
 
 
-def write_queue(path, jobs, cancel=None):
-    import tempfile
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, name = tempfile.mkstemp(prefix=path.name + '.', suffix='.tmp', dir=path.parent)
-    temporary = Path(name)
-    try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-            stream.write('{"version": 1, "jobs": [')
-            for index, job in enumerate(jobs):
-                if cancel and cancel.is_set(): raise Cancelled('Queue operation cancelled')
-                if index: stream.write(',')
-                stream.write(json.dumps(job, ensure_ascii=False))
-            stream.write(']}\n')
-            stream.flush()
-            os.fsync(stream.fileno())
-        if cancel and cancel.is_set(): raise Cancelled('Queue operation cancelled')
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 class QueueManager(BufferedQueue):
+    def new_queue_job(self, values, *, fresh=False):
+        from .queue_job import QueueJob
+        values = dict(values)
+        if not hasattr(self, 'job_views'): self.job_views = {}
+        if fresh or values.get('job_id') in self.job_views:
+            values.pop('job_id', None)
+        job = QueueJob(self, values)
+        self.job_views[job.model.job_id] = job
+        return job
+
+    def job_progress(self, job, percent, rate, done, total):
+        from .queue_job import QueueJob
+        if isinstance(job, QueueJob):
+            job.model.set('size', total)
+            job.model.set('progress', (percent, rate, done, total))
+        else:
+            self.transfer_display_progress(job['row'], percent, rate, done, total)
+
     def initialize_queue_storage(self, path=None, defer=False):
         self.deferred_queue = []
         if path is None:
@@ -154,7 +80,9 @@ class QueueManager(BufferedQueue):
             from .queue_recovery import LoadQueueDialog
             LoadQueueDialog(self).exec()
 
-    def restore_queue_items(self, saved):
+    def restore_queue_items(self, saved, *, identities_checked=False):
+        if saved and not identities_checked:
+            saved = self.prepare_job_identities(saved)
         if len(saved) > BUFFER_LIMIT:
             self.restore_large_queue(saved)
             return
@@ -164,9 +92,8 @@ class QueueManager(BufferedQueue):
                 self.add_workspace()
             source = Site(**item['source_site']) if item['source_site'] else None
             destination = Site(**item['destination_site']) if item['destination_site'] else None
-            route = 'FXP' if source and destination else 'Upload' if destination else 'Download' if source else 'Copy'
-            if route == 'FXP' and (source.cloud_account or destination.cloud_account or source.protocol == PROTOCOLS[3] or destination.protocol == PROTOCOLS[3]):
-                route = 'Relay'
+            from .protocol_adapter import transfer_route
+            route = transfer_route(source, destination)
             state = 'failed' if item['state'] == 'failed' else 'queued'
             row = QTreeWidgetItem([item['name'], '0%', '—', '—', '—', item['src'], item['dst'], f'{route} · Restored {state}'])
             self.queue.addTopLevelItem(row)
@@ -176,6 +103,7 @@ class QueueManager(BufferedQueue):
             job = dict(deepcopy(item), row=row, source_site=source, destination_site=destination,
                        workspace=self.tabs.widget(item['workspace']), route=route, state=state,
                        needs_credentials=True, options=transfer_settings(self.preferences, source, destination))
+            job = self.new_queue_job(job)
             job['task'] = self.make_queue_task(job)
             if job.get('watch'): job['suppress_retry'] = True
             if job.get('crc_job'):
@@ -190,6 +118,33 @@ class QueueManager(BufferedQueue):
             self.paused = True
             self.queue_batch_failed = any(j['state'] == 'failed' for j in self.queue_jobs)
             self.log.appendPlainText(f'Restored {len(saved)} unfinished queue item(s), paused. Press Play to continue.')
+
+    def prepare_job_identities(self, saved):
+        """Keep recovery IDs; assign new IDs when importing duplicate live work."""
+        from .job_model import job_id
+        from .queue_io import Snapshot, background, checked
+        from threading import Event
+        snapshot = Snapshot(self, include_deferred=False)
+        live_ids = tuple(getattr(self, 'job_views', {}))
+        def prepare(cancel):
+            used = set(live_ids)
+            for item in snapshot:
+                checked(cancel)
+                if item.get('job_id'): used.add(item['job_id'])
+            result = []
+            for item in saved:
+                checked(cancel)
+                identity = job_id(item.get('job_id'))
+                if identity in used: identity = job_id()
+                used.add(identity)
+                result.append(dict(item, job_id=identity))
+            return result
+        try:
+            if snapshot.count + len(saved) > BUFFER_LIMIT:
+                return background(self, 'Preparing queue identities…', lambda worker: prepare(worker.cancel))
+            return prepare(Event())
+        finally:
+            snapshot.close()
 
     def save_queue_state(self):
         if getattr(self, '_queue_commit', False): return False
@@ -260,23 +215,8 @@ class QueueManager(BufferedQueue):
             if 'src' not in job or job.get('state') not in ('queued', 'active', 'failed'):
                 continue
             if job['state'] == 'failed' and not keep_failed: continue
-            item = {key: job[key] for key in ('src', 'dst', 'name', 'directory', 'resume', 'state')}
-            item['retries'] = job.get('retries', 0)
-            item['size'] = job['row'].data(4, Qt.ItemDataRole.UserRole)
-            item['held'] = job.get('held', False)
-            item['automatic'] = job.get('automatic', False)
-            if job.get('queue_group'): item['queue_group'] = job['queue_group']
-            item['manual_order'] = job.get('manual_order')
-            item['scheduled_at'] = job.get('scheduled_at')
-            item.update(source_side=job.get('source_side', 1), destination_side=job.get('destination_side', 2))
-            item['workspace'] = max(0, self.tabs.indexOf(job['workspace']))
-            item.update(crc_job=job.get('crc_job', False), crc_attempt=job.get('crc_attempt', 0), crc_root=job.get('crc_root', ''))
-            if job.get('sync'): item['sync'] = job['sync']
-            if job.get('watch'): item['watch'] = job['watch']
-            if job.get('deployment'): item['deployment'] = job['deployment']
-            for key in ('source_site', 'destination_site'):
-                item[key] = asdict(job[key]) if job[key] else None
-            yield item
+            from .queue_job import snapshot
+            yield snapshot(self, job)
 
     def make_queue_task(self, job):
         from .queue_prepare import expansion_template, expanded
@@ -384,6 +324,8 @@ class QueueManager(BufferedQueue):
                        name=name, state='queued', retries=0, batch_active=True,
                        queue_group_parent=False,
                        crc_root=parent.get('crc_root') or parent['src'])
+            job['size'] = size
+            job = self.new_queue_job(job, fresh=True)
             job['task'] = self.make_queue_task(job)
             self.queue_jobs.append(job)
             self.pending.append(job)
@@ -460,6 +402,16 @@ class QueueManager(BufferedQueue):
             job['row'].setSelected(False)
             job['row'].setHidden(True)
 
+    def add_skipped_queue_row(self, parent, row):
+        """Tie informational COMPLETE markers to the folder that discovered them."""
+        import re
+        from .queue_tree import MARKER_PARENT_ROLE, MARKER_OWNER_ROLE
+        if parent.get('directory') and re.search(r'-\s*COMPLETE\s*-', row.text(0), re.IGNORECASE):
+            token = parent['row'].data(0, MARKER_PARENT_ROLE) or uuid.uuid4().hex
+            parent['row'].setData(0, MARKER_PARENT_ROLE, token)
+            row.setData(0, MARKER_OWNER_ROLE, token)
+        self.queue.addTopLevelItem(row)
+
     def clear_skipped_folder(self, job):
         if job.get('directory') and job.get('state') == 'complete' and job.get('transfer_outcome') == 'skipped':
             self.discard_queue_jobs([job])
@@ -486,6 +438,7 @@ class QueueManager(BufferedQueue):
                            name=posixpath.basename(error['src']), resume=False, crc_job=True, crc_attempt=0,
                            crc_root=parent.get('crc_root') or (parent['src'] if parent['directory'] else posixpath.dirname(parent['src']) or '/'),
                            options=replace(parent['options'], exists_enabled=False, skip_enabled=False))
+                job = self.new_queue_job(job, fresh=True)
                 self.attach_queue_row(job)
                 row.setData(4, Qt.ItemDataRole.UserRole, parent['row'].data(4, Qt.ItemDataRole.UserRole))
                 row.setData(0, RETRY_ROLE, True)
@@ -519,7 +472,7 @@ class QueueManager(BufferedQueue):
                         except RuntimeError: pass
                     if site.username.casefold() == 'anonymous':
                         password = password or self.preferences.value('General/anonymous_email', 'anonymous@fluxftp.local', type=str)
-                    elif not password and not site.cloud_account and not (site.managed_key and site.protocol == 'SFTP · SSH'):
+                    elif not password and not site.cloud_account and not (site.managed_key and site.protocol in ('SFTP · SSH', 'SCP · SSH')):
                         password, accepted = QInputDialog.getText(self, 'Resume saved queue',
                             f'Password or key passphrase for {site.username}@{site.host}:', QLineEdit.EchoMode.Password)
                         if not accepted: return False
@@ -529,30 +482,14 @@ class QueueManager(BufferedQueue):
         return True
 
     def retry_limit(self, job):
-        route = job['route'].lower() if job['route'] != 'Copy' else 'download'
-        if route == 'relay':
-            route = 'fxp'
-        default = {'upload': 2, 'download': 5, 'fxp': 0}[route]
-        return max(0, min(999, self.preferences.value('Queue/retry_' + route, default, type=int)))
+        return self.queue_engine.retry_limit(job, self.queue_controller.policy())
 
     def retry_job(self, job):
-        if job.get('watch') or job.get('deployment'): return False
-        if job.get('crc_job'): return False
-        if job.get('suppress_retry') or job.get('retries', 0) >= self.retry_limit(job): return False
-        job['retries'] = job.get('retries', 0) + 1
-        job['state'] = 'queued'
-        job['batch_active'] = True
-        job['row'].setText(7, f"{job['route']} · Retry {job['retries']}/{self.retry_limit(job)} queued")
-        self.pending.append(job)
-        return True
+        return self.queue_engine.retry(job, self.queue_controller.policy())
 
     def reset_failed_jobs(self, automatic=False):
         if automatic and not self.preferences.value('Queue/reset_failed', False, type=bool): return
-        for job in self.queue_jobs:
-            if job.get('state') == 'failed':
-                job.update(state='queued', retries=0, crc_attempt=0, suppress_retry=False, batch_active=True)
-                self.pending.append(job)
-                job['row'].setText(7, f"{job['route']} · Queued")
+        self.queue_engine.reset_failed()
 
     def clear_site_queue(self, pane, site, logout=False):
         option = 'clear_logout' if logout else 'clear_switch'

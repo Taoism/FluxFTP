@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from .core import PROTOCOLS, Site
+from .connection_model import PROTOCOLS, Site
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_SITES = 5000
@@ -79,7 +79,7 @@ def validate_site(site):
 
 
 def port_for(protocol):
-    return 22 if protocol == PROTOCOLS[3] else 990 if protocol == PROTOCOLS[2] else 21
+    return 22 if protocol in (PROTOCOLS[3], 'SCP · SSH') else 990 if protocol == PROTOCOLS[2] else 21
 
 
 def merge_sites(existing, imported):
@@ -213,7 +213,7 @@ def urls(text):
             continue
         def parse():
             parsed = urlsplit(line)
-            protocol = {"ftp": PROTOCOLS[4], "ftps": PROTOCOLS[2], "ftpes": PROTOCOLS[0], "sftp": PROTOCOLS[3]}[parsed.scheme.lower()]
+            protocol = {"ftp": PROTOCOLS[4], "ftps": PROTOCOLS[2], "ftpes": PROTOCOLS[0], "scp": "SCP · SSH", "sftp": PROTOCOLS[3]}[parsed.scheme.lower()]
             if parsed.query or parsed.fragment or ";" in parsed.netloc:
                 raise ValueError("Unsupported URL settings")
             host = parsed.hostname or ""
@@ -226,7 +226,7 @@ def urls(text):
 
 def named_protocol(value):
     return {"ftp": PROTOCOLS[4], "ftps": PROTOCOLS[2], "ftpes": PROTOCOLS[0],
-            "sftp": PROTOCOLS[3], "auth tls": PROTOCOLS[0], "auth ssl": PROTOCOLS[1]}[value.strip().lower()]
+            "scp": "SCP · SSH", "sftp": PROTOCOLS[3], "auth tls": PROTOCOLS[0], "auth ssl": PROTOCOLS[1]}[value.strip().lower()]
 
 
 def ftprush(root):

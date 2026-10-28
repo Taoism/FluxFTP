@@ -22,7 +22,7 @@ def transfer_account(window, site, password, direction):
     if site.cloud_account:
         raise ValueError('Alternate transfer logins are for FTP/FTPS and SFTP sites.')
     password = window.get_site_password(data)
-    if not password and not (account.ssh_key or account.managed_key or account.username.casefold() == 'anonymous' or 'SFTP' in account.protocol):
+    if not password and not (account.ssh_key or account.managed_key or account.username.casefold() == 'anonymous' or account.protocol in ('SFTP · SSH', 'SCP · SSH')):
         raise ValueError('Save the alternate account password in Site Manager first.')
     return replace(site, username=account.username, ssh_key=account.ssh_key,
                    managed_key=account.managed_key, cert_file=account.cert_file,

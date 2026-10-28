@@ -73,19 +73,29 @@ class ConfirmOptions:
         self.save_queue_state()
 
     def discard_queue_jobs(self, jobs):
+        from .queue_tree import MARKER_PARENT_ROLE, MARKER_OWNER_ROLE
+        marker_parents = set()
         for job in jobs:
+            token = job['row'].data(0, MARKER_PARENT_ROLE)
+            if token: marker_parents.add(token)
             job['suppress_retry'] = True
             if job in self.pending:
                 self.pending.remove(job)
             if job in self.queue_jobs:
                 self.queue_jobs.remove(job)
             detach(self.queue, job['row'])
+            from .queue_job import QueueJob
+            if isinstance(job, QueueJob):
+                self.job_views.pop(job.model.job_id, None)
+                job.view.close()
         from .queue_tree import GROUP_ROLE
         from .transfer_reporting import update_group
         owned = {id(job['row']) for job in self.queue_jobs}
         for i in reversed(range(self.queue.topLevelItemCount())):
             row = self.queue.topLevelItem(i)
-            if row.data(0, GROUP_ROLE) and not row.childCount() and id(row) not in owned:
+            if row.data(0, MARKER_OWNER_ROLE) in marker_parents and id(row) not in owned:
+                detach(self.queue, row)
+            elif row.data(0, GROUP_ROLE) and not row.childCount() and id(row) not in owned:
                 detach(self.queue, row)
             elif row.data(0, GROUP_ROLE):
                 update_group(self, row)

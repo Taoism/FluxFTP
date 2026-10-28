@@ -27,53 +27,9 @@ from .xdupe import guard as xdupe_guard
 from .verification_reports import tracked_file
 
 
+from .trust_service import PinnedCertificateChanged, CertificateTrustRequired, _site_pin_applies, _verify_tls_pin, tls_context
 from .cloud import CLOUD_PROTOCOLS
-PROTOCOLS = ["FTPS · AUTH TLS", "FTPS · AUTH SSL", "FTPS · Implicit TLS", "SFTP · SSH", "FTP · Unencrypted", *CLOUD_PROTOCOLS]
-
-
-@dataclass
-class Site:
-    name: str = "New site"
-    host: str = ""
-    port: int = 21
-    protocol: str = PROTOCOLS[0]
-    username: str = "anonymous"
-    root: str = "/"
-    ca_file: str = ""
-    cert_file: str = ""
-    cert_key: str = ""
-    ssh_key: str = ""
-    managed_key: str = ""
-    cloud_account: str = ""
-    known_hosts: str = ""
-    passive: bool = True
-    tls_cert_sha256: str = ""
-    tls_pin_host: str = ""
-    tls_pin_port: int = 0
-    tls_pin_protocol: str = ""
-    description: str = ""
-    force_utf8: bool = False
-    utf8_username: bool = True
-    use_masq: bool | None = None
-    timezone: str = ""
-    single_connection: bool = False
-    max_transfers_total: int = 6
-    max_downloads: int = 6
-    max_uploads: int = 6
-    local_path: str = ""
-    site_options: str = "{}"
-
-
-@dataclass
-class Entry:
-    name: str
-    is_dir: bool
-    size: int = 0
-    modified: str = ""
-    is_link: bool = False
-    attributes: str = ""
-    user: str = ""
-    group: str = ""
+from .connection_model import PROTOCOLS, Site, Entry, Cancelled, safe_remote_name, safe_name, normalize_host
 
 
 def parse_list_entry(line):
@@ -102,10 +58,6 @@ def parse_list_entry(line):
         return None
     safe_remote_name(entry.name)
     return entry
-
-
-class Cancelled(Exception):
-    pass
 
 
 class AsciiUploadRejected(ftplib.error_perm):
@@ -141,51 +93,6 @@ def remove_remote_items(connection, items):
         visit(path, is_dir)
     for path, is_dir in plan:
         connection.remove(path, is_dir)
-
-
-def safe_remote_name(name):
-    """Validate one remote path component without imposing Windows disk rules."""
-    if not name or name in (".", "..") or any(c in name for c in "/\\\r\n\x00"):
-        raise ValueError(f"Unsafe file name: {name!r}")
-    return name
-
-
-def safe_name(name):
-    safe_remote_name(name)
-    if os.name == "nt" and (any(c in name for c in '<>:"|?*') or name.endswith((".", " "))
-                            or name.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}):
-        raise ValueError(f"Unsupported Windows file name: {name!r}")
-    return name
-
-
-def normalize_host(host):
-    """Resolve legacy hexadecimal IPv4 host values to standard dotted notation."""
-    value = host.strip()
-    match = re.fullmatch(r"0[xX]([0-9a-fA-F]{1,8})", value)
-    if not match:
-        return value
-    return str(ipaddress.IPv4Address(int(match.group(1), 16)))
-
-
-class PinnedCertificateChanged(ssl.SSLError):
-    """A previously accepted server pin no longer matches the peer certificate."""
-
-
-class CertificateTrustRequired(ssl.SSLCertVerificationError):
-    """A verified TLS connection failed; UI may offer explicit per-site pinning."""
-
-    def __init__(self, site, certificate_der, verification_error):
-        self.site = site
-        self.certificate_der = certificate_der
-        self.fingerprint = hashlib.sha256(certificate_der).hexdigest()
-        self.previous_fingerprint = getattr(verification_error, "previous_fingerprint", "")
-        self.verify_code = getattr(verification_error, "verify_code", None)
-        self.verify_message = getattr(verification_error, "verify_message", str(verification_error))
-        try:
-            self.certificate = x509.load_der_x509_certificate(certificate_der)
-        except ValueError:
-            self.certificate = None
-        super().__init__(self.verify_code or 0, self.verify_message or "certificate is not trusted")
 
 
 def remote_path(path):
@@ -657,31 +564,6 @@ def _fetch_ftps_certificate(site, host, timeout, proxy, source_address):
             pass
 
 
-def _site_pin_applies(site, host):
-    return bool(site.tls_cert_sha256 and
-                site.tls_pin_host == host and
-                int(site.tls_pin_port or 0) == int(site.port) and
-                site.tls_pin_protocol == site.protocol)
-
-
-def _verify_tls_pin(sock, expected_fingerprint):
-    if not expected_fingerprint:
-        return
-    certificate_der = sock.getpeercert(binary_form=True)
-    actual = hashlib.sha256(certificate_der or b"").hexdigest()
-    if not hmac.compare_digest(actual.casefold(), expected_fingerprint.replace(":", "").casefold()):
-        error = PinnedCertificateChanged("The FTPS server certificate changed after it was trusted for this site")
-        error.previous_fingerprint = expected_fingerprint
-        raise error
-    try:
-        cert = x509.load_der_x509_certificate(certificate_der)
-        now = datetime.now(timezone.utc)
-        if cert.not_valid_before_utc > now or cert.not_valid_after_utc < now:
-            raise ssl.SSLError("The trusted FTPS server certificate is outside its validity period")
-    except ValueError as error:
-        raise ssl.SSLError("The trusted FTPS server certificate could not be parsed") from error
-
-
 class Connection:
     def __init__(self, site: Site, password="", connect_timeout=30, command_timeout=30,
                  list_mode="Automatic (MLSD, then LIST)", max_retries=0, retry_delay=0,
@@ -805,16 +687,16 @@ class Connection:
                 raise ValueError('This connection requires access to the managed key vault.')
             identity = self.identity_loader(self.site)
             self.trace.event('Managed client identity loaded from Key Manager')
-            expected = 'ssh' if self.site.protocol == PROTOCOLS[3] else 'tls'
+            expected = 'ssh' if self.site.protocol in (PROTOCOLS[3], 'SCP · SSH') else 'tls'
             if self.site.protocol == PROTOCOLS[4] or identity[0]['kind'] != expected:
                 raise ValueError('Managed key does not match the selected protocol.')
         s = self.site
-        if self.proxy and s.protocol != PROTOCOLS[3] and not s.passive and not self.proxy_force_passive:
+        if self.proxy and s.protocol not in (PROTOCOLS[3], 'SCP · SSH') and not s.passive and not self.proxy_force_passive:
             raise ValueError("Active FTP through a proxy is not supported. Enable 'Use passive mode when using proxy' or select passive mode for this site.")
         host = normalize_host(s.host)
         if s.protocol not in PROTOCOLS:
             raise ValueError("Unsupported protocol")
-        if s.protocol == PROTOCOLS[3]:
+        if s.protocol in (PROTOCOLS[3], 'SCP · SSH'):
             import paramiko
             self.phase = "SSH host-key configuration"
             self.trace.event(f"SSH configuration: known_hosts={s.known_hosts or 'system default'}; key_file={s.ssh_key or 'agent/default keys'}")
@@ -822,7 +704,7 @@ class Connection:
             self.ssh.load_system_host_keys()
             self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
             if self.ssh_trust is not None:
-                from .ssh_trust import VerifiedPolicy
+                from .trust_service import VerifiedPolicy
                 if self.ssh_trust.path.exists():
                     self.ssh.load_host_keys(str(self.ssh_trust.path))
                 self.ssh.set_missing_host_key_policy(VerifiedPolicy(self.ssh_trust.path, self.ssh_trust.verify))
@@ -849,7 +731,12 @@ class Connection:
                 socket_to_target.close()
                 raise
             self.phase = "opening SFTP subsystem"
-            self.sftp = self.ssh.open_sftp()
+            try:
+                self.sftp = self.ssh.open_sftp()
+            except Exception as error:
+                if s.protocol == 'SCP · SSH':
+                    raise ValueError('SCP mode requires SFTP for browsing and metadata, plus the remote scp command for payloads.') from error
+                raise
             self.sftp.get_channel().settimeout(self.command_timeout)
             self.security = "SSH · verified host key"
             self.trace.event(f"SFTP connected: cipher={self.ssh.get_transport().remote_cipher}; host key verified")
@@ -863,15 +750,7 @@ class Connection:
         else:
             self.phase = "loading TLS trust / local certificate files"
             self.trace.event(f"TLS configuration: minimum=TLS1.2; hostname_check=True; verify=CERT_REQUIRED; ca_file={s.ca_file or 'system default'}; client_certificate={s.cert_file or 'none'}; private_key_file={s.cert_key or 'none/separate key not selected'}")
-            pin = s.tls_cert_sha256 if _site_pin_applies(s, host) else ""
-            if pin:
-                ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-            else:
-                ctx = ssl.create_default_context(cafile=s.ca_file or None)
-                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+            ctx, pin = tls_context(s, host)
             if identity:
                 from .key_store import load_tls_identity
                 load_tls_identity(ctx, *identity)
@@ -1219,6 +1098,9 @@ class Connection:
         self.phase = "upload" if upload else "download"
         self.trace.event(f"Transfer start: direction={self.phase}; local={local}; remote={remote}; resume={resume}")
         local, remote = Path(local), remote_path(remote)
+        if self.site.protocol == 'SCP · SSH':
+            from .scp import transfer as scp_transfer
+            return scp_transfer(self, local, remote, upload, cancel, progress, resume, limiter)
         if ascii_mode and resume:
             return self._resume_ascii(local, remote, upload, cancel, progress, limiter, verification_limiter)
         if upload:
@@ -1476,21 +1358,27 @@ def transfer_tree(source, destination, src, dst, is_dir, cancel, progress, resum
             from .transfer_reliability import transfer
             return transfer(source, destination, src, dst, cancel, progress, resume, options, notice)
         if source and destination:
-            if getattr(source, 'is_cloud', False) or getattr(destination, 'is_cloud', False):
+            from .protocol_adapter import connection_capabilities
+            source_caps, destination_caps = connection_capabilities(source), connection_capabilities(destination)
+            if 'cloud' in (source_caps.backend, destination_caps.backend):
                 from .cloud_connection import relay
                 # Object stores do not support appending at an arbitrary byte offset.
                 if resume and any(e.name == posixpath.basename(dst) for e in destination.list(posixpath.dirname(dst) or '/')):
                     raise ValueError('Cloud relay cannot resume an existing destination; choose overwrite or enable resume-failure overwrite.')
                 relay(source, destination, src, dst, cancel, progress, resume=False)
-            elif getattr(source, 'sftp', None) or getattr(destination, 'sftp', None):
+            elif source_caps.direct_fxp and destination_caps.direct_fxp:
+                fxp(source, destination, src, dst, resume=resume, cancel=cancel, progress=progress)
+            elif 'unknown' not in (source_caps.backend, destination_caps.backend):
                 from .remote_relay import relay
                 relay(source, destination, src, dst, cancel, progress, resume)
             else:
-                fxp(source, destination, src, dst, resume=resume, cancel=cancel, progress=progress)
+                raise ValueError('The selected backend has no remote-to-remote transfer adapter.')
         elif destination:
-            destination.transfer(src, dst, True, cancel, progress, resume)
+            from .protocol_adapter import adapter_for
+            adapter_for(destination).transfer(src, dst, True, cancel, progress, resume)
         elif source:
-            source.transfer(dst, src, False, cancel, progress, resume)
+            from .protocol_adapter import adapter_for
+            adapter_for(source).transfer(dst, src, False, cancel, progress, resume)
         else:
             source_path, destination_path = Path(src), Path(dst)
             if source_path.resolve() == destination_path.resolve():
@@ -1629,6 +1517,9 @@ def verify_sfv(manifest):
 
 def fxp(source: Connection, destination: Connection, src, dst, resume=False, cancel=None, progress=None):
     """Cancel blocked control reads by shutting down owned transfer connections."""
+    from .protocol_adapter import connection_capabilities
+    if not all(connection_capabilities(connection).direct_fxp for connection in (source, destination)):
+        raise ValueError('FXP requires two FTP/FTPS connections.')
     from threading import Thread
     cancel = cancel or Event()
     finished = Event()
@@ -1746,4 +1637,3 @@ def _fxp(source: Connection, destination: Connection, src, dst, resume=False):
                 pass
     if not ascii_mode and destination.size(dst) != expected:
         raise IOError("FXP destination size does not match the source")
-

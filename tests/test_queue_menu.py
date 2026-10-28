@@ -27,7 +27,7 @@ def test_queue_menu_order_shortcuts_and_focus_conflict(window, tmp_path):
     left, right, source, target = queued_files(window, tmp_path)
     menu = window.queue_commands
     assert [a.text() if not a.isSeparator() else '---' for a in menu.menu.actions()] == [
-        'Transfer Queue', 'Add the selected to queue', 'Conditional Transfer…', 'Clear Current Queue Files', 'Move Queues',
+        'Transfer Queue', 'Pause Queue Between Files', 'Pause Selected Transfers', 'Resume Selected Transfers', 'Pause All Transfers', 'Stop Selected Transfers', 'Stop All Transfers', 'Add the selected to queue', 'Conditional Transfer…', 'Clear Current Queue Files', 'Move Queues',
         '---', 'Edit Queue…', 'Failed Queue', 'Queue Information…', '---', 'Restore Queue…',
         'Load Queue from file…', 'Save Queue to file…', 'Schedule Queue to Task…', '---', 'Limit Upload Speed', 'Limit Download Speed']
     assert [a.shortcut().toString() for a in menu.move_menu.actions()] == ['Ctrl+U', 'Ctrl+Y', 'Ctrl+O', 'Ctrl+M']

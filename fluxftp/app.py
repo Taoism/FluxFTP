@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QAbstractItemView, QTabWidget, QPlainTextEdit, QMessageBox, QInputDialog, QToolBar, QToolButton, QMenu, QStyle, QStackedWidget, QGroupBox, QGridLayout, QScrollArea)
 
 from .core import Site, Entry, Connection, PROTOCOLS, Cancelled, CertificateTrustRequired, normalize_host, safe_name, transfer_tree, verify_sfv, bypass_proxy
+from .cloud import CLOUD_PROTOCOLS
 from .site_import import validate_site
 from .site_manager import SitesDialog
 from .preferences import PreferencesDialog
@@ -32,7 +33,6 @@ from .ident import IdentService
 from .transfer_options import TransferOptions, RateLimiter
 from .site_options import SiteSettings, transfer_settings, decode as site_options
 from .queue_manager import QueueManager
-from .priority_rules import DEFAULT_RULES, priority_rank
 from .display_options import DisplayOptions, AddressBar
 from .sort_options import sorted_entries
 from .color_options import ColorOptions
@@ -49,8 +49,6 @@ from .ftp_menu import FTPMenu
 from .directory_cache import DirectoryCache
 from .browse_session import BrowseSession
 from .queue_tree import QueueTree, selected_rows
-from .queue_tree import STATE_ROLE
-from .transfer_reporting import finish as report_transfer, update_group, append as append_transfer_log
 from .queue_menu import QueueMenu
 from .compare_menu import CompareMenu, RESULT_ROLE
 from .command_menu import CommandMenu
@@ -104,6 +102,7 @@ def human(n):
 
 
 class Worker(QThread):
+    pause_changed = Signal(bool)
     result = Signal(object)
     failed = Signal(object)
     file_started = Signal(str, str)
@@ -113,6 +112,8 @@ class Worker(QThread):
         super().__init__(parent)
         self.function = function
         self.cancel = Event()
+        from .transfer_control import TransferControl
+        self.transfer_control = TransferControl()
         self.last = 0.0
         self.started_at = time.monotonic()
         self.stream_speed = None
@@ -128,6 +129,7 @@ class Worker(QThread):
         self.last = 0
 
     def report(self, done, total):
+        self.transfer_control.checkpoint(self.cancel, self.pause_changed.emit)
         now = time.monotonic()
         if now - self.last > .15 or done == total:
             self.last = now
@@ -370,7 +372,7 @@ class SiteDialog(QDialog):
         self.cloud_button.clicked.connect(self.manage_cloud_accounts)
         grid.addWidget(self.cloud_button, 10, 3)
         for control in (self.cloud_label, self.cloud_account, self.cloud_button):
-            control.setVisible(self.protocol.currentIndex() >= 5)
+            control.setVisible(self.protocol.currentText() in CLOUD_PROTOCOLS)
         self.cloud_hidden_controls = []
         for row in (1, 3, 4, 5, 6, 7, 8, 9):
             for column in range(4):
@@ -416,11 +418,11 @@ class SiteDialog(QDialog):
         return page
 
     def _update_url_preview(self, *_):
-        if self.protocol.currentIndex() >= 5:
+        if self.protocol.currentText() in CLOUD_PROTOCOLS:
             self.url_preview.setText('Cloud account — provider authorization is managed in Cloud Accounts.')
             return
         from urllib.parse import quote
-        schemes = {PROTOCOLS[0]: "ftp", PROTOCOLS[1]: "ftps", PROTOCOLS[2]: "ftps", PROTOCOLS[3]: "sftp", PROTOCOLS[4]: "ftp"}
+        schemes = {PROTOCOLS[0]: "ftp", PROTOCOLS[1]: "ftps", PROTOCOLS[2]: "ftps", PROTOCOLS[3]: "sftp", PROTOCOLS[4]: "ftp", "SCP · SSH": "scp"}
         user = quote(self.fields["username"].text().strip(), safe="")
         host = self.fields["host"].text().strip()
         if ":" in host and not host.startswith("["):
@@ -485,7 +487,7 @@ class SiteDialog(QDialog):
 
     @staticmethod
     def _default_port(index):
-        return 443 if index >= 5 else 22 if index == 3 else 990 if index == 2 else 21
+        return 22 if PROTOCOLS[index] in (PROTOCOLS[3], 'SCP · SSH') else 443 if PROTOCOLS[index] in CLOUD_PROTOCOLS else 990 if index == 2 else 21
 
     def _port_changed(self, _value):
         if not self._updating_port:
@@ -502,7 +504,7 @@ class SiteDialog(QDialog):
             self._updating_port = False
         self._last_protocol_index = index
         if hasattr(self, 'cloud_button'):
-            is_cloud = index >= 5
+            is_cloud = PROTOCOLS[index] in CLOUD_PROTOCOLS
             for control in (self.cloud_account, self.cloud_label, self.cloud_button):
                 control.setVisible(is_cloud)
             for control in (self.fields['host'], self.fields['username'], self.password, self.port, self.passive, self.managed_key):
@@ -514,7 +516,7 @@ class SiteDialog(QDialog):
                     self._nav_items[name].setDisabled(is_cloud)
             if hasattr(self, 'site_security_note'):
                 self.site_security_note.setText('Choose an authorized cloud account. Remote Path selects the folder, bucket or container to open.' if is_cloud else
-                    'TLS 1.2+ with certificate verification · SSH host keys must be trusted · passwords are stored in the encrypted vault')
+                    'SCP payloads require a remote scp command; browsing uses SFTP. Byte-offset resume is unavailable.' if PROTOCOLS[index] == 'SCP · SSH' else 'TLS 1.2+ with certificate verification · SSH host keys must be trusted · passwords are stored in the encrypted vault')
         if hasattr(self, "url_preview"):
             self._update_url_preview()
 
@@ -622,7 +624,7 @@ class SiteDialog(QDialog):
         if not owner.ensure_proxy_credentials(self, site.host, site):
             return
         password = self.password.text()
-        if not password and site.username.casefold() != "anonymous" and not site.cloud_account and not (site.managed_key and site.protocol == PROTOCOLS[3]):
+        if not password and site.username.casefold() != "anonymous" and not site.cloud_account and not (site.managed_key and site.protocol in (PROTOCOLS[3], 'SCP · SSH')):
             password, accepted = QInputDialog.getText(self, "Test site", f"Password for {site.username}@{site.host}:", QLineEdit.EchoMode.Password)
             if not accepted:
                 return
@@ -648,7 +650,7 @@ class SiteDialog(QDialog):
                 record = self.key_owner().key_access.store.metadata().get(site.managed_key)
                 if record is None:
                     raise ValueError('The selected managed key is missing.')
-                if record['kind'] != ('ssh' if site.protocol == PROTOCOLS[3] else 'tls'):
+                if record['kind'] != ('ssh' if site.protocol in (PROTOCOLS[3], 'SCP · SSH') else 'tls'):
                     raise ValueError('Choose an SSH key for SFTP or an X.509 certificate for FTPS.')
         except (ValueError, RuntimeError, OSError) as e:
             QMessageBox.warning(self, "Invalid site", str(e))
@@ -662,15 +664,15 @@ class SiteDialog(QDialog):
 
     def site(self):
         values = {key: field.text().strip() for key, field in self.fields.items()}
-        cloud_id = self.cloud_account.currentData() if self.protocol.currentIndex() >= 5 else ''
-        if self.protocol.currentIndex() >= 5:
+        cloud_id = self.cloud_account.currentData() if self.protocol.currentText() in CLOUD_PROTOCOLS else ''
+        if self.protocol.currentText() in CLOUD_PROTOCOLS:
             values['host'] = 'cloud-' + (cloud_id or 'unconfigured')
             values['username'] = ''
             values['name'] = values['name'] or (self.cloud_account.currentText() if cloud_id else '')
         values["name"] = values["name"] or values["host"]
         values["root"] = values["root"] or "/"
         return Site(**values, protocol=self.protocol.currentText(), port=self.port.value(), passive=self.passive.isChecked(),
-                    managed_key='' if self.protocol.currentIndex() >= 5 else self.managed_key.currentData() or '',
+                    managed_key='' if self.protocol.currentText() in CLOUD_PROTOCOLS else self.managed_key.currentData() or '',
                     cloud_account=cloud_id or '', site_options=self.property_editor.dump(),
                     tls_cert_sha256=self.tls_cert_sha256, tls_pin_host=self.tls_pin_host,
                     tls_pin_port=self.tls_pin_port, tls_pin_protocol=self.tls_pin_protocol,
@@ -1076,7 +1078,7 @@ class Pane(QWidget):
         except RuntimeError as error:
             QMessageBox.warning(self, "Secure password storage unavailable", str(error))
             password = ""
-        if not password and not site.cloud_account and not (site.managed_key and site.protocol == PROTOCOLS[3]):
+        if not password and not site.cloud_account and not (site.managed_key and site.protocol in (PROTOCOLS[3], 'SCP · SSH')):
             password, accepted = QInputDialog.getText(
                 self, "Connect to site", f"Password or key passphrase for {site.username}@{site.host}:",
                 QLineEdit.EchoMode.Password)
@@ -1293,7 +1295,7 @@ class Pane(QWidget):
         if hasattr(self.window, "compare_commands"):
             self.window.compare_commands.clear(self)
         show_hidden = self.window.preferences.value("Display/local_show_hidden" if self.mode == "Local" else "Display/show_hidden", False if self.mode == "Local" else True, type=bool)
-        if self.mode == "Remote" and self.site and self.site.protocol != PROTOCOLS[3]:
+        if self.mode == "Remote" and self.site and self.site.protocol not in (PROTOCOLS[3], 'SCP · SSH'):
             if self.window.preferences.value("Connection/list_mode", "Default (LIST)", type=str) in ("Show Hidden Files", "Custom"):
                 show_hidden = True
         if not show_hidden:
@@ -1439,6 +1441,47 @@ class Pane(QWidget):
 
 
 class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmOptions, FileMenu, Workspaces, QMainWindow, QueueManager):
+    # Compatibility properties keep existing menus/storage on engine-owned state.
+    @property
+    def queue_jobs(self):
+        return self.queue_engine.jobs
+
+    @queue_jobs.setter
+    def queue_jobs(self, value):
+        self.queue_engine.jobs = value
+
+    @property
+    def pending(self):
+        return self.queue_engine.pending
+
+    @pending.setter
+    def pending(self, value):
+        self.queue_engine.pending = value
+
+    @property
+    def active(self):
+        return self.queue_engine.active
+
+    @active.setter
+    def active(self, value):
+        self.queue_engine.active = value
+
+    @property
+    def paused(self):
+        return self.queue_engine.paused
+
+    @paused.setter
+    def paused(self, value):
+        self.queue_engine.paused = value
+
+    @property
+    def queue_batch_failed(self):
+        return self.queue_engine.batch_failed
+
+    @queue_batch_failed.setter
+    def queue_batch_failed(self, value):
+        self.queue_engine.batch_failed = value
+
     ftp_message = Signal(str, int)
     def __init__(self, *, smoke=False):
         super().__init__()
@@ -1455,9 +1498,14 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         self.app_instance = QApplication.instance()
         self.STYLE = STYLE
         self.workers = set()
+        from .queue_engine import QueueEngine
+        from .queue_controller import QueueController
+        self.queue_engine = QueueEngine()
+        self.queue_controller = QueueController(self)
         self.pending = []
         self.active = {}
         self.queue_jobs = []
+        self.job_views = {}
         self.queue_storage_enabled = False
         self.upload_limiter, self.download_limiter = RateLimiter(), RateLimiter()
         self.queue_batch_failed = False
@@ -1587,7 +1635,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         self.queue.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.queue_commands.install()
         self.resume = QCheckBox("Resume partial files")
-        self.resume.setToolTip("Resume assumes source content has not changed. Downloads use .fluxpart files.")
+        self.resume.setToolTip("Continue partial local, FTP/FTPS and SFTP transfers when source content is unchanged. SCP and cloud do not support byte-offset resume; choose Overwrite for existing partial files.")
         self.resume.setChecked(self.preferences.value("Transfer/resume", True, type=bool))
         self.resume.toggled.connect(lambda value: self.preferences.setValue("Transfer/resume", value))
         self.add_workspace()
@@ -2048,7 +2096,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
 
     def _quick_protocol_changed(self, index):
         for control in (self.quick_host, self.quick_port, self.quick_username, self.quick_password):
-            control.setEnabled(index < 5)
+            control.setEnabled(PROTOCOLS[index] not in CLOUD_PROTOCOLS)
         previous_default = SiteDialog._default_port(self._quick_last_protocol_index)
         if not self._quick_port_customized and self.quick_port.value() == previous_default:
             self._quick_updating_port = True
@@ -2079,7 +2127,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         self.quick_target.setCurrentIndex(target)
 
     def quick_connect(self):
-        if self.quick_protocol.currentIndex() >= 5:
+        if self.quick_protocol.currentText() in CLOUD_PROTOCOLS:
             pane = self._pane(self.quick_target.currentIndex())
             if pane and not pane.busy:
                 pane.connect_site(protocol=self.quick_protocol.currentText())
@@ -2341,8 +2389,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         prompt.setDetailedText(details)
         trust = prompt.addButton("Trust certificate and connect", QMessageBox.ButtonRole.AcceptRole)
         prompt.addButton("Reject", QMessageBox.ButtonRole.RejectRole)
-        now = datetime.now(timezone.utc)
-        certificate_is_current = cert.not_valid_before_utc <= now <= cert.not_valid_after_utc
+        from .trust_service import certificate_current
+        certificate_is_current = certificate_current(cert)
         if not certificate_is_current:
             trust.setEnabled(False)
             prompt.setInformativeText(
@@ -2351,17 +2399,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         prompt.exec()
         if prompt.clickedButton() is not trust:
             return False
-        site.tls_cert_sha256 = error.fingerprint
-        site.tls_pin_host = normalize_host(site.host)
-        site.tls_pin_port = site.port
-        site.tls_pin_protocol = site.protocol
-        proposed = dict(self.sites)
-        profile = asdict(site)
-        previous = proposed.get(site.name, {})
-        if previous.get("_credential_id"):
-            profile["_credential_id"] = previous["_credential_id"]
-        proposed[site.name] = profile
-        return self.save_sites(proposed)
+        from .trust_service import save_tls_pin
+        return save_tls_pin(site, error.certificate_der, normalize_host(site.host), self.sites, self.save_sites)
 
     def enqueue(self, right):
         split = self.tabs.currentWidget()
@@ -2442,9 +2481,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                     continue
             src_password, dst_password = source.password, dest.password
             resume = self.resume.isChecked()
-            route = "FXP" if source_remote and dest_remote else "Upload" if dest_remote else "Download" if source_remote else "Copy"
-            if route == 'FXP' and (src_site.cloud_account or dst_site.cloud_account or src_site.protocol == PROTOCOLS[3] or dst_site.protocol == PROTOCOLS[3]):
-                route = 'Relay'
+            from .protocol_adapter import transfer_route
+            route = transfer_route(src_site, dst_site)
             row = QTreeWidgetItem([entry.name, "0%", "—", "—", self.file_size(entry.size), src, dst, f"{route} · Queued"])
             row.setData(4, Qt.ItemDataRole.UserRole, entry.size)
             if selection_buffer is None or entry.is_dir:
@@ -2464,7 +2502,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                     destination_site=asdict(dst_site) if dst_site else None,
                     workspace=self.tabs.indexOf(split), source_side=job['source_side'], destination_side=job['destination_side']))
                 if buffer_parent is None:
-                    buffer_parent = job
+                    buffer_parent = self.new_queue_job(job)
                     buffer_parent.update(name='Selected files', src=source.path, dst=dest.path)
                     row.setText(0, 'Selected files')
                     row.setText(5, source.path)
@@ -2472,6 +2510,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                     self.queue.addTopLevelItem(row)
                     self.queue_jobs.append(buffer_parent)
                 continue
+            job = self.new_queue_job(job)
             job["task"] = self.make_queue_task(job)
             self.queue_jobs.append(job)
             self.pending.append(job)
@@ -2489,375 +2528,37 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
 
     @staticmethod
     def _transfer_site_key(site):
-        if site is None:
-            return None
-        return (site.host.casefold(), site.port, site.username.casefold(), site.protocol)
+        from .queue_engine import site_key
+        return site_key(site)
 
     def _transfer_record(self, job):
-        source = job["source_site"]
-        destination = job["destination_site"]
-        sites = {key: site for site in (source, destination)
-                 if site is not None for key in (self._transfer_site_key(site),)}
-        keys = set(sites)
-        route = job["route"]
-        download_keys = {self._transfer_site_key(source)} if route in ("Download", "FXP", "Relay") and source else set()
-        upload_keys = {self._transfer_site_key(destination)} if route in ("Upload", "FXP", "Relay") and destination else set()
-        return {
-            "row": job["row"], "task": job["task"], "route": route,
-            "workspace": job["workspace"], "site_keys": keys,
-            "download_keys": download_keys, "upload_keys": upload_keys,
-            "single_keys": {self._transfer_site_key(site) for site in sites.values() if site.single_connection},
-            "site_total_limits": {key: site.max_transfers_total for key, site in sites.items()},
-            "download_limits": {key: site.max_downloads for key, site in sites.items()},
-            "upload_limits": {key: site.max_uploads for key, site in sites.items()},
-            "max_total": min((site.max_transfers_total for site in sites.values()), default=6),
-        }
+        record = self.queue_engine.transfer_record(job)
+        record.update(row=job['row'], task=job['task'])
+        return record
 
     def _can_start_transfer(self, job):
-        if job.get('buffered'):
-            return False
-        if job.get('scheduled_at') is not None and job['scheduled_at'] > time.time():
-            return False
-        if job.get('held') or job.get('editing'):
-            return False
-        if job.get('dst'):
-            remote = job.get('destination_site')
-            target = posixpath.normpath(job['dst']) if remote else os.path.normcase(os.path.abspath(job['dst']))
-            separator = '/' if remote else os.sep
-            for record in self.active.values():
-                other = record.get('job', {})
-                if not other.get('dst') or self._transfer_site_key(remote) != self._transfer_site_key(other.get('destination_site')):
-                    continue
-                other_target = posixpath.normpath(other['dst']) if remote else os.path.normcase(os.path.abspath(other['dst']))
-                if (target == other_target or
-                    (job.get('directory') and other_target.startswith(target.rstrip(separator) + separator)) or
-                    (other.get('directory') and target.startswith(other_target.rstrip(separator) + separator))):
-                    return False
-        if self.preferences.value("Transfer/single_connection", False, type=bool) and self.active:
-            return False
-        candidate = self._transfer_record(job)
-        active = [record for record in self.active.values() if record["workspace"] is candidate["workspace"]]
-        if len(active) >= self.preferences.value("Transfer/per_tab", 10, type=int):
-            return False
-        total_limit = min([candidate["max_total"], *(record["max_total"] for record in active)])
-        if len(active) >= total_limit:
-            return False
-        for record in active:
-            if (candidate["single_keys"] | record["single_keys"]) & (candidate["site_keys"] & record["site_keys"]):
-                return False
-        for key, limit in candidate["site_total_limits"].items():
-            if sum(key in record["site_keys"] for record in active) >= limit:
-                return False
-        for key, limit in candidate["download_limits"].items():
-            if sum(key in record["download_keys"] for record in active) >= limit:
-                return False
-        for key, limit in candidate["upload_limits"].items():
-            if sum(key in record["upload_keys"] for record in active) >= limit:
-                return False
-        return True
+        return self.queue_engine.can_start(job, self.queue_controller.policy())
 
     def start_next(self):
-        if getattr(self, '_queue_operation_depth', 0) or getattr(self, '_queue_commit', False): return
-        self.refill_queue_buffers()
-        if self.pending:
-            self.directory_cache.clear()
-        if self.paused:
-            return
-        while self.pending:
-            if any(record.get('job', {}).get('deployment') for record in self.active.values()): return
-            rules = self.preferences.value('Transfer/priority_rules', DEFAULT_RULES, type=str)
-            job_index = min((index for index, job in enumerate(self.pending) if self._can_start_transfer(job) and not (job.get('deployment') and self.active)),
-                            key=lambda index: self.queue_commands.schedule_key(self.pending[index], getattr(self.pending[index].get('options'), 'priority_rules', rules)),
-                            default=None)
-            if job_index is None:
-                return
-            job = self.pending.pop(job_index)
-            if job.get('needs_credentials'):
-                self.pending.insert(job_index, job)
-                self.paused = True
-                self.statusBar().showMessage('Restored queue needs credentials. Press Play to continue.')
-                return
-            if job not in self.queue_jobs:
-                self.queue_jobs.append(job)
-            job['state'] = 'active'
-            job.pop('transfer_outcome', None)
-            job.pop('actual_dst', None)
-            job['transfer_started'] = time.monotonic()
-            job['row'].setData(0, STATE_ROLE, 'active')
-            job['batch_active'] = True
-            record = self._transfer_record(job)
-            record['job'] = job
-            row, task, route = record["row"], record["task"], record["route"]
-            row.setText(7, f"{route} · " + ('Opening folder…' if job.get('streaming_folder') else 'Scanning folder…' if job.get('directory') else 'Transferring'))
-            if job.get('streaming_folder'):
-                from .queue_tree import PROGRESS_ROLE, STREAM_ROLE
-                row.setData(0, STREAM_ROLE, True)
-                row.setData(3, Qt.ItemDataRole.UserRole, [0, 0])
-                row.setText(3, '0 B')
-                row.setText(4, '—')
-                row.setToolTip(3, 'Cumulative bytes uploaded across files in this folder during this attempt.')
-                row.setToolTip(4, 'Folder size is not pre-scanned.')
-                row.setData(1, PROGRESS_ROLE, 0)
-                row.setToolTip(1, 'Current file progress; the full folder size is not calculated before uploading.')
-            row.setToolTip(7, '')
-            if self.preferences.value('Queue/show_paths', False, type=bool):
-                self.log.appendPlainText(f"{route}: {row.text(5)} -> {row.text(6)}")
-            def done(result, target=row, transfer_route=route, current=job):
-                if isinstance(result, dict) and result.get('paused'):
-                    from .queue_tree import PROGRESS_ROLE
-                    current['state'] = 'queued'
-                    target.setText(7, f'{transfer_route} · Paused before next file')
-                    target.setData(1, PROGRESS_ROLE, None)
-                    target.setText(1, 'Paused')
-                    target.setText(2, '0 B/s')
-                    return
-                if isinstance(result, dict) and result.get('planned') is not None and current.get('suppress_retry'):
-                    close = getattr(result['planned'], 'close', None)
-                    if close: close()
-                    current['state'] = 'cancelled'
-                    target.setText(7, f'{transfer_route} · Cancelled')
-                    return
-                current['state'] = 'complete'
-                if isinstance(result, dict):
-                    if result.get('planned') is not None:
-                        if result.get('transferred') is False:
-                            close = getattr(result['planned'], 'close', None)
-                            if close: close()
-                        else:
-                            self.expand_queue_files(current, result['planned'])
-                    for message in result.get('messages', []): self.log.appendPlainText(message)
-                    if result.get('messages'): target.setToolTip(7, '\n'.join(result['messages']))
-                    if result.get('crc_errors'):
-                        current['transfer_outcome'] = 'failed'
-                        self.register_crc_failures(current, result['crc_errors'])
-                        if not current.get('crc_job'):
-                            target.setText(7, f'{transfer_route} · Finished with CRC failures')
-                        return
-                for old, new in result.get("renamed", []) if isinstance(result, dict) else []:
-                    self.log.appendPlainText(f"Auto Rename: {old} -> {new}")
-                    if target.text(6) == old:
-                        current['actual_dst'] = new
-                        target.setText(6, new)
-                skipped_items = result.get("skipped", []) if isinstance(result, dict) else []
-                skipped_directories = result.get('skipped_directories', set()) if isinstance(result, dict) else set()
-                skipped_root = isinstance(result, dict) and result.get("transferred") is False
-                color = QBrush(QColor(self.preferences.value("Transfer/skip_color", "#ff0000", type=str)))
-                if skipped_root:
-                    current['transfer_outcome'] = 'skipped'
-                    target.setText(7, f"{transfer_route} · Skipped")
-                    target.setText(1, "—")
-                    target.setToolTip(7, skipped_items[0][1] if skipped_items else "Skip List")
-                    for column in range(target.columnCount()):
-                        target.setForeground(column, color)
-                for path, reason in skipped_items:
-                    if current.get('directory') and not skipped_root:
-                        self.transfer_history.skipped(current, path, reason, path in skipped_directories)
-                    self.log.appendPlainText(f"Skipped: {path} ({reason})")
-                    if current.get('directory'):
-                        append_transfer_log(self, f"[{current.get('source_side', 1)}] Skip [{path}] {reason}")
-                    if not skipped_root and path not in skipped_directories:
-                        skipped_row = QTreeWidgetItem([Path(path).name, "—", "—", "—", "—", path, "", f"{transfer_route} · Skipped"])
-                        skipped_row.setToolTip(7, reason)
-                        for column in range(skipped_row.columnCount()):
-                            skipped_row.setForeground(column, color)
-                        self.queue.addTopLevelItem(skipped_row)
-                if skipped_root:
-                    return
-                if isinstance(result, dict) and result.get('planned') is not None:
-                    return
-                target.setText(1, "100%")
-                if current.get('streaming_folder'):
-                    from .queue_tree import PROGRESS_ROLE
-                    target.setData(1, PROGRESS_ROLE, 100)
-                current['transfer_outcome'] = 'complete'
-                total = target.data(4, Qt.ItemDataRole.UserRole) or 0
-                if not current.get('streaming_folder'):
-                    target.setData(3, Qt.ItemDataRole.UserRole, [total, total])
-                else:
-                    target.setText(2, '0 B/s')
-                target.setText(7, f"{transfer_route} · Complete")
-                self.log.appendPlainText(f"Complete: {target.text(0)} ({transfer_route})")
-            def failed(message, target=row, transfer_route=route, current=job):
-                self.queue_batch_failed = True
-                current['state'] = 'cancelled' if 'Cancelled:' in message else 'failed'
-                current['transfer_outcome'] = current['state']
-                target.setText(7, f"{transfer_route} · " + ("Cancelled" if "Cancelled:" in message else "Failed"))
-                target.setToolTip(7, message)
-                self.log.appendPlainText(f"{target.text(0)}: {message}")
-            transfer_id = uuid.uuid4().hex
-            def queue_error(error, current=job, current_record=record, fail=failed, job_id=transfer_id):
-                from .folder_sync import PreviewChanged
-                from .transfer_reliability import ReliabilityError
-                if isinstance(error, (PreviewChanged, ReliabilityError, Cancelled)): current['suppress_retry'] = True
-                current_record['handling_failure'] = True
-                try:
-                    if isinstance(error, CertificateTrustRequired):
-                        if self._trust_server_certificate(error) and not current.get('suppress_retry'):
-                            current['state'] = 'queued'
-                        else:
-                            fail('Cancelled: Server certificate was not trusted.')
-                    else:
-                        fail(f'Cancelled: {error}' if isinstance(error, Cancelled) else str(error))
-                finally:
-                    current_record['handling_failure'] = False
-                    if current_record.get('finish_deferred'):
-                        QTimer.singleShot(0, lambda: self.transfer_finished(job_id))
-            worker = self.run(task, done, queue_error, raw_failure=True, autostart=False)
-            def current_file(src, dst, target=row, transfer_route=route):
-                from .queue_tree import PROGRESS_ROLE
-                target.setText(7, f'{transfer_route} · {Path(src).name}')
-                target.setToolTip(7, f'{src}\n→ {dst}\nProgress is for the current file; folder total is not pre-scanned.')
-                target.setText(1, '0%')
-                target.setData(1, PROGRESS_ROLE, 0)
-            worker.file_started.connect(current_file)
-            record["worker"] = worker
-            self.active[transfer_id] = record
-            worker.progress.connect(lambda percent, rate, done, total, target=row:
-                self.transfer_display_progress(target, percent, rate, done, total))
-            worker.finished.connect(lambda job_id=transfer_id: self.transfer_finished(job_id))
-            self.schedule_queue_save()
-            worker.start()
+        return self.queue_controller.start_next()
 
     def transfer_finished(self, transfer_id):
-        self.directory_cache.clear()
-        if self.active.get(transfer_id, {}).get('handling_failure'):
-            self.active[transfer_id]['finish_deferred'] = True
-            return
-        record = self.active.pop(transfer_id, None)
-        if record is None:
-            return
-        job = record.get('job') if record else None
-        if job:
-            self.transfer_history.record(job, elapsed=time.monotonic() - record['worker'].started_at)
-        if job and job.get('state') == 'queued' and job not in self.pending:
-            self.pending.append(job)
-        if job and job.get('state') == 'failed' and self.preferences.value('Queue/cycle_retry', True, type=bool):
-            self.retry_job(job)
-        if not self.active and not self.pending and self.preferences.value('Queue/retry_after', True, type=bool):
-            for failed_job in self.queue_jobs:
-                if failed_job.get('state') == 'failed':
-                    self.retry_job(failed_job)
-        self.queue_batch_failed = any(j.get('batch_active', True) and j.get('state') in ('failed', 'cancelled') for j in self.queue_jobs)
-        if job:
-            report_transfer(self, job, record['worker'])
-            self.clear_skipped_folder(job)
-            self.retire_buffered_success(job)
-            self.clear_finished_download(job)
-        self.refill_queue_buffers()
-        self.schedule_queue_save()
-        self.start_next()
-        if not self.active and not self.pending:
-            self.conflicts.reset()
-            if not self.queue_batch_failed and self.display_value("flash_completed", True):
-                QApplication.alert(self, 0)
-            if self.preferences.value("Misc/beep", False, type=bool):
-                QApplication.beep()
-            action = self.preferences.value("Transfer/completed", "Idle", type=str)
-            if not self.queue_batch_failed and action in ("Disconnect", "Close FluxFTP"):
-                QTimer.singleShot(100, self._apply_completion_action)
-                return
-            for tab_index in range(self.tabs.count()):
-                split = self.tabs.widget(tab_index)
-                for pane_index in range(split.count()):
-                    pane = split.widget(pane_index)
-                    if not pane.busy:
-                        pane.refresh()
+        return self.queue_controller.transfer_finished(transfer_id)
 
     def _apply_completion_action(self):
-        action = self.preferences.value("Transfer/completed", "Idle", type=str)
-        if self.active or self.pending or self.queue_batch_failed or action == "Idle":
-            return
-        if self.workers:
-            QTimer.singleShot(100, self._apply_completion_action)
-        elif action == "Close FluxFTP":
-            self.close()
-        elif action == "Disconnect":
-            for tab_index in range(self.tabs.count()):
-                split = self.tabs.widget(tab_index)
-                for pane_index in range(split.count()):
-                    pane = split.widget(pane_index)
-                    if pane.mode == "Remote":
-                        pane.browse_session.close()
-                        pane.site = pane.remote_site = None
-                        pane.password = pane.remote_password = ""
-                        pane.tree.clear()
-                        pane.title_label.setText(f"({pane.number}) Remote")
-                        pane.status.setText("Disconnected")
+        return self.queue_controller._apply_completion_action()
 
     def play_queue(self):
-        if not self.prepare_restored_jobs():
-            return
-        self.reset_failed_jobs()
-        for job in self.pending:
-            job['held'] = False
-            self.release_queue_buffer(job)
-        self.paused = False
-        self.statusBar().showMessage("Transfer queue running · parallel transfers enabled")
-        self.start_next()
-        self.save_queue_state()
+        return self.queue_controller.play_queue()
 
     def stop_queue(self):
-        for record in self.active.values():
-            if 'job' in record: record['job']['suppress_retry'] = True
-            record['worker'].cancel.set()
-        self.transfer_history.cancelled(self.pending)
-        if self.pending or self.active:
-            self.queue_batch_failed = True
-        for job in self.pending:
-            job['state'] = 'cancelled'
-            job['row'].setData(0, STATE_ROLE, 'cancelled')
-            update_group(self, job['row'])
-            job['suppress_retry'] = True
-            job["row"].setText(7, f"{job['route']} · Cancelled")
-        self.pending.clear()
-        for record in list(self.active.values()):
-            if 'job' in record:
-                record['job']['suppress_retry'] = True
-            record["worker"].cancel.set()
-            record["row"].setText(7, f"{record['route']} · Cancelling…")
-        if self.active:
-            self.statusBar().showMessage("Stopping active transfers and clearing the queue")
-        else:
-            self.statusBar().showMessage("Transfer queue stopped")
-        for job in self.queue_jobs:
-            if job.get('state') == 'failed': job['suppress_retry'] = True
-        self.save_queue_state()
+        return self.queue_controller.stop_queue()
 
     def toggle_pause(self):
-        if self.paused and not self.prepare_restored_jobs():
-            return
-        self.paused = not self.paused
-        self.statusBar().showMessage("Queue paused; current transfer will finish" if self.paused else "Queue running")
-        self.start_next()
-        self.save_queue_state()
+        return self.queue_controller.toggle_pause()
 
     def cancel_selected(self):
-        rows = selected_rows(self.queue)
-        for record in self.active.values():
-            if record['row'] in rows:
-                if 'job' in record: record['job']['suppress_retry'] = True
-                record['worker'].cancel.set()
-        self.transfer_history.cancelled(job for job in self.pending if job['row'] in rows)
-        if rows:
-            self.queue_batch_failed = True
-        for job in self.pending:
-            if job["row"] in rows:
-                job['state'] = 'cancelled'
-                job['row'].setData(0, STATE_ROLE, 'cancelled')
-                update_group(self, job['row'])
-                job['suppress_retry'] = True
-                job["row"].setText(7, f"{job['route']} · Cancelled")
-        self.pending = [job for job in self.pending if job["row"] not in rows]
-        for record in self.active.values():
-            if record["row"] not in rows:
-                continue
-            if 'job' in record:
-                record['job']['suppress_retry'] = True
-            record["worker"].cancel.set()
-            record["row"].setText(7, f"{record['route']} · Cancelling…")
-        for job in self.queue_jobs:
-            if job['row'] in rows and job.get('state') == 'failed': job['state'] = 'cancelled'
-        self.save_queue_state()
+        return self.queue_controller.cancel_selected()
 
     def closeEvent(self, event):
         if getattr(self, '_queue_operation_depth', 0) or getattr(self, '_queue_commit', False):

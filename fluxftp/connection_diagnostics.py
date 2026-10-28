@@ -18,7 +18,7 @@ from .automation import saved_connection, remote_path, list_folder
 def diagnose(connection, path, cancel):
     report = dict(version=1, protocol=connection.site.protocol, checks=[], passed=False)
     report['data_mode'] = 'Backend managed' if getattr(connection, 'is_cloud', False) else 'Passive' if connection.site.passive else 'Active'
-    if connection.site.protocol == 'SFTP · SSH': report['data_mode'] = 'SFTP channel'
+    if connection.site.protocol in ('SFTP · SSH', 'SCP · SSH'): report['data_mode'] = 'SFTP channel'
     secrets = (connection.password, (connection.proxy or {}).get('password', ''),
                (connection.proxy or {}).get('username', ''), connection.site.username)
     def check(name, operation):
@@ -36,7 +36,7 @@ def diagnose(connection, path, cancel):
                 hint = 'Check the certificate, host name and trust configuration; verification remains enabled.'
             elif name == 'Directory / data connection':
                 hint = ('Check cloud account authorization, provider availability and the remote folder.' if getattr(connection, 'is_cloud', False) else
-                        'Check SFTP folder permissions and the remote path.' if connection.site.protocol == 'SFTP · SSH' else
+                        'Check SFTP folder permissions and the remote path.' if connection.site.protocol in ('SFTP · SSH', 'SCP · SSH') else
                         'Login succeeded. Check folder permissions and the FTP data route. For active FTP, '
                         'check the advertised address, inbound ports, router and firewall; a UPnP mapping alone does not prove reachability.')
             elif name == 'TCP / proxy tunnel':
@@ -150,14 +150,23 @@ class DiagnosticsDialog(QDialog):
     def site_changed(self):
         self.path.setText(self.window.sites.get(self.site.currentText(), {}).get('root') or '/')
 
+    def perform_check(self, connection, path, cancel):
+        return diagnose(connection, path, cancel)
+
+    def create_connection(self):
+        return saved_connection(self.window, self.site.currentText(), unattended=True)
+
+    def format_report(self, report):
+        return report_text(report)
+
     def start(self):
         if self.worker: return
         try:
             path = remote_path(self.path.text().strip())
-            connection = saved_connection(self.window, self.site.currentText(), unattended=True)
+            connection = self.create_connection()
             from .core import PROTOCOLS
             if self.mode.currentIndex():
-                if connection.site.protocol == PROTOCOLS[3] or getattr(connection, 'is_cloud', False):
+                if connection.site.protocol in (PROTOCOLS[3], 'SCP · SSH') or getattr(connection, 'is_cloud', False):
                     raise ValueError('Choose Configured mode for SFTP and cloud connections.')
                 passive = self.mode.currentIndex() == 1
                 if connection.proxy and not passive: raise ValueError('Active FTP callbacks cannot traverse the configured proxy. Test passive mode or a direct saved site.')
@@ -176,13 +185,13 @@ class DiagnosticsDialog(QDialog):
         self.output.setPlainText('Checking connection…')
         def done(report):
             self.report = report
-            self.output.setPlainText(report_text(report))
+            self.output.setPlainText(self.format_report(report))
             self.export_button.setEnabled(True)
             self.finished()
         def failed(error):
             self.output.setPlainText('Diagnostics stopped: ' + type(error).__name__)
             self.finished()
-        self.worker = self.window.run(lambda worker: diagnose(connection, path, worker.cancel), done, failed,
+        self.worker = self.window.run(lambda worker: self.perform_check(connection, path, worker.cancel), done, failed,
                                       raw_failure=True, autostart=False)
         self.worker.start()
 
@@ -193,7 +202,7 @@ class DiagnosticsDialog(QDialog):
 
     def export(self):
         if not self.report: return
-        path, _ = QFileDialog.getSaveFileName(self, 'Export diagnostic report', 'connection-diagnostics.json', 'JSON (*.json)')
+        path, _ = QFileDialog.getSaveFileName(self, 'Export report', getattr(self, 'export_filename', 'connection-diagnostics.json'), 'JSON (*.json)')
         if path:
             try: Path(path).write_text(json.dumps(self.report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
             except OSError as error: self.window.error(str(error))

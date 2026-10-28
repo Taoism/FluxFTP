@@ -68,8 +68,8 @@ def test_pending_order_stable_and_respects_eligibility(window, monkeypatch):
     names = ['first.bin', 'blocked.sfv', 'info.nfo', 'second.bin', 'check.sfv', 'more.nfo']
     for name in names:
         job_for(window, lambda _, name=name: order.append(name), name=name)
-    original = window._can_start_transfer
-    monkeypatch.setattr(window, '_can_start_transfer', lambda job: original(job) and (job['row'].text(0) != 'blocked.sfv' or bool(order)))
+    original = window.queue_engine.can_start
+    monkeypatch.setattr(window.queue_engine, 'can_start', lambda job, policy: original(job, policy) and (job['name'] != 'blocked.sfv' or bool(order)))
     window.start_next()
     settle(window)
     assert order == ['check.sfv', 'blocked.sfv', 'info.nfo', 'more.nfo', 'first.bin', 'second.bin']

@@ -140,7 +140,7 @@ def queue_manual_download(window, site_name, remote, folder):
         password = window.get_site_password(data)
         if site.username.casefold() == 'anonymous' and not password:
             password = window.preferences.value('General/anonymous_email', 'anonymous@fluxftp.local', type=str)
-        elif not password and not site.cloud_account and not (site.managed_key and site.protocol == PROTOCOLS[3]):
+        elif not password and not site.cloud_account and not (site.managed_key and site.protocol in (PROTOCOLS[3], 'SCP · SSH')):
             password, accepted = QInputDialog.getText(window, 'Manual Download from Site',
                 f'Password or key passphrase for {site.username}@{site.host}:', QLineEdit.EchoMode.Password)
             if not accepted:

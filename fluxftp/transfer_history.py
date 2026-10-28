@@ -95,6 +95,9 @@ def descriptor(window, job):
                 state='queued', retries=0, workspace=max(0, window.tabs.indexOf(job['workspace'])),
                 size=job['row'].data(4, Qt.ItemDataRole.UserRole),
                 source_side=job.get('source_side', 1), destination_side=job.get('destination_side', 2))
+    if job.get('job_id'): item['job_id'] = job['job_id']
+    from .queue_job import QueueJob
+    if isinstance(job, QueueJob): item['size'] = job.get('size')
     for key in ('source_site', 'destination_site'):
         item[key] = asdict(job[key]) if job.get(key) else None
     if job.get('sync'):

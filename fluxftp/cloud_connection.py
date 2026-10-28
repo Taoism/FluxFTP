@@ -200,5 +200,6 @@ def relay(source, destination, src, dst, cancel=None, progress=None, resume=Fals
         with tempfile.TemporaryDirectory(prefix='fluxftp-cloud-relay-') as directory:
             local = Path(directory) / 'payload'
             total = source.size(src)
-            source.transfer(local, src, False, cancel, lambda done, _: progress(done, total * 2))
-            destination.transfer(local, dst, True, cancel, lambda done, _: progress(total + done, total * 2))
+            from .protocol_adapter import adapter_for
+            adapter_for(source).transfer(local, src, False, cancel, lambda done, _: progress(done, total * 2))
+            adapter_for(destination).transfer(local, dst, True, cancel, lambda done, _: progress(total + done, total * 2))

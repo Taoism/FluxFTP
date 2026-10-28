@@ -11,6 +11,9 @@ SUMMARY_ROLE = Qt.ItemDataRole.UserRole + 44
 RETRY_ROLE = Qt.ItemDataRole.UserRole + 45
 SPEED_ROLE = Qt.ItemDataRole.UserRole + 46
 STREAM_ROLE = Qt.ItemDataRole.UserRole + 47
+MARKER_PARENT_ROLE = Qt.ItemDataRole.UserRole + 48
+MARKER_OWNER_ROLE = Qt.ItemDataRole.UserRole + 49
+JOB_ID_ROLE = Qt.ItemDataRole.UserRole + 51
 
 
 class ReleaseProgress(QStyledItemDelegate):
