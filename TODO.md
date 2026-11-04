@@ -1,5 +1,12 @@
 # TODO
 
+- [ ] Build and publish an x86_64 Linux package for Ubuntu/Debian. Build on the
+  Ubuntu LTS baseline, verify the resulting glibc/library floor, test on Debian
+  stable, include the Linux rclone backend, and run packaged GUI smoke checks.
+- [ ] Build and publish an x86_64 Fedora package in a Fedora build environment.
+  Include the Linux rclone backend and run packaged GUI smoke checks. Decide
+  whether the deliverable is a portable archive, RPM, or both.
+
 - [x] When both FXP site roles are Auto, try destination-passive first and safely
   reverse to source-passive if data-route setup fails before the transfer begins.
 - [x] Add FTP Rush-style toolbar shortcuts for refreshing both panes, queue controls,
