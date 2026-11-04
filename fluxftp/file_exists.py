@@ -3,11 +3,100 @@ import ftplib
 import posixpath
 import shutil
 import threading
+import hashlib
 from dataclasses import replace
 from pathlib import Path
 
 _lock = threading.Lock()
 _active = set()
+
+
+def _local_prefix_hash(path, length, cancel):
+    digest = hashlib.sha256()
+    remaining = length
+    with Path(path).open('rb') as stream:
+        while remaining:
+            if cancel.is_set():
+                from .core import Cancelled
+                raise Cancelled('Cancelled while checking the existing destination')
+            block = stream.read(min(1024 * 1024, remaining))
+            if not block: return None
+            digest.update(block)
+            remaining -= len(block)
+    return digest.hexdigest()
+
+
+def _prefix_hash(connection, path, length, cancel):
+    if connection is None:
+        return _local_prefix_hash(path, length, cancel)
+    import hashlib
+    value, remaining = hashlib.sha256(), length
+    if getattr(connection, 'sftp', None):
+        with connection.sftp.open(path, 'rb') as stream:
+            while remaining:
+                if cancel.is_set():
+                    from .core import Cancelled
+                    raise Cancelled('Cancelled while checking the existing destination')
+                block = stream.read(min(1024 * 1024, remaining))
+                if not block: return None
+                value.update(block)
+                remaining -= len(block)
+        return value.hexdigest()
+    if getattr(connection, 'ftp', None):
+        from .core import remote_path, Cancelled
+        connection.ftp.voidcmd('TYPE I')
+        cancelled = [False]
+        def consume(block):
+            nonlocal remaining
+            if cancel.is_set():
+                cancelled[0] = True
+                return
+            if remaining:
+                block = block[:remaining]
+                value.update(block)
+                remaining -= len(block)
+        connection.ftp.retrbinary('RETR ' + remote_path(path), consume, 65536)
+        if cancelled[0]: raise Cancelled('Cancelled while checking the existing destination')
+        return value.hexdigest() if remaining == 0 else None
+    return None
+
+
+def _match_status(source, destination, src, dst, source_size, target_size, cancel):
+    """Compare content when possible; report metadata-only evidence explicitly."""
+    from .transfer_reliability import algorithms, digest
+    if target_size > source_size:
+        return 'Destination is larger than source', False
+    if target_size < source_size:
+        try:
+            left = _prefix_hash(source, src, target_size, cancel)
+            right = _prefix_hash(destination, dst, target_size, cancel)
+            if left is None or right is None:
+                return 'Could not read the complete destination', False
+            return ('Content matches source prefix', True) if left == right else ('Content differs from source prefix', False)
+        except Exception:
+            if cancel.is_set():
+                from .core import Cancelled
+                raise Cancelled('Cancelled while checking the existing destination')
+            return 'Content could not be checked', False
+    if target_size == source_size:
+        try:
+            common = algorithms(source) & algorithms(destination)
+            for algorithm in ('SHA-256', 'SHA-1', 'MD5'):
+                if algorithm not in common: continue
+                same = digest(source, src, algorithm, cancel) == digest(destination, dst, algorithm, cancel)
+                return (f'Content matches ({algorithm})', True) if same else (f'Content differs ({algorithm})', False)
+        except Exception:
+            if cancel.is_set():
+                from .core import Cancelled
+                raise Cancelled('Cancelled while checking the existing destination')
+        if source is None and destination is None:
+            try:
+                source_stat, target_stat = Path(src).stat(), Path(dst).stat()
+                if source_stat.st_size == target_stat.st_size and source_stat.st_mtime_ns == target_stat.st_mtime_ns:
+                    return 'Size and modification time match (fallback)', True
+            except OSError:
+                pass
+    return 'Not verified; destination backend cannot compare this prefix', False
 
 
 def transfer_existing(source, destination, src, dst, cancel, progress, resume, options, skipped, renamed, conflict=None, notice=None):
@@ -44,13 +133,21 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             raise ValueError('Cannot compare file sizes for File Exists rules.')
         relation = 'smaller' if target_size < source_size else 'larger' if target_size > source_size else 'same'
         action = getattr(options, f'{route}_{relation}')
-        if options.conflict_prompt or action == 'Ask':
+        source_fingerprint = Path(src).stat() if source is None else None
+        needs_match = options.conflict_prompt or action == 'Ask' or action == 'Auto Resume'
+        if needs_match:
+            match_status, verified_match = _match_status(source, destination, src, dst, source_size,
+                                                         target_size, cancel)
+        else:
+            match_status, verified_match = 'Not checked', False
+        if (options.conflict_prompt or action == 'Ask' or (action == 'Auto Resume' and not verified_match)):
             if conflict is None:
-                raise ValueError('This transfer requires a File Exists choice; start it from the queue.')
+                raise ValueError('The existing destination was not verified for resume; choose a File Exists action from the queue.')
             from .protocol_adapter import supports_resume
             action = conflict(dict(src=src, dst=dst, source_size=source_size, target_size=target_size,
                 can_resume=target_size < source_size and not (destination and options.atomic_upload)
-                and not options.ascii(src) and supports_resume(source, destination)))
+                and verified_match
+                and not options.ascii(src) and supports_resume(source, destination), match_status=match_status))
             if cancel.is_set(): raise Cancelled('Cancelled')
             if action not in ('Auto Resume', 'Auto Skip', 'Auto Rename', 'Auto Overwrite'):
                 raise Cancelled('File conflict cancelled')
@@ -61,6 +158,23 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             if fresh != fingerprint:
                 from .transfer_reliability import ReliabilityError
                 raise ReliabilityError('Destination changed while waiting for the conflict choice.')
+        if action == 'Auto Resume':
+            if destination:
+                fresh = next((e for e in destination.list(parent or '/') if e.name == name), None)
+            else:
+                fresh = Path(dst).stat() if Path(dst).exists() and not Path(dst).is_symlink() else None
+            if fresh != fingerprint:
+                from .transfer_reliability import ReliabilityError
+                raise ReliabilityError('Destination changed after its content was checked; resume was stopped.')
+            if source_fingerprint is not None and Path(src).stat() != source_fingerprint:
+                from .transfer_reliability import ReliabilityError
+                raise ReliabilityError('Source changed after its content was checked; resume was stopped.')
+            if source is not None:
+                current_status, current_match = _match_status(source, destination, src, dst, source_size,
+                                                             target_size, cancel)
+                if not current_match:
+                    from .transfer_reliability import ReliabilityError
+                    raise ReliabilityError('Source or destination content changed after it was checked; resume was stopped. ' + current_status)
         if action == 'Auto Skip':
             if source is None and destination and relation == 'same' and hasattr(destination, 'verify_skip'):
                 destination.verify_skip(src, dst, cancel)

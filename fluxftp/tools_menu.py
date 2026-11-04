@@ -1,5 +1,5 @@
 """Reference-ordered Tools menu, using the existing command controllers."""
-from PySide6.QtCore import QObject, Qt
+from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtGui import QActionGroup
 from PySide6.QtWidgets import QApplication, QStyle
 
@@ -21,6 +21,18 @@ class ToolsMenu(QObject):
         from .conflict_dialog import ConflictController
         window.conflicts = ConflictController(window)
         self.add('Transfer History…', window.transfer_history.show)
+        if not getattr(window, '_smoke_test', False):
+            from .api_server import ControlAPI, show_access_dialog
+            window.control_api = None
+            api_action = self.add('JSON API Access…', lambda: show_access_dialog(window))
+            def start_api():
+                try:
+                    window.control_api = ControlAPI(window)
+                except Exception as error:
+                    api_action.setEnabled(False)
+                    api_action.setToolTip('Local JSON API unavailable: ' + str(error))
+                    window.statusBar().showMessage('Local JSON API unavailable: ' + str(error), 15000)
+            QTimer.singleShot(0, start_api)
         from .bandwidth import BandwidthControl
         window.bandwidth_control = BandwidthControl(window)
         self.add('Unified Bandwidth Management…', window.bandwidth_control.show)

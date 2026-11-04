@@ -3,6 +3,7 @@ import time
 from PySide6.QtCore import QTimer, Qt, QSignalBlocker
 from PySide6.QtWidgets import QTreeWidgetItem
 from PySide6.QtGui import QBrush, QColor
+from PySide6.QtWidgets import QStyle
 from .site_options import SiteSettings
 from .sort_options import sorted_entries
 
@@ -60,6 +61,8 @@ def populate(pane, entries, finished):
                                    entry.modified, entry.attributes or ('L' if entry.is_link else 'D' if entry.is_dir else 'A'),
                                    entry.user, entry.group])
             row.setData(0, Qt.ItemDataRole.UserRole, entry)
+            if entry.is_dir:
+                row.setIcon(0, pane.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon))
             row.setFlags(row.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
             reason = options.skip_reason(entry.name, entry.is_dir, entry.size)
             foreground = options.skip_color if reason else highlight_color(entry.name, rules)

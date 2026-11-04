@@ -19,6 +19,37 @@ This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.
 Other platforms are experimental.
 
+## Local JSON API
+
+FluxFTP exposes a small JSON API for local scripts and clients. It binds only to
+`127.0.0.1:8765`; it never listens on a LAN or public interface. Every request
+requires `Authorization: Bearer <token>`. The token is generated automatically,
+stored in the encrypted credential vault, and shown in **Tools → JSON API
+Access…**. That dialog can rotate the token. The API is available while the
+desktop app is running. For remote use, forward a client port through an
+authenticated SSH tunnel or private VPN to the host's loopback API; do not
+expose the API port publicly. A token grants every operation listed below, so
+only share it with trusted clients.
+
+Supported operations:
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /v1/status` | Queue counts and paused state |
+| `GET /v1/transfers` | Transfer IDs, paths, progress, and state |
+| `POST /v1/transfers` | Queue one transfer using a local path or saved-site name at each endpoint |
+| `POST /v1/queue/play` | Start or resume the queue |
+| `POST /v1/queue/pause` | Pause queue scheduling |
+| `POST /v1/queue/stop` | Stop active work and clear pending work |
+| `POST /v1/queue/cancel` | Cancel transfers by IDs returned from `/v1/transfers` |
+
+Transfer creation accepts JSON such as
+`{"source":{"path":"C:/data/file.zip"},"destination":{"site":"Home FTP","path":"/incoming/file.zip"},"start":false}`.
+Saved site names refer to entries already configured in FluxFTP. A remote source
+also requires a Boolean `directory` field. Queued transfers are held by default;
+set `start` to `true` to begin immediately. Requests are limited to 16 KiB and
+the API dispatches queue changes on the desktop GUI thread.
+
 ## Independent trust and queue storage services — 0.122.0
 
 Connections, the Certification Checker and trust prompts now share a Qt-independent

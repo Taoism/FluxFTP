@@ -2425,7 +2425,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         source = SimpleNamespace(mode="Local", site=None, password="", busy=False, join=sources.__getitem__)
         self.enqueue_items(source, dest, entries, start=start)
 
-    def enqueue_items(self, source, dest, entries, start=None):
+    def enqueue_items(self, source, dest, entries, start=None, confirmed=False):
         split = dest.parentWidget()
         if source.busy or dest.busy or not entries:
             return
@@ -2451,7 +2451,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         if any(e.is_link for e in entries):
             self.error("Symbolic links are not transferred in this build.")
             return
-        if self.preferences.value("Confirm/queue", True, type=bool) and QMessageBox.question(self, "Queue transfers", f"Transfer {len(entries)} file(s)? Existing destination files may be overwritten. Resume assumes unchanged source files.") != QMessageBox.StandardButton.Yes:
+        if not confirmed and self.preferences.value("Confirm/queue", True, type=bool) and QMessageBox.question(self, "Queue transfers", f"Transfer {len(entries)} file(s)? FluxFTP checks existing content before resuming and will ask when a match cannot be verified.") != QMessageBox.StandardButton.Yes:
             return
         if not self.active and not self.pending:
             self.queue_batch_failed = False
@@ -2463,6 +2463,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         large_selection = len(entries) + len(self.pending) > BUFFER_LIMIT
         selection_buffer = DiskBuffer(rank=lambda item: options.priority(item['name'])) if large_selection else None
         buffer_parent = None
+        created_jobs = []
         for entry, target_name in zip(entries, names):
             try:
                 src, dst = source.join(entry.name), dest.join(target_name)
@@ -2509,11 +2510,13 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                     row.setText(6, dest.path)
                     self.queue.addTopLevelItem(row)
                     self.queue_jobs.append(buffer_parent)
+                    created_jobs.append(buffer_parent)
                 continue
             job = self.new_queue_job(job)
             job["task"] = self.make_queue_task(job)
             self.queue_jobs.append(job)
             self.pending.append(job)
+            created_jobs.append(job)
             if start is False:
                 row.setText(7, f'{route} · Held — press Play')
         if buffer_parent is not None:
@@ -2525,6 +2528,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
             self.paused = False
         self.show_transfer_queue()
         self.start_next()
+        return created_jobs
 
     @staticmethod
     def _transfer_site_key(site):
@@ -2590,6 +2594,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
             self.automation.shutdown()
             self.folder_monitor.shutdown()
             self.watch_uploads.shutdown()
+            if getattr(self, 'control_api', None):
+                self.control_api.close()
             self.bandwidth_control.timer.stop()
             self.browse_timer.stop()
             self.system_appearance.close()

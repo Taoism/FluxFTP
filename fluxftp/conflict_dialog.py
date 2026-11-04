@@ -22,13 +22,15 @@ class ConflictDialog(QDialog):
         self.resize(610, 260)
         self.action = ''
         layout = QVBoxLayout(self)
+        match = details.get('match_status', 'Not checked')
         label = QLabel(f"Source: {details['src']}\nSize: {details['source_size']:,} bytes\n\n"
-                       f"Destination: {details['dst']}\nSize: {details['target_size']:,} bytes")
+                       f"Destination: {details['dst']}\nSize: {details['target_size']:,} bytes\n"
+                       f"Source match: {match}")
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(label)
-        hint = QLabel('Rename keeps both files using a numbered name. Resume assumes the existing prefix matches the source.')
+        hint = QLabel('Rename keeps both files using a numbered name. Resume continues from the existing destination; the match status above shows what FluxFTP could verify. This choice waits for you and has no automatic timeout; cancelling the transfer cancels the prompt.')
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.remaining = QCheckBox('Apply this choice to remaining conflicts in this queue run')
