@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import shutil
 import ssl
 import subprocess
 import sys
@@ -35,18 +36,25 @@ def main():
         "--add-data", f"{ROOT / 'README.md'}:.",
         *[arg for name in ('_ssl.pyd', '_hashlib.pyd', 'libcrypto-4-x64.dll', 'libssl-4-x64.dll', 'adapter.json', 'manifest.json')
           for arg in ('--add-data', f"{ROOT / 'runtime' / 'ssl4-adapter' / name}:ssl4-adapter")],
-        "--add-data", f"{ROOT / 'licenses' / 'OpenSSL.txt'}:licenses",
         "--add-binary", f"{ROOT / 'runtime' / 'rclone' / 'rclone.exe'}:cloud_tools",
-        "--add-data", f"{ROOT / 'licenses' / 'rclone.txt'}:licenses",
         "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'provenance.json'}:cloud_tools",
         "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'fluxftp-oauth-port.patch'}:cloud_tools",
         str(ROOT / "launch.py"),
     ], cwd=ROOT, check=True)
     staged = ROOT / f"dist-{__version__}" / "FluxFTP"
+    for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'requirements-windows.txt'):
+        shutil.copy2(ROOT / name, staged / name)
+    shutil.copytree(ROOT / 'licenses', staged / 'licenses', dirs_exist_ok=True)
+    shutil.copy2(ROOT / 'runtime' / 'python-3.13.15' / 'LICENSE.txt', staged / 'licenses' / 'Python-LICENSE.txt')
+    site_packages = Path(sys.prefix) / 'Lib' / 'site-packages'
+    distribution_licenses = staged / 'licenses' / 'python-distributions'
+    for metadata in site_packages.glob('*.dist-info'):
+        source_licenses = metadata / 'licenses'
+        if source_licenses.is_dir():
+            shutil.copytree(source_licenses, distribution_licenses / metadata.name, dirs_exist_ok=True)
     # Qt uses Windows' unversioned ICU exports. A PATH-provided ICU build can
     # have only version-suffixed exports and prevent QtCore from loading.
     import os
-    import shutil
     system32 = Path(os.environ['WINDIR']) / 'System32'
     for name in ('icuuc.dll', 'icu.dll'):
         # System DLLs can be read-only; do not copy that flag into generated
