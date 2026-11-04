@@ -4,7 +4,7 @@ A Windows desktop client for FTP, FTPS, SFTP and cloud storage. FluxFTP combines
 two-pane workspaces, recoverable transfer queues and deployment tools in a Qt
 interface inspired by classic file-transfer clients.
 
-**Source version: 0.124.0 · License: MIT · Primary platform: Windows x64**
+**Source version: 0.125.0 · License: MIT · Primary platform: Windows x64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.
@@ -37,6 +37,7 @@ Supported operations:
 | --- | --- |
 | `GET /v1/status` | Queue counts and paused state |
 | `GET /v1/transfers` | Transfer IDs, paths, progress, and state |
+| `GET /v1/sites` | Names of enabled saved sites (credentials are never returned) |
 | `POST /v1/transfers` | Queue one transfer using a local path or saved-site name at each endpoint |
 | `POST /v1/queue/play` | Start or resume the queue |
 | `POST /v1/queue/pause` | Pause queue scheduling |
@@ -49,6 +50,20 @@ Saved site names refer to entries already configured in FluxFTP. A remote source
 also requires a Boolean `directory` field. Queued transfers are held by default;
 set `start` to `true` to begin immediately. Requests are limited to 16 KiB and
 the API dispatches queue changes on the desktop GUI thread.
+
+### Android companion
+
+The adaptive Android companion lives in [`android/`](android/). It uses the
+authenticated JSON API to view transfer status, manage the queue, and submit
+transfers between the desktop host's local paths and saved sites. The desktop
+must be running. The API remains bound to loopback; connect the Android device
+through an authenticated local port forward or private VPN service that proxies
+to the host's loopback port. Never expose port 8765 directly to a network. For
+the Android emulator, run `adb reverse tcp:8765 tcp:8765` on the development
+computer, then use `http://127.0.0.1:8765` in the app. On a phone, use an
+authenticated SSH local forward or a private VPN's HTTPS service. The app only
+allows plain HTTP to loopback addresses and the emulator's forwarded loopback;
+other configured endpoints must use HTTPS.
 
 ## Independent trust and queue storage services — 0.122.0
 

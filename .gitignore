@@ -53,5 +53,9 @@ backups/
 !.env.example
 .idea/
 .vscode/
+android/.gradle/
+android/local.properties
+android/**/build/
+android/**/release.keystore
 Thumbs.db
 .DS_Store

@@ -118,6 +118,9 @@ class ControlAPI(QObject):
 
     def _execute(self, method, path, payload):
         w = self.window
+        if method == 'GET' and path == '/v1/sites':
+            return 200, {'sites': sorted(name for name, profile in w.sites.items()
+                if isinstance(name, str) and isinstance(profile, dict) and not profile.get('_disabled'))}
         if method == 'GET' and path in ('/v1/status', '/v1/transfers'):
             jobs = [job for job in w.queue_jobs if 'src' in job]
             if path.endswith('/status'):

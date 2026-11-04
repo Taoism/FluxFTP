@@ -21,6 +21,6 @@
 
 - [x] Show folder icons in both the remote and local folder views.
 
-- Add an Android/iOS app for full remote control of FluxFTP running on a home machine. The phone app should expose FluxFTP's full functionality, not just transfer monitoring and basic controls. Design a secure connection and pairing flow, with options such as WireGuard or Tailscale (and/or SSH or another authenticated encrypted tunnel), explicit authentication, and no unauthenticated public access. Android Studio is installed on the development machine; verify the Android SDK, build tools, emulator/device target, and signing setup when starting implementation.
+- Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: expand the desktop API and companion to cover full site/file browsing and the rest of FluxFTP's functionality; define one-tap secure pairing/tunnel setup; configure a release signing key.
 
 - [x] Add an authenticated loopback JSON API for scripts and clients, with queue inspection, transfer submission, and queue controls. Its bearer token is stored in FluxFTP's encrypted credential vault; remote access requires an authenticated SSH/VPN tunnel. Supported operations are documented in README.md.
