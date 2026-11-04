@@ -1,5 +1,12 @@
 # TODO
 
+- [x] When both FXP site roles are Auto, try destination-passive first and safely
+  reverse to source-passive if data-route setup fails before the transfer begins.
+- [x] Add FTP Rush-style toolbar shortcuts for refreshing both panes, queue controls,
+  log and transfer window visibility, and the FTP command terminal.
+- [x] Give saved-site folders and each supported protocol/cloud provider distinct
+  icons in Site Manager.
+
 - [x] Before resuming, compare destination content with the source where supported. Local prefixes use SHA-256; full files use a shared native hash where available, with size/mtime as a local fallback. Unknown or changed content is shown in the conflict dialog; changed prefixes disable Resume. The dialog waits for a choice and says it has no automatic timeout.
 
 - [x] Show folder icons in both the remote and local folder views.

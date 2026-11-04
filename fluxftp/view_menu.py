@@ -153,6 +153,37 @@ class ViewMenu(QObject):
             window.work_area.setSizes(sizes)
         focus.setFocus()
 
+    def _toggle_visible_panel(self, key, panel):
+        docking = getattr(self.window, 'docking', None)
+        if docking and docking.active:
+            dock = docking.docks[key]
+            if dock.isVisible():
+                dock.hide()
+            else:
+                self.show_panel(key)
+            return
+        splitter = self.window.work_area
+        index = splitter.indexOf(panel)
+        sizes = splitter.sizes()
+        if index >= 0 and sizes[index] > 0:
+            panel._fluxftp_last_size = sizes[index]
+            sizes[index] = 0
+            splitter.setSizes(sizes)
+        else:
+            self.show_panel(key)
+
+    def toggle_log_window(self):
+        self._toggle_visible_panel('ftp', self.window.log_tabs)
+
+    def toggle_transfer_window(self):
+        self._toggle_visible_panel('queue', self.window.queue_panel)
+
+    def open_ftp_terminal(self):
+        self.show_panel('ftp')
+        self.window.command_commands.update()
+        self.window.ftp_command_input.setFocus()
+        self.window.ftp_command_input.lineEdit().selectAll()
+
     def show_edit_files(self):
         if self.edit_dialog is None:
             self.edit_dialog = EditFilesDialog(self.window)

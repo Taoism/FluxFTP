@@ -8,6 +8,21 @@ Use Tools → Site Manager to save connections. FTP is unencrypted; FTPS and SFT
 provide encrypted transports with certificate/host-key verification. Trust a server
 through a normal interactive connection before unattended automation.
 
+The Site Manager uses a folder icon for groups and distinct icons for FTP, FTPS,
+SSH, and supported cloud providers. The main toolbar can refresh both panes, start
+or stop the queue, toggle the log and transfer windows, and open the FTP command
+terminal. The terminal sends commands to the selected connected FTP/FTPS server;
+it is not a local operating-system shell.
+
+## Remote-to-remote transfers
+
+When both panes use FTP/FTPS, transferring between them uses direct FXP when both
+servers support it. With both sites' FXP data roles set to Auto, FluxFTP first
+tries a passive destination and then tries a passive source if route setup fails
+before RETR/STOR begins. Explicit site roles select one route and disable the
+automatic retry. FTPS FXP additionally requires the servers to support SSCN or
+CPSV; unsupported protected FXP is not downgraded to clear data.
+
 Tools → Connection Diagnostics tests DNS, TCP/proxy establishment, authentication
 and directory/data access. Choose configured, passive or active FTP mode without
 changing the saved site. Tests list folders; they do not upload files or prove write

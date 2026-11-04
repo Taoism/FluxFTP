@@ -1586,12 +1586,8 @@ def _fxp(source: Connection, destination: Connection, src, dst, resume=False):
     if not compressed:
         a.set_compression(False)
         b.set_compression(False)
-    from .fxp_roles import source_passive
-    reverse = source_passive(source.site, destination.site)
-    active_ftp, passive_ftp = (b, a) if reverse else (a, b)
-    active_connection, passive_connection = (destination, source) if reverse else (source, destination)
+    from .fxp_roles import source_passive_candidates
     sscn = False
-    passive = None
     if isinstance(a, SecureFTP):
         # SSCN lets the source act as TLS client for the protected data connection.
         try:
@@ -1601,18 +1597,34 @@ def _fxp(source: Connection, destination: Connection, src, dst, resume=False):
         except ftplib.error_perm as error:
             if str(error)[:3] not in ('500', '502', '504'):
                 raise
-            try:
+    candidates = source_passive_candidates(source.site, destination.site)
+    setup_error = None
+    for index, reverse in enumerate(candidates):
+        active_ftp, passive_ftp = (b, a) if reverse else (a, b)
+        active_connection, passive_connection = (destination, source) if reverse else (source, destination)
+        try:
+            passive = None
+            if isinstance(a, SecureFTP) and not sscn:
                 passive = ftplib.parse227(passive_ftp.sendcmd('CPSV'))
                 passive_ftp.advertised_passive = passive
                 if getattr(passive_ftp, 'smart_pasv', False):
                     passive = (passive_ftp.host if getattr(passive_ftp, 'proxy', None) else passive_ftp.sock.getpeername()[0], passive[1])
                 passive_connection.trace.event('Protected FXP: passive endpoint CPSV TLS client')
-            except ftplib.error_perm as fallback:
-                raise ftplib.error_perm('Protected FXP requires active endpoint SSCN or passive endpoint CPSV: ' + str(fallback)) from error
+            host, port = passive or passive_ftp.makepasv()
+            active_ftp.sendport(host, port)
+            break
+        except (OSError, EOFError, ftplib.error_reply, ftplib.error_temp,
+                ftplib.error_perm, ftplib.error_proto) as error:
+            setup_error = error
+            if index + 1 >= len(candidates):
+                if isinstance(a, SecureFTP) and not sscn:
+                    raise ftplib.error_perm('Protected FXP requires active endpoint SSCN or passive endpoint CPSV: ' + str(error)) from error
+                raise
+            source.trace.event(f'FXP data-route setup failed; trying reversed roles: {type(error).__name__}')
+    else:
+        raise setup_error or ftplib.error_temp('FXP data route could not be prepared')
     completed = False
     try:
-        host, port = passive or passive_ftp.makepasv()
-        active_ftp.sendport(host, port)
         if offset:
             b.sendcmd(f"REST {offset}")
         if offset:

@@ -1558,6 +1558,19 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         self._toolbar_action("Options", QStyle.StandardPixmap.SP_FileDialogDetailedView, self.open_preferences,
                              "Configure connection, transfer, display, and confirmation options")
         self.main_toolbar.addSeparator()
+        self._toolbar_action("Refresh Both", QStyle.StandardPixmap.SP_BrowserReload, self.refresh_both_panes,
+                             "Refresh both file listings")
+        self._toolbar_action("Start Queue", QStyle.StandardPixmap.SP_MediaPlay, self.play_queue,
+                             "Start or resume queued transfers")
+        self._toolbar_action("Stop Queue", QStyle.StandardPixmap.SP_MediaStop, self.stop_queue,
+                             "Stop queued transfers")
+        self.main_toolbar.addSeparator()
+        self._toolbar_action("Log Window", QStyle.StandardPixmap.SP_FileDialogDetailedView,
+                             self.view_commands.toggle_log_window, "Toggle log window visibility")
+        self._toolbar_action("Transfer Window", QStyle.StandardPixmap.SP_FileDialogDetailedView,
+                             self.view_commands.toggle_transfer_window, "Toggle transfer window visibility")
+        self._toolbar_action("FTP Terminal", QStyle.StandardPixmap.SP_ComputerIcon,
+                             self.view_commands.open_ftp_terminal, "Open the FTP command terminal")
         self.main_toolbar.addSeparator()
         self._toolbar_action("New workspace", QStyle.StandardPixmap.SP_FileDialogNewFolder, self.add_workspace,
                              "Open another two-pane workspace")
@@ -1969,6 +1982,9 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
     def _toolbar_action(self, text, icon, callback, tooltip, shortcut=None):
         action = QAction(self.style().standardIcon(icon), text, self)
         action.setToolTip(tooltip)
+        from .toolbar_icons import DESCRIPTIONS
+        action._toolbar_description = next((value for prefix, value in DESCRIPTIONS.items()
+                                            if tooltip.startswith(prefix)), None)
         if shortcut:
             action.setShortcut(shortcut)
             action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
@@ -2172,6 +2188,10 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                 return
         pane = self.mark_commands.pane()
         if pane:
+            pane.refresh()
+
+    def refresh_both_panes(self):
+        for pane in self.current_panes():
             pane.refresh()
 
     def swap_remote_servers(self):

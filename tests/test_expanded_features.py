@@ -12,7 +12,7 @@ from fluxftp.core import Connection, Site, PROTOCOLS, fxp, transfer_tree
 from fluxftp.automation import execute_script, validate_script
 from fluxftp.calendar_schedule import next_calendar
 from fluxftp.site_connections import transfer_account, custom_proxy
-from fluxftp.fxp_roles import source_passive
+from fluxftp.fxp_roles import source_passive, source_passive_candidates
 from fluxftp.background_scheduler import task_xml
 from fluxftp.help_viewer import HelpDialog
 from fluxftp.transfer_options import TransferOptions
@@ -87,6 +87,26 @@ def test_source_passive_fxp(servers, tls):
     assert (root_b / 'output').read_bytes() == (root_a / 'input').read_bytes()
     with pytest.raises(ValueError):
         source_passive(a, replace(b, site_options=a.site_options))
+
+
+def test_auto_fxp_reverses_when_destination_cannot_offer_passive_route(servers, monkeypatch):
+    import ftplib
+    root_a, a = servers()
+    root_b, b = servers()
+    (root_a / 'input').write_bytes(b'auto reverse' * 4096)
+    with Connection(a, 'password') as source, Connection(b, 'password') as destination:
+        monkeypatch.setattr(destination.ftp, 'makepasv', lambda: (_ for _ in ()).throw(
+            ftplib.error_perm('502 destination PASV unavailable')))
+        fxp(source, destination, '/input', '/output')
+    assert (root_b / 'output').read_bytes() == (root_a / 'input').read_bytes()
+    assert source_passive_candidates(a, b) == (False, True)
+
+
+def test_explicit_fxp_roles_do_not_auto_reverse():
+    from fluxftp.core import Site
+    source = Site(host='source.test', site_options=json.dumps({'Transfer/fxp_role': 'Passive'}))
+    destination = Site(host='destination.test')
+    assert source_passive_candidates(source, destination) == (True,)
 
 
 def test_stat_listing_on_control_connection(servers):

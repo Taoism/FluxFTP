@@ -27,6 +27,10 @@ GLYPHS = {
     'folder': FOLDER + ' M12 10v7M8.5 13.5h7',
     'rename': 'M4 16l-1 5 5-1L21 7l-4-4ZM14 6l4 4M12 21h9',
     'delete': 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
+    'refresh_both': 'M4 8a7 7 0 0 1 12-3l2 2M18 3v4h-4M20 16a7 7 0 0 1-12 3l-2-2M6 21v-4h4',
+    'log': 'M4 4h16v16H4ZM7 8h10M7 12h10M7 16h6',
+    'queue_window': 'M4 4h16v16H4ZM7 8h2M11 8h6M7 12h2M11 12h6M7 16h2M11 16h6',
+    'terminal': 'M3 4h18v16H3ZM6 8l3 3-3 3M11 15h6',
 }
 
 # Match existing action descriptions; callbacks and shortcut ownership stay intact.
@@ -48,6 +52,10 @@ DESCRIPTIONS = {
     'Create a folder': ('folder', 'New folder', 'Create a folder in this pane.'),
     'Rename selected': ('rename', 'Rename', 'Rename the selected file or folder.'),
     'Delete selected': ('delete', 'Delete', 'Delete the selected files and folders.'),
+    'Refresh both': ('refresh_both', 'Refresh Both', 'Reload the file listings in both panes.'),
+    'Toggle log': ('log', 'Log Window', 'Show or hide the log window.'),
+    'Toggle transfer': ('queue_window', 'Transfer Window', 'Show or hide the transfer queue.'),
+    'Open the FTP command terminal': ('terminal', 'FTP Terminal', 'Open the FTP command terminal in the FTP Log panel.'),
 }
 
 

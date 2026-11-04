@@ -288,7 +288,7 @@ class PropertyPages:
             form = self.form(layout, 'XDUPE / FXP Method')
             self.boolean(form, 'Enable XDUPE', 'Transfer/xdupe').setItemText(0, 'Disabled (default)')
             self.choice(form, 'FXP data role', 'Transfer/fxp_role', [(v, v) for v in ('Auto', 'Passive', 'Active')]).setItemText(0, 'Auto (default)')
-            self.note(layout, 'Auto uses a passive destination. Explicit roles must be complementary across the two sites. Protected FXP still requires SSCN or CPSV support.')
+            self.note(layout, 'Auto first uses a passive destination, then tries the passive source if route setup fails before transfer starts. Explicit roles must be complementary and disable automatic reversal. Protected FXP still requires SSCN or CPSV support.')
             form = self.form(layout, 'Uploading and Downloading')
             self.boolean(form, 'Force active mode transfer', 'Transfer/force_active')
             self.boolean(form, 'Atomic remote upload', 'Transfer/atomic_upload')
