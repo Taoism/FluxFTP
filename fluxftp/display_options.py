@@ -246,6 +246,8 @@ class DisplayOptions:
             split = self.tabs.widget(index)
             for pane in (split.widget(0), split.widget(1)):
                 from .themes import header_style
+                from .folder_icons import directory_icon
+                folder_icon = directory_icon(pane)
                 pane.title_label.setStyleSheet(header_style(self.preferences,
                     getattr(self.app_instance, '_fluxftp_original_palette', self.app_instance.palette())))
                 self.update_selection_display(pane.tree)
@@ -253,6 +255,8 @@ class DisplayOptions:
                 for n in range(pane.tree.topLevelItemCount()):
                     row = pane.tree.topLevelItem(n)
                     entry = row.data(0, Qt.ItemDataRole.UserRole)
+                    if entry and entry.is_dir:
+                        row.setIcon(0, folder_icon)
                     if entry and not entry.is_dir: row.setText(1, self.file_size(entry.size))
             labels = [p.site.name if p.mode == 'Remote' and p.site else p.mode for p in (split.widget(0), split.widget(1))]
             separator = ' - ' if self.display_value('hyphen_separator', False) else ' ↔ '

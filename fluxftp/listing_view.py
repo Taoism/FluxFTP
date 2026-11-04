@@ -3,7 +3,6 @@ import time
 from PySide6.QtCore import QTimer, Qt, QSignalBlocker
 from PySide6.QtWidgets import QTreeWidgetItem
 from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import QStyle
 from .site_options import SiteSettings
 from .sort_options import sorted_entries
 
@@ -21,6 +20,8 @@ def populate(pane, entries, finished):
     batch_size = max(100, min(2000, settings.value('Connection/list_batch_size', 300, type=int)))
     iterator, count = iter(ordered), len(entries)
     from .transfer_options import TransferOptions
+    from .folder_icons import directory_icon
+    folder_icon = directory_icon(pane)
     from .highlight_rules import highlight_rules, highlight_color
     options = TransferOptions.from_settings(pane.window.preferences)
     try:
@@ -62,7 +63,7 @@ def populate(pane, entries, finished):
                                    entry.user, entry.group])
             row.setData(0, Qt.ItemDataRole.UserRole, entry)
             if entry.is_dir:
-                row.setIcon(0, pane.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon))
+                row.setIcon(0, folder_icon)
             row.setFlags(row.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
             reason = options.skip_reason(entry.name, entry.is_dir, entry.size)
             foreground = options.skip_color if reason else highlight_color(entry.name, rules)

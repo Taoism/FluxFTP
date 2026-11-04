@@ -68,6 +68,29 @@ def test_local_hidden_address_size_and_focus(window, tmp_path):
     assert row.text(3) == '1.0 KB / 2.0 KB' and row.text(4) == '2.0 KB'
 
 
+def test_folder_icons_turn_dark_and_refresh_with_theme(window, tmp_path):
+    from fluxftp.themes import apply_application
+
+    folder = tmp_path / 'folder'
+    folder.mkdir()
+    pane = window.current_panes()[0]
+    pane.local_path = str(tmp_path)
+    pane.change_mode('Local')
+    row = next(pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())
+               if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'folder')
+
+    window.preferences.setValue('Display/style', 'Midnight')
+    apply_application(window.app_instance, window.preferences, window.STYLE)
+    window.apply_display_settings()
+    image = row.icon(0).pixmap(24, 24).toImage()
+    assert image.pixelColor(12, 14).lightness() < 128
+
+    window.preferences.setValue('Display/style', 'Classic')
+    apply_application(window.app_instance, window.preferences, window.STYLE)
+    window.apply_display_settings()
+    assert not row.icon(0).isNull()
+
+
 def test_sites_grouping_recent_and_menu_visibility(window, monkeypatch):
     pane = window.current_panes()[0]
     window.sites = {f'Site {i}': asdict(Site(name=f'Site {i}', host='example.test')) for i in range(5)}
