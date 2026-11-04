@@ -4,9 +4,11 @@
   Ubuntu LTS baseline as a portable `.tar.gz`, verify the resulting glibc/library
   floor, test on Debian stable, include the Linux rclone backend, and run packaged
   GUI smoke checks.
-- [ ] Build and publish an x86_64 Fedora package in a Fedora build environment.
-  Use a portable `.tar.gz`, include the Linux rclone backend, and run packaged GUI
-  smoke checks.
+- [ ] Build and publish an x86_64 Fedora 45 portable `.tar.gz`. Fedora 45 WSL is
+  installed with Python 3.15 and glibc 2.44; set up the tested Python 3.13/PySide6
+  packaging environment, pip, Git and Go for the patched rclone backend, then run
+  packaged GUI smoke checks. Its glibc baseline is separate from the Ubuntu/Debian
+  package.
 
 - [x] When both FXP site roles are Auto, try destination-passive first and safely
   reverse to source-passive if data-route setup fails before the transfer begins.
