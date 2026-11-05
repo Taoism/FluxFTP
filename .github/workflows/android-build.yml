@@ -21,23 +21,23 @@ permissions:
 
 jobs:
   assemble:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Install Android SDK packages
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
       - name: Assemble debug APK
         run: bash ./gradlew --no-daemon assembleDebug
         working-directory: android
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: FluxFTP-Android-0.125.0-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
