@@ -23,12 +23,20 @@
 
 - Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: build a mobile-designed 1:1 feature mirror of the desktop client. The Android app is a remote control and display client; all server connections, saved credentials, browsing, and transfer work must execute on the end user's desktop host. The phone must not connect directly to FTP/SFTP/cloud servers or receive their credentials. Add full site/file browsing and feature parity to the desktop API and companion, secure pairing/tunnel setup, and a release signing key.
 
-- [ ] Make the desktop backend reachable securely from anywhere, including over mobile
-  data, without requiring end users to configure port forwarding, firewall rules, or
-  network routes. Provide simple device pairing and automatic connection setup using
-  Tailscale or WireGuard, with NAT traversal/relay as needed. An SSH tunnel inside the
-  encrypted network is acceptable for forwarding the loopback-only JSON API. Keep the
-  API off public interfaces; make sign-in, recovery/revocation, and bearer-token
-  handling understandable to nontechnical users.
+- [ ] Secure remote connectivity roadmap (rough engineering estimates for one
+  experienced engineer; Android full-feature parity is estimated separately):
+  - [ ] Tailscale proof of concept — 2–4 days. Use the existing loopback JSON API,
+    route it to the tailnet with Tailscale Serve, and confirm pairing and access over
+    mobile data, including relay fallback. No router or port-forwarding setup for users.
+  - [ ] Productized Tailscale setup — 1–3 weeks. Add guided host/device pairing,
+    sign-in and connection status, reconnect/recovery, device revocation, safe token
+    handling, and Windows/Android workflow checks. Keep the API off public interfaces.
+  - [ ] Optional SSH tunnel inside the encrypted tailnet — about 2–5 additional days
+    if Tailscale Serve is insufficient. Forward only to the desktop's loopback API and
+    handle host-key verification, tunnel startup/reconnect, and shutdown.
+  - [ ] Standalone WireGuard alternative — 4–8 weeks. Requires peer enrollment and key
+    lifecycle, coordination/discovery, NAT traversal, relay fallback, recovery and
+    revocation, plus Windows/Android packaging and mobile-data validation. This is an
+    alternative to the Tailscale track, not an additional required phase.
 
 - [x] Add an authenticated loopback JSON API for scripts and clients, with queue inspection, transfer submission, and queue controls. Its bearer token is stored in FluxFTP's encrypted credential vault; remote access requires an authenticated SSH/VPN tunnel. Supported operations are documented in README.md.
