@@ -1548,6 +1548,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(3)
         self._build_menus()
+        from .command_palette import CommandPalette
+        self.command_palette = CommandPalette(self)
         self.main_toolbar = QToolBar("File transfer tools", self)
         self.main_toolbar.setObjectName("mainToolbar")
         self.main_toolbar.setMovable(False)

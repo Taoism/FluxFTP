@@ -23,7 +23,7 @@
 
 ## Desktop product backlog
 
-- [ ] Add a command palette for commands, sites, folders, and profiles.
+- [x] Add a command palette for commands, sites, folders, deployment profiles, and workspaces. Use Ctrl+Shift+P; it also saves and applies workspace presets.
 - [ ] Add remote search filters for filename, size, and date, with download and
   navigation actions.
 - [ ] Add optional upload-on-save for remote editing, with conflict detection and
