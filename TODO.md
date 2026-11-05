@@ -23,10 +23,12 @@
 
 - Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: expand the desktop API and companion to cover full site/file browsing and the rest of FluxFTP's functionality; define one-tap secure pairing/tunnel setup; configure a release signing key.
 
-- [ ] Add secure remote connectivity for the Android companion and other clients using
-  Tailscale or WireGuard between the remote device and desktop backend. An SSH tunnel
-  carried inside that encrypted network is an acceptable way to forward the loopback-
-  only JSON API. Keep the API off public interfaces; document pairing, routing, and
-  bearer-token handling.
+- [ ] Make the desktop backend reachable securely from anywhere, including over mobile
+  data, without requiring end users to configure port forwarding, firewall rules, or
+  network routes. Provide simple device pairing and automatic connection setup using
+  Tailscale or WireGuard, with NAT traversal/relay as needed. An SSH tunnel inside the
+  encrypted network is acceptable for forwarding the loopback-only JSON API. Keep the
+  API off public interfaces; make sign-in, recovery/revocation, and bearer-token
+  handling understandable to nontechnical users.
 
 - [x] Add an authenticated loopback JSON API for scripts and clients, with queue inspection, transfer submission, and queue controls. Its bearer token is stored in FluxFTP's encrypted credential vault; remote access requires an authenticated SSH/VPN tunnel. Supported operations are documented in README.md.
