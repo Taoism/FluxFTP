@@ -16,12 +16,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -62,8 +62,8 @@ public final class MainActivity extends Activity {
     private TextView messageLabel;
     private EditText urlField;
     private EditText tokenField;
-    private Spinner sourceSite;
-    private Spinner destinationSite;
+    private AutoCompleteTextView sourceSite;
+    private AutoCompleteTextView destinationSite;
     private EditText sourcePath;
     private EditText destinationPath;
     private CheckBox directoryCheck;
@@ -266,13 +266,13 @@ public final class MainActivity extends Activity {
         form.addView(text("Queue a transfer", 19, INK, true));
         form.addView(text("Paths are on the FluxFTP desktop host. Use an enabled saved site for a remote endpoint.", 13, MUTED, false));
         form.addView(label("Source site (blank means desktop path)"));
-        sourceSite = siteSpinner();
+        sourceSite = siteField();
         form.addView(sourceSite, lp(-1, dp(48)));
         form.addView(label("Source path"));
         sourcePath = edit("C:/data/file.zip or /remote/file.zip", false);
         form.addView(sourcePath, lp(-1, dp(48)));
         form.addView(label("Destination site (blank means desktop path)"));
-        destinationSite = siteSpinner();
+        destinationSite = siteField();
         form.addView(destinationSite, lp(-1, dp(48)));
         form.addView(label("Destination path"));
         destinationPath = edit("D:/incoming/file.zip or /remote/file.zip", false);
@@ -327,29 +327,27 @@ public final class MainActivity extends Activity {
         content.addView(holder, lp(-1, -2));
     }
 
-    private Spinner siteSpinner() {
-        Spinner spinner = new Spinner(this);
-        spinner.setBackground(round(Color.WHITE, Color.rgb(208, 216, 225), 9));
-        spinner.setPadding(dp(9), 0, dp(9), 0);
-        setSpinnerSites(spinner);
-        return spinner;
+    private AutoCompleteTextView siteField() {
+        AutoCompleteTextView field = new AutoCompleteTextView(this);
+        field.setSingleLine(true);
+        field.setTextSize(15);
+        field.setPadding(dp(12), 0, dp(12), 0);
+        field.setHint("Desktop local path (blank)");
+        field.setBackground(round(Color.WHITE, Color.rgb(208, 216, 225), 9));
+        setSiteSuggestions(field);
+        return field;
     }
 
-    private void setSpinnerSites(Spinner spinner) {
-        List<String> options = new ArrayList<>();
-        options.add("Desktop local path");
-        options.addAll(sites);
+    private void setSiteSuggestions(AutoCompleteTextView field) {
+        List<String> options = new ArrayList<>(sites);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, options);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
+        field.setAdapter(adapter);
+        field.setThreshold(1);
     }
 
-    private void selectSite(Spinner spinner, String site) {
-        if (spinner == null || spinner.getAdapter() == null) return;
-        for (int i = 0; i < spinner.getAdapter().getCount(); i++) {
-            if (spinner.getAdapter().getItem(i).toString().equals(site)) { spinner.setSelection(i); return; }
-        }
-        spinner.setSelection(0);
+    private void selectSite(AutoCompleteTextView field, String site) {
+        if (field != null) field.setText("Desktop local path".equals(site) ? "" : site, false);
     }
 
     private void loadSites() {
@@ -360,14 +358,18 @@ public final class MainActivity extends Activity {
                 JSONArray entries = result.optJSONArray("sites");
                 List<String> updated = new ArrayList<>();
                 if (entries != null) for (int i = 0; i < entries.length(); i++) updated.add(entries.getString(i));
-                String selectedSource = sourceSite == null || sourceSite.getSelectedItem() == null ? "Desktop local path" : sourceSite.getSelectedItem().toString();
-                String selectedDestination = destinationSite == null || destinationSite.getSelectedItem() == null ? "Desktop local path" : destinationSite.getSelectedItem().toString();
+                String selectedSource = sourceSite == null || sourceSite.getText().length() == 0 ? "" : sourceSite.getText().toString();
+                String selectedDestination = destinationSite == null || destinationSite.getText().length() == 0 ? "" : destinationSite.getText().toString();
                 runOnUiThread(() -> {
                     sites.clear(); sites.addAll(updated);
-                    if (sourceSite != null) { setSpinnerSites(sourceSite); selectSite(sourceSite, selectedSource); }
-                    if (destinationSite != null) { setSpinnerSites(destinationSite); selectSite(destinationSite, selectedDestination); }
+                    if (sourceSite != null) { setSiteSuggestions(sourceSite); selectSite(sourceSite, selectedSource); }
+                    if (destinationSite != null) { setSiteSuggestions(destinationSite); selectSite(destinationSite, selectedDestination); }
                 });
-            } catch (Exception error) { showMessage(error.getMessage()); }
+            } catch (Exception error) {
+                if (error.getMessage() != null && error.getMessage().contains("unknown endpoint"))
+                    showMessage("Saved-site suggestions require the newer desktop API; enter a saved site name manually.");
+                else showMessage(error.getMessage());
+            }
         });
     }
 
@@ -454,8 +456,8 @@ public final class MainActivity extends Activity {
                     } else if (page.equals("Add transfer")) {
                         String srcText = sourcePath == null ? "" : sourcePath.getText().toString();
                         String dstText = destinationPath == null ? "" : destinationPath.getText().toString();
-                        String srcSite = sourceSite == null || sourceSite.getSelectedItem() == null ? "Desktop local path" : sourceSite.getSelectedItem().toString();
-                        String dstSite = destinationSite == null || destinationSite.getSelectedItem() == null ? "Desktop local path" : destinationSite.getSelectedItem().toString();
+                        String srcSite = sourceSite == null ? "" : sourceSite.getText().toString();
+                        String dstSite = destinationSite == null ? "" : destinationSite.getText().toString();
                         boolean directory = directoryCheck != null && directoryCheck.isChecked();
                         boolean start = startCheck != null && startCheck.isChecked();
                         render();
@@ -506,10 +508,10 @@ public final class MainActivity extends Activity {
         } catch (Exception error) { showMessage(error.getMessage()); }
     }
 
-    private JSONObject endpoint(Spinner spinner, String path) throws Exception {
+    private JSONObject endpoint(AutoCompleteTextView field, String path) throws Exception {
         JSONObject endpoint = new JSONObject().put("path", path);
-        Object value = spinner.getSelectedItem();
-        if (value != null && !value.toString().equals("Desktop local path")) endpoint.put("site", value.toString());
+        String site = field.getText().toString().trim();
+        if (!site.isEmpty() && !site.equals("Desktop local path")) endpoint.put("site", site);
         return endpoint;
     }
 
