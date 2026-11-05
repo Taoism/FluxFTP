@@ -21,7 +21,7 @@
 
 - [x] Show folder icons in both the remote and local folder views.
 
-- Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: expand the desktop API and companion to cover full site/file browsing and the rest of FluxFTP's functionality; define one-tap secure pairing/tunnel setup; configure a release signing key.
+- Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: build a mobile-designed 1:1 feature mirror of the desktop client. The Android app is a remote control and display client; all server connections, saved credentials, browsing, and transfer work must execute on the end user's desktop host. The phone must not connect directly to FTP/SFTP/cloud servers or receive their credentials. Add full site/file browsing and feature parity to the desktop API and companion, secure pairing/tunnel setup, and a release signing key.
 
 - [ ] Make the desktop backend reachable securely from anywhere, including over mobile
   data, without requiring end users to configure port forwarding, firewall rules, or
