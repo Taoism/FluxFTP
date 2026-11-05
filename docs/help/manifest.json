@@ -1,0 +1,19 @@
+{
+  "title": "FluxFTP Help",
+  "topics": [
+    {"id":"welcome","title":"Welcome to FluxFTP","category":"Start here","summary":"What FluxFTP does and how this help is organized.","keywords":"overview help manual","file":"articles/welcome.html"},
+    {"id":"quick-start","title":"Quick start","category":"Start here","summary":"Create a site, connect, and transfer your first files.","keywords":"setup connect upload download","file":"articles/quick-start.html"},
+    {"id":"workspace","title":"Main window and workspaces","category":"Using FluxFTP","summary":"Understand the panes, tabs, toolbar, log, and queue.","keywords":"interface tabs toolbar terminal","file":"articles/workspace.html"},
+    {"id":"sites","title":"Site Manager and connections","category":"Connections","summary":"Save FTP, FTPS, SFTP, SCP, and cloud connections.","keywords":"site profile folder cloud icon credentials","file":"articles/sites.html"},
+    {"id":"transfers","title":"Browse and transfer files","category":"Transfers","summary":"Select files, drag between panes, queue work, and resolve conflicts.","keywords":"drag drop explorer upload download queue","file":"articles/transfers.html"},
+    {"id":"fxp","title":"Remote-to-remote transfers (FXP)","category":"Transfers","summary":"Copy between FTP sites directly or through this computer.","keywords":"auto reverse passive active relay FXP","file":"articles/fxp.html"},
+    {"id":"cloud","title":"Cloud storage","category":"Connections","summary":"Connect supported cloud providers through rclone.","keywords":"S3 Google Drive OneDrive WebDAV","file":"articles/cloud.html"},
+    {"id":"trust","title":"Certificates, SSH trust, and diagnostics","category":"Connections","summary":"Verify server identity and diagnose connection problems.","keywords":"TLS FTPS certificate fingerprint host key SSH","file":"articles/trust.html"},
+    {"id":"sync","title":"Synchronize folders","category":"Automation","summary":"Preview folder changes and approve synchronization actions.","keywords":"compare checksum deletion sync","file":"articles/sync.html"},
+    {"id":"deploy","title":"Deployments and rollback","category":"Automation","summary":"Preview releases, verify uploads, and roll back retained revisions.","keywords":"website publish backup restore rollback","file":"articles/deploy.html"},
+    {"id":"automation","title":"Watch folders and automation","category":"Automation","summary":"Schedule tasks, run scripts, and upload settled files.","keywords":"watch scripts schedule","file":"articles/automation.html"},
+    {"id":"terminal","title":"FTP command terminal","category":"Tools","summary":"Send FTP commands to the selected connected server.","keywords":"toolbar terminal command shell","file":"articles/terminal.html"},
+    {"id":"api-android","title":"JSON API and Android companion","category":"Tools","summary":"Control the desktop transfer queue from local clients.","keywords":"REST bearer token port 8765 phone tablet","file":"articles/api-android.html"},
+    {"id":"troubleshooting","title":"Troubleshooting","category":"Reference","summary":"Common connection, queue, and security questions.","keywords":"error timeout resume firewall passive mode","file":"articles/troubleshooting.html"}
+  ]
+}

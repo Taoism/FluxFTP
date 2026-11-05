@@ -1,0 +1,3 @@
+<h1>Cloud storage</h1><p>Cloud connections use FluxFTP's rclone integration. Open the cloud account manager to configure an account, then create or select its entry in Site Manager. Provider availability depends on the rclone build and configured account.</p>
+<p>FluxFTP includes provider examples for services such as S3-compatible storage, Google Drive, OneDrive, and WebDAV. Credentials are managed locally; use the account manager's test action before transferring. Cloud transfers may use provider-managed resumable sessions, which are different from byte-offset resume supported by some FTP/SFTP transfers.</p>
+<p>Direct provider-side operations do not send file payload through this computer. Some queue controls cannot interrupt an active provider operation.</p>

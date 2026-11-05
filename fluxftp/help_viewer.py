@@ -1,36 +1,33 @@
-"""Offline searchable help, sourced from the packaged project guide."""
+"""Offline searchable viewer for the shared FluxFTP Help Center."""
+from html.parser import HTMLParser
+import json
 from pathlib import Path
-import re
 import sys
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QListWidget, QTextBrowser, QSplitter, QLabel
+
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QListWidget, QTextBrowser, QSplitter
 
 
-def guide_path():
+def help_root():
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
-    return root / 'README.md'
+    return root / 'docs' / 'help'
 
 
-def topics(text):
-    # Release/development history remains in the document but is not the user index.
-    text = text.split('<a id="release-history">')[0]
-    blocks = re.split(r'(?m)^(?=## )', text)
-    result = []
-    for block in blocks:
-        if not block.strip():
-            continue
-        lines = block.splitlines()
-        body = re.sub(r'<a id="[^"]+"></a>|---', '', '\n'.join(lines[1:])).strip()
-        if body:
-            result.append((lines[0].lstrip('# ').strip(), block))
-    return result
+class _Text(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+
+    def handle_data(self, data):
+        self.parts.append(data)
 
 
 class HelpDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
         self.setWindowTitle('FluxFTP Help')
-        self.resize(1040, 740)
+        self.resize(1100, 760)
         layout = QVBoxLayout(self)
         self.search = QLineEdit()
         self.search.setPlaceholderText('Search help topics and instructions…')
@@ -38,32 +35,36 @@ class HelpDialog(QDialog):
         layout.addWidget(self.search)
         split = QSplitter()
         self.index = QListWidget()
-        self.index.setAccessibleName('Help index')
+        self.index.setAccessibleName('Help topics')
         self.content = QTextBrowser()
         self.content.setAccessibleName('Help article')
-        self.content.setOpenExternalLinks(True)
+        self.content.setOpenExternalLinks(False)
         self.content.setOpenLinks(False)
         self.content.anchorClicked.connect(self.follow_link)
         split.addWidget(self.index)
         split.addWidget(self.content)
-        split.setSizes([270, 770])
+        split.setSizes([280, 820])
         layout.addWidget(split, 1)
+        self.root = help_root()
         try:
-            text = guide_path().read_text('utf-8')
-            self.topics = topics(text)
-            self.anchors = dict(re.findall(r'<a id="([^"]+)"></a>\s*## (.+)', text))
-        except OSError:
-            self.topics = [('Help unavailable', 'The packaged README.md is missing. Reinstall the current FluxFTP release.')]
-            self.anchors = {}
+            self.topics = json.loads((self.root / 'manifest.json').read_text(encoding='utf-8'))['topics']
+            for topic in self.topics:
+                article = (self.root / topic['file']).read_text(encoding='utf-8')
+                parser = _Text()
+                parser.feed(article)
+                topic['_html'] = article
+                topic['_text'] = ' '.join(parser.parts).casefold()
+        except (OSError, ValueError, KeyError):
+            self.topics = [dict(title='Help unavailable', summary='The packaged Help Center is missing. Reinstall FluxFTP.', keywords='', _html='<h1>Help unavailable</h1><p>The packaged Help Center is missing. Reinstall FluxFTP.</p>', _text='')]
         self.index.currentRowChanged.connect(self.select)
         self.search.textChanged.connect(self.filter)
         self.filter()
 
     def filter(self):
         query = self.search.text().casefold().split()
-        self.filtered = [(title, body) for title, body in self.topics if all(word in body.casefold() for word in query)]
+        self.filtered = [topic for topic in self.topics if all(word in (topic['title'] + ' ' + topic.get('summary', '') + ' ' + topic.get('keywords', '') + ' ' + topic['_text']).casefold() for word in query)]
         self.index.clear()
-        self.index.addItems([title for title, _ in self.filtered])
+        self.index.addItems([topic['title'] for topic in self.filtered])
         if self.filtered:
             self.index.setCurrentRow(0)
         else:
@@ -71,24 +72,19 @@ class HelpDialog(QDialog):
 
     def select(self, row):
         if 0 <= row < len(self.filtered):
-            self.content.setMarkdown(self.filtered[row][1])
+            topic = self.filtered[row]
+            self.content.setHtml(topic['_html'])
+            self.content.document().setBaseUrl(QUrl.fromLocalFile(str((self.root / topic['file']).resolve())))
 
     def follow_link(self, url):
-        if url.scheme() in ('http', 'https'):
-            from PySide6.QtGui import QDesktopServices
+        if url.scheme() in ('http', 'https', 'mailto'):
             QDesktopServices.openUrl(url)
         elif url.fragment():
-            anchor = url.fragment()
             self.search.clear()
-            target = self.anchors.get(anchor)
-            for index, (title, body) in enumerate(self.filtered):
-                slug = re.sub(r'[^a-z0-9 -]', '', title.casefold()).replace(' ', '-')
-                if slug == anchor or title == target:
-                    self.index.setCurrentRow(index)
-                    return
-                if f'<a id="{anchor}">' in body:
-                    # Empty section headings are omitted from the index.
-                    self.index.setCurrentRow(min(index + 1, len(self.filtered) - 1))
+            wanted = url.fragment()
+            for row, topic in enumerate(self.filtered):
+                if topic['id'] == wanted:
+                    self.index.setCurrentRow(row)
                     return
 
 
