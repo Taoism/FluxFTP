@@ -36,6 +36,12 @@ function renderTopics() {
 }
 
 search.addEventListener('input', renderTopics);
+article.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link) return;
+  const topic = topics.find(item => item.id === link.getAttribute('href').slice(1));
+  if (topic) { event.preventDefault(); showTopic(topic); }
+});
 fetch('manifest.json').then(response => response.json()).then(async manifest => {
   topics = manifest.topics;
   await Promise.all(topics.map(async topic => {

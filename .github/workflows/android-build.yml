@@ -39,5 +39,5 @@ jobs:
         working-directory: android
       - uses: actions/upload-artifact@v6
         with:
-          name: FluxFTP-Android-0.126.0-debug
+          name: FluxFTP-Android-0.127.0-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
