@@ -21,6 +21,31 @@
 
 - [x] Show folder icons in both the remote and local folder views.
 
+## Desktop product backlog
+
+- [ ] Add a command palette for commands, sites, folders, and profiles.
+- [ ] Add remote search filters for filename, size, and date, with download and
+  navigation actions.
+- [ ] Add optional upload-on-save for remote editing, with conflict detection and
+  backups.
+- [ ] Add transfer preflight checks for available space, destination access, and
+  path conflicts.
+- [ ] Add reusable queue recipes with endpoints, filters, and verification policies.
+- [ ] Add actionable Windows completion and failure notifications.
+- [ ] Add a connection health dashboard for latency, throughput, retries, and failures.
+- [ ] Add GitLab pipeline-artifact deployments with commit and pipeline provenance.
+- [ ] Add deployment revision comparison and text diffs.
+- [ ] Add a quick switcher for workspace presets.
+- [ ] Continue real-network active FTP and production protected-FXP interoperability
+  testing.
+
+## Release and distribution backlog
+
+- [x] Publish the GitHub repository with versioned downloadable releases and SHA-256
+  checksums.
+- [ ] Automate repeatable public release builds, maintain complete dependency notices,
+  and sign production packages.
+
 - Android companion initial client: Android app ID, encrypted bearer-token storage, adaptive phone/tablet queue controls, transfer submission against saved sites, and loopback-only HTTP policy are implemented in `android/`. Phone and tablet API 36.1 AVD profiles are installed. Remaining: build a mobile-designed 1:1 feature mirror of the desktop client. The Android app is a remote control and display client; all server connections, saved credentials, browsing, and transfer work must execute on the end user's desktop host. The phone must not connect directly to FTP/SFTP/cloud servers or receive their credentials. Add full site/file browsing and feature parity to the desktop API and companion, secure pairing/tunnel setup, and a release signing key.
 
 - [ ] Secure remote connectivity roadmap (rough engineering estimates for one
