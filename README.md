@@ -4,7 +4,7 @@ A Windows desktop client for FTP, FTPS, SFTP and cloud storage. FluxFTP combines
 two-pane workspaces, recoverable transfer queues and deployment tools in a Qt
 interface inspired by classic file-transfer clients.
 
-**Source version: 0.129.0 · License: MIT · Primary platform: Windows x64**
+**Source version: 0.130.0 · License: MIT · Primary platform: Windows x64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the entire archive, then run `FluxFTP.exe` inside the extracted folder.

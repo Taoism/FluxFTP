@@ -33,7 +33,7 @@ class FTPMenu(QObject):
         self.add('Calculate FTP Space Used…', callback=lambda: self.scan('space'))
         self.add('Export Directory Tree List…', callback=lambda: self.scan('export'))
         self.menu.addSeparator()
-        find = self.add('Find Files at Site…', callback=lambda: self.scan('find'))
+        find = self.add('Search Remote Files…', callback=self.search_remote)
         find.setIcon(window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView))
         self.menu.addSeparator()
         self.add('Clean Current Site Cache', callback=lambda: self.clean_cache(False))
@@ -67,7 +67,7 @@ class FTPMenu(QObject):
         if ready and ready[1].protocol in CLOUD_PROTOCOLS:
             self.actions['Attributes(CHMOD)'].setEnabled(False)
             self.actions['Modify Date of FTP files…'].setEnabled(False)
-        for label in ('Calculate FTP Space Used…', 'Export Directory Tree List…', 'Find Files at Site…'):
+        for label in ('Calculate FTP Space Used…', 'Export Directory Tree List…', 'Search Remote Files…'):
             self.actions[label].setEnabled(bool(ready))
         pane = self.pane()
         self.actions['Clean Current Site Cache'].setEnabled(bool(pane and pane.mode == 'Remote' and pane.site))
@@ -84,7 +84,7 @@ class FTPMenu(QObject):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Yes and self.valid(snapshot))
 
-    def run(self, snapshot, title, task, finished, mutation=False):
+    def run(self, snapshot, title, task, finished, mutation=False, failure=None):
         if not self.valid(snapshot):
             return
         pane, site, password, path, generation, entries = snapshot
@@ -119,11 +119,22 @@ class FTPMenu(QObject):
             finished(result)
         def failed(message):
             cleanup()
-            self.window.error(str(message))
+            if failure:
+                failure(message)
+            else:
+                self.window.error(str(message))
         worker = self.window.run(work, done, failed, autostart=False)
         progress.canceled.connect(cancellation.set)
         progress.show()
         worker.start()
+
+    def search_remote(self):
+        snapshot = self.snapshot()
+        if snapshot is None:
+            return
+        from .remote_search import RemoteSearchDialog
+        dialog = RemoteSearchDialog(self.window, snapshot)
+        self.window.retain_mouse_window(dialog)
 
     def chmod(self):
         snapshot = self.snapshot(True)
