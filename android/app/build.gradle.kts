@@ -10,7 +10,7 @@ android {
         applicationId = "com.taoism.fluxftp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12700
-        versionName = "0.127.0"
+        versionCode = 12800
+        versionName = "0.128.0"
     }
 }
