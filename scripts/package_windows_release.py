@@ -43,7 +43,7 @@ def main():
         shutil.copyfile(ROOT / filename, stage / filename)
     shutil.copyfile(ROOT / 'README.md', stage / '_internal/README.md')
     shutil.copytree(ROOT / 'docs', stage / 'docs')
-    shutil.copytree(ROOT / 'docs', stage / '_internal/docs')
+    shutil.copytree(ROOT / 'docs', stage / '_internal/docs', dirs_exist_ok=True)
     notices = stage / 'licenses'
     shutil.copytree(ROOT / 'licenses', notices)
     shutil.copyfile(args.python_license, notices / 'Python.txt')
