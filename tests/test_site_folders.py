@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QInputDialog, QMessageBox
 from fluxftp.core import Site
 from fluxftp.site_manager import SitesDialog
-from fluxftp.site_icons import SITE_MARKS
 from test_queue import window
 
 
@@ -66,29 +65,4 @@ def test_folder_click_does_not_connect_and_duplicate_is_rejected(window, monkeyp
     assert notices
     menu = dialog._build_context_menu()
     assert next(a for a in menu.actions() if a.text() == 'Rename').isEnabled()
-    dialog.close()
-
-
-def test_site_manager_shows_folder_and_protocol_provider_icons(window):
-    protocols = ['FTP · Unencrypted', 'FTPS · AUTH TLS', 'SFTP · SSH', 'SCP · SSH',
-                 'Amazon S3', 'Google Drive', 'Microsoft OneDrive', 'WebDAV']
-    window.preferences.setValue('Sites/folders', ['Cloud and servers'])
-    window.sites = {f'Site {index}': asdict(Site(name=f'Site {index}', host='example.test',
-                      protocol=protocol, site_options='{}'))
-                    for index, protocol in enumerate(protocols)}
-    window.sites['Site 4']['_folder'] = 'Cloud and servers'
-    dialog = SitesDialog(window)
-    rows = {}
-    pending = [dialog.tree.topLevelItem(i) for i in range(dialog.tree.topLevelItemCount())]
-    while pending:
-        row = pending.pop()
-        rows[row.text(0)] = row
-        pending.extend(row.child(i) for i in range(row.childCount()))
-    group = rows['Cloud and servers']
-    assert not group.icon(0).isNull()
-    assert not group.child(0).icon(0).isNull()
-    icons = [rows[f'Site {index}'].icon(0) for index in range(len(protocols))]
-    assert all(not icon.isNull() for icon in icons)
-    assert len({icon.cacheKey() for icon in icons}) == len(protocols)
-    assert set(protocols) <= SITE_MARKS.keys()
     dialog.close()

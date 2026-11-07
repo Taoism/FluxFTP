@@ -11,6 +11,12 @@ _lock = threading.Lock()
 _active = set()
 
 
+def _local_fingerprint(path):
+    """Return stable local identity/content metadata, excluding access time."""
+    stat = Path(path).stat()
+    return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+
+
 def _local_prefix_hash(path, length, cancel):
     digest = hashlib.sha256()
     remaining = length
@@ -121,7 +127,7 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             raise ValueError('Destination must be a regular file.')
         parent, name = str(target.parent), target.name
         target_size = target.stat().st_size if target.exists() else None
-        fingerprint = target.stat() if target.exists() else None
+        fingerprint = _local_fingerprint(target) if target.exists() else None
         def key(path): return ('local', str(Path(path).resolve()).casefold())
         def occupied(path):
             p = Path(path)
@@ -133,13 +139,17 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             raise ValueError('Cannot compare file sizes for File Exists rules.')
         relation = 'smaller' if target_size < source_size else 'larger' if target_size > source_size else 'same'
         action = getattr(options, f'{route}_{relation}')
-        source_fingerprint = Path(src).stat() if source is None else None
+        source_fingerprint = _local_fingerprint(src) if source is None else None
         needs_match = options.conflict_prompt or action == 'Ask' or action == 'Auto Resume'
         if needs_match:
             match_status, verified_match = _match_status(source, destination, src, dst, source_size,
                                                          target_size, cancel)
         else:
             match_status, verified_match = 'Not checked', False
+        if action == 'Auto Resume' and target_size > source_size and options.overwrite_resume_failed:
+            # A larger destination cannot be resumed. Honor the configured
+            # resume-failure policy before asking for an interactive choice.
+            action = 'Auto Overwrite'
         if (options.conflict_prompt or action == 'Ask' or (action == 'Auto Resume' and not verified_match)):
             if conflict is None:
                 raise ValueError('The existing destination was not verified for resume; choose a File Exists action from the queue.')
@@ -154,7 +164,7 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             if destination:
                 fresh = next((e for e in destination.list(parent or '/') if e.name == name), None)
             else:
-                fresh = Path(dst).stat() if Path(dst).exists() and not Path(dst).is_symlink() else None
+                fresh = _local_fingerprint(dst) if Path(dst).exists() and not Path(dst).is_symlink() else None
             if fresh != fingerprint:
                 from .transfer_reliability import ReliabilityError
                 raise ReliabilityError('Destination changed while waiting for the conflict choice.')
@@ -162,11 +172,11 @@ def transfer_existing(source, destination, src, dst, cancel, progress, resume, o
             if destination:
                 fresh = next((e for e in destination.list(parent or '/') if e.name == name), None)
             else:
-                fresh = Path(dst).stat() if Path(dst).exists() and not Path(dst).is_symlink() else None
+                fresh = _local_fingerprint(dst) if Path(dst).exists() and not Path(dst).is_symlink() else None
             if fresh != fingerprint:
                 from .transfer_reliability import ReliabilityError
                 raise ReliabilityError('Destination changed after its content was checked; resume was stopped.')
-            if source_fingerprint is not None and Path(src).stat() != source_fingerprint:
+            if source_fingerprint is not None and _local_fingerprint(src) != source_fingerprint:
                 from .transfer_reliability import ReliabilityError
                 raise ReliabilityError('Source changed after its content was checked; resume was stopped.')
             if source is not None:

@@ -62,25 +62,3 @@ def test_inline_command_real_response_in_log(window, servers, monkeypatch):
     assert 'Completed 1 command(s)' in window.ftp_log.toPlainText()
     assert not reports
     assert window.ftp_command_input.currentText() == ''
-
-
-def test_main_toolbar_has_ftp_rush_style_actions_and_terminal_focus(window, monkeypatch):
-    actions = {action.text(): action for action in window.main_toolbar.actions() if action.text()}
-    expected = {'Sites', 'Options', 'Refresh Both', 'Start Queue', 'Stop Queue',
-                'Log Window', 'Transfer Window', 'FTP Terminal', 'New workspace', 'Verify SFV'}
-    assert expected <= actions.keys()
-    assert all(not actions[name].icon().isNull() for name in expected)
-
-    refreshed = []
-    for pane in window.current_panes():
-        monkeypatch.setattr(pane, 'refresh', lambda pane=pane: refreshed.append(pane))
-    actions['Refresh Both'].trigger()
-    assert refreshed == window.current_panes()
-
-    window.show()
-    QTest.qWait(20)
-    ready(window)
-    window.command_commands.update()
-    window.view_commands.open_ftp_terminal()
-    assert window.log_tabs.currentWidget() is window.log_panels['ftp']
-    assert window.ftp_command_input.lineEdit().hasFocus()

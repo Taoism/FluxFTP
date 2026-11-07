@@ -3,10 +3,12 @@ import argparse
 import hashlib
 from importlib import metadata
 import json
+import platform
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import ssl
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +70,7 @@ def main():
         'Extract this entire ZIP to a writable folder and run FluxFTP.exe.\n'
         'Keep the _internal folder beside the executable. Python is not required.\n'
         'This package is unsigned; Windows may display an unknown-publisher warning.\n'
+        'Build environment and TLS library versions are recorded in release-manifest.json.\n'
         'Your settings are stored in your Windows user profile, not this ZIP.\n'
         'No accounts, credentials, logs or deployment backups are included.\n\n'
         'Source and updates: https://github.com/Taoism/FluxFTP\n'
@@ -76,7 +79,8 @@ def main():
     hashes = {p.relative_to(stage).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
               for p in sorted(stage.rglob('*')) if p.is_file()}
     (stage / 'release-manifest.json').write_text(json.dumps(dict(version=__version__, source_commit=revision,
-        signed=False, files=hashes), indent=2) + '\n', encoding='utf-8')
+        signed=False, build_environment=dict(platform=platform.platform(), machine=platform.machine(),
+            python=sys.version, openssl=ssl.OPENSSL_VERSION), files=hashes), indent=2) + '\n', encoding='utf-8')
     archive = output / (name + '.zip')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zip:
         for path in sorted(stage.rglob('*')):

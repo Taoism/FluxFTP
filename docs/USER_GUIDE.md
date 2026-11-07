@@ -69,6 +69,16 @@ are backed up locally before overwrite; destination-only files and empty folders
 are retained. Checksum readback prefers native SHA-256 and otherwise downloads the
 file for verification. Size-only mode does not establish content equality.
 
+When creating or editing a profile, import a GitLab pipeline artifact or a GitHub
+Actions artifact as its local source. GitLab needs an HTTPS server, project ID or
+path, branch or tag, and a token with read API access. GitHub needs an
+`owner/repository`, branch or tag, and a token with Actions read access. Choose a
+successful pipeline/workflow run and its artifact. Tokens are stored in the
+encrypted credential vault. Archives are size-limited and safely extracted;
+unsafe paths, links, special files and case-insensitive duplicates are rejected.
+The saved profile and rollback journal retain provider, project/repository,
+ref, run/pipeline, commit and artifact provenance.
+
 Preview rollback selects a retained revision. It checks backup integrity and current
 remote content before restoring old files or deleting files created by that
 deployment. Later remote edits block rollback. Ambiguous interrupted writes require

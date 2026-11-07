@@ -26,7 +26,7 @@ def validate_tag(tag):
 
 def validate_profile(value):
     required = {'name', 'source', 'site', 'destination', 'excludes', 'verification'}
-    if not isinstance(value, dict) or set(value) != required: raise ValueError('Invalid deployment profile.')
+    if not isinstance(value, dict) or set(value) not in (required, required | {'gitlab'}, required | {'github'}): raise ValueError('Invalid deployment profile.')
     if any(not isinstance(value[key], str) or not value[key] or len(value[key]) > 32768 or any(ord(c) < 32 for c in value[key])
            for key in ('name', 'source', 'site', 'destination')): raise ValueError('Invalid deployment name or location.')
     if not Path(value['source']).is_absolute(): raise ValueError('Deployment source must be an absolute local folder.')
@@ -34,6 +34,46 @@ def validate_profile(value):
     if value['verification'] not in ('Checksum readback', 'Size only'): raise ValueError('Invalid deployment verification policy.')
     if not isinstance(value['excludes'], list) or len(value['excludes']) > 100 or any(not isinstance(p, str) or len(p) > 500 for p in value['excludes']):
         raise ValueError('Invalid deployment exclusions.')
+    if 'gitlab' in value:
+        provenance = value['gitlab']
+        fields = {'server', 'project_id', 'project_path', 'ref', 'pipeline_id', 'pipeline_url',
+                  'commit_sha', 'job_id', 'job_name', 'artifact_filename'}
+        if not isinstance(provenance, dict) or set(provenance) != fields:
+            raise ValueError('Invalid GitLab deployment provenance.')
+        if (type(provenance['project_id']) is not int or provenance['project_id'] < 1 or
+                type(provenance['pipeline_id']) is not int or provenance['pipeline_id'] < 1 or
+                type(provenance['job_id']) is not int or provenance['job_id'] < 1):
+            raise ValueError('Invalid GitLab project, pipeline, or job ID.')
+        for key in ('project_path', 'ref', 'pipeline_url', 'commit_sha', 'job_name', 'artifact_filename'):
+            item = provenance[key]
+            if not isinstance(item, str) or not item or len(item) > 2048 or any(ord(c) < 32 for c in item):
+                raise ValueError('Invalid GitLab provenance field: ' + key)
+        if not re.fullmatch(r'[0-9a-fA-F]{40,64}', provenance['commit_sha']):
+            raise ValueError('Invalid GitLab commit SHA.')
+        from .gitlab_artifacts import normalize_url
+        server = normalize_url(provenance['server'])
+        pipeline = provenance['pipeline_url']
+        if not pipeline.startswith(server + '/'):
+            raise ValueError('GitLab pipeline URL does not match its server.')
+    if 'github' in value:
+        provenance = value['github']
+        fields = {'repository', 'run_id', 'run_url', 'commit_sha', 'ref', 'artifact_id', 'artifact_name'}
+        if not isinstance(provenance, dict) or set(provenance) != fields:
+            raise ValueError('Invalid GitHub Actions deployment provenance.')
+        if (not isinstance(provenance['repository'], str) or
+                not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', provenance['repository']) or
+                type(provenance['run_id']) is not int or provenance['run_id'] < 1 or
+                type(provenance['artifact_id']) is not int or provenance['artifact_id'] < 1):
+            raise ValueError('Invalid GitHub repository, run, or artifact ID.')
+        for key in ('run_url', 'commit_sha', 'ref', 'artifact_name'):
+            item = provenance[key]
+            if not isinstance(item, str) or not item or len(item) > 2048 or any(ord(c) < 32 for c in item):
+                raise ValueError('Invalid GitHub provenance field: ' + key)
+        if not re.fullmatch(r'[0-9a-fA-F]{40,64}', provenance['commit_sha']):
+            raise ValueError('Invalid GitHub commit SHA.')
+        expected_run_url = f"https://github.com/{provenance['repository']}/actions/runs/{provenance['run_id']}"
+        if provenance['run_url'].rstrip('/') != expected_run_url:
+            raise ValueError('GitHub workflow run URL does not match its repository and run.')
     return value
 
 

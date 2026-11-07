@@ -27,8 +27,6 @@ def make_pair(location, release='3.5.9', real=False):
     for name in runtime.DLLS:
         if real:
             source = Path(__file__).parents[1] / 'runtime/python-3.13.15/DLLs' / name
-            if not source.is_file():
-                pytest.skip('Maintained Windows TLS runtime fixture is not included in the public source checkout')
             shutil.copyfile(source, directory / name)
         else:
             (directory / name).write_bytes(fake_dll())
@@ -134,7 +132,7 @@ def test_daily_checks_and_no_downgrade(tmp_path, monkeypatch):
     assert 'up to date' in updates.check(tmp_path, current=(3, 5, 9))
     assert updates.check(tmp_path) is None
     assert len(calls) == 1
-    updates.check(tmp_path, force=True)
+    updates.check(tmp_path, current=(3, 5, 9), force=True)
     assert len(calls) == 2
     assert not (tmp_path / 'selected.json').exists()
 
@@ -188,6 +186,8 @@ def test_successful_desktop_handoff_does_not_launch_second_window(tmp_path, monk
 def test_real_windows_pair_loads_and_negotiates_verified_tls(tmp_path):
     if sys.platform != 'win32':
         pytest.skip('Windows runtime')
+    if sys.version_info[:2] != (3, 13):
+        pytest.skip('Cached OpenSSL runtime targets Python 3.13')
     directory = make_pair(tmp_path, '3.5.8', real=True)
     runtime.probe(directory)
     # A claimed version that does not match the actual DLLs must be rejected.

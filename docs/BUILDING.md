@@ -87,3 +87,29 @@ identities, certificates and private keys are never stored in this repository.
 
 Before a public binary release, complete package smoke tests, dependency/license
 review, artifact checksums and release notes. GitHub publishing is a separate step.
+
+## Automated public Windows releases
+
+Publishing a GitHub Release starts `.github/workflows/public-windows-release.yml`.
+The tag must match the version in `pyproject.toml` (for example, `v0.132.0`).
+The workflow builds the pinned, patched rclone backend, runs the release-focused
+tests and source smoke check, builds and smoke-checks the Windows application,
+then prepares the public ZIP with license notices, a dependency inventory, a
+source-commit manifest and `SHA256SUMS.txt`. It uploads the ZIP and checksum file
+to the published GitHub Release. The workflow can replace those two assets when
+rerun; it does not replace the release notes or tag.
+
+Before a public release, use **Actions → Public Windows release → Run workflow**
+with the candidate tag and leave **publish_assets** disabled. This produces a
+30-day workflow artifact without changing a GitHub Release. Review the package,
+manifest and smoke results first. The published-release trigger attaches assets
+automatically; a deliberate manual run can also attach them to an existing
+release by enabling **publish_assets**.
+
+The workflow currently produces an unsigned Windows package with the pinned
+dependency set and the hosted Python 3.13.15 TLS runtime. It does not use the
+separately maintained custom OpenSSL 3.5.8 / OpenSSL 4 adapter package path, and
+should not replace a validated package until that runtime difference is reviewed.
+It does not claim to sign or notarize Windows, macOS or Linux releases.
+Code-signing identities and the required non-Windows build hosts remain separate
+prerequisites.

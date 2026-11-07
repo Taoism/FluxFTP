@@ -42,6 +42,9 @@ class ToolsMenu(QObject):
         self.add('Certification Checker…', lambda: show_certification(window))
         from .connection_diagnostics import show_diagnostics
         self.add('Connection Diagnostics…', lambda: show_diagnostics(window))
+        from .sshfs_mounts import SSHFSMounts
+        window.sshfs_mounts = SSHFSMounts(window)
+        self.add('SSHFS Mounts…', window.sshfs_mounts.show)
         self.add('Add to site manager…')
         self.menu.addSeparator()
         window.command_commands = CommandMenu(window, self.menu)
@@ -54,12 +57,8 @@ class ToolsMenu(QObject):
         self.add('Deployment Profiles…', lambda: show_deployments(window))
         self.add('View RAW Directory…')
         self.menu.addSeparator()
-        from .automation import Automation
-        window.automation = Automation(window)
-        from .folder_monitor import FolderMonitor
-        window.folder_monitor = FolderMonitor(window)
-        from .watch_upload import WatchUploads
-        window.watch_uploads = WatchUploads(window)
+        from .automation_runtime import AutomationRuntime
+        window.automation_runtime = AutomationRuntime(window)
         self.add('Watch-and-upload Folders…', window.watch_uploads.show)
         self.add('Script Designer…', window.automation.show)
         self.add('Scheduled Automation…', window.automation.show)

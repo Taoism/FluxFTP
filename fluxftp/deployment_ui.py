@@ -12,13 +12,19 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QHBoxLayout,
 
 from .automation import saved_connection
 from .deployments import validate_profile, preview, revision_path, read_revision, rollback_preview
+from .gitlab_artifact_dialog import GitLabArtifactDialog
+from .github_artifact_dialog import GitHubArtifactDialog
 from .sync_profiles import atomic_json
 
 
 class ProfileEditor(QDialog):
     def __init__(self, window, profile=None):
         super().__init__(window)
+        self.flux_window = window
         self.setWindowTitle('Deployment Profile')
+        self.artifact_provider = next((key for key in ('gitlab', 'github') if profile and profile.get(key)), None)
+        self.artifact_provenance = dict(profile[self.artifact_provider]) if self.artifact_provider else None
+        self.artifact_source_path = profile['source'] if self.artifact_provider else None
         form = QFormLayout(self)
         self.name, self.source, self.destination = QLineEdit(), QLineEdit(), QLineEdit('/')
         self.site, self.verification = QComboBox(), QComboBox()
@@ -35,6 +41,14 @@ class ProfileEditor(QDialog):
             if path: self.source.setText(path)
         browse.clicked.connect(choose)
         form.addRow(browse)
+        import_button = QPushButton('Import GitLab pipeline artifact…')
+        import_button.setToolTip('Choose a branch/tag and successful pipeline job, then import its artifact as the deployment source.')
+        import_button.clicked.connect(self.import_gitlab_artifact)
+        form.addRow(import_button)
+        github_button = QPushButton('Import GitHub Actions artifact…')
+        github_button.setToolTip('Choose a repository branch/tag and successful workflow run, then import its artifact as the deployment source.')
+        github_button.clicked.connect(self.import_github_artifact)
+        form.addRow(github_button)
         note = QLabel('Changed files overwrite the destination only after preview approval. Previous files are backed up locally. '
             'Destination-only files and empty folders are retained. Checksum readback may download files when native hashes are unavailable.')
         note.setWordWrap(True)
@@ -53,9 +67,36 @@ class ProfileEditor(QDialog):
     def value(self):
         source = Path(self.source.text().strip())
         if not source.is_dir(): raise ValueError('Choose an existing local source folder.')
-        return validate_profile(dict(name=self.name.text().strip(), source=str(source.absolute()), site=self.site.currentText(),
+        item = dict(name=self.name.text().strip(), source=str(source.absolute()), site=self.site.currentText(),
             destination=self.destination.text().strip(), excludes=[p.strip() for p in self.excludes.text().split(';') if p.strip()],
-            verification=self.verification.currentText()))
+            verification=self.verification.currentText())
+        if self.artifact_provider and self.artifact_provenance and self.artifact_source_path and source.resolve() == Path(self.artifact_source_path).resolve():
+            item[self.artifact_provider] = self.artifact_provenance
+        return validate_profile(item)
+
+    def import_gitlab_artifact(self):
+        dialog = GitLabArtifactDialog(self.flux_window, self)
+        try:
+            if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_artifact:
+                source, provenance = dialog.result_artifact
+                self.source.setText(source)
+                self.artifact_source_path = source
+                self.artifact_provider = 'gitlab'
+                self.artifact_provenance = provenance
+        finally:
+            dialog.deleteLater()
+
+    def import_github_artifact(self):
+        dialog = GitHubArtifactDialog(self.flux_window, self)
+        try:
+            if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_artifact:
+                source, provenance = dialog.result_artifact
+                self.source.setText(source)
+                self.artifact_source_path = source
+                self.artifact_provider = 'github'
+                self.artifact_provenance = provenance
+        finally:
+            dialog.deleteLater()
 
 
 class DeploymentDialog(QDialog):
@@ -121,7 +162,19 @@ class DeploymentDialog(QDialog):
         self.plan = None
         self.tree.clear()
         item = self.profiles.get(self.profile.currentText())
-        self.description.setText(f'{item["source"]} → {item["site"]}: {item["destination"]}\nVerification: {item["verification"]}' if item else 'Create a deployment profile to begin.')
+        if item:
+            provenance = item.get('gitlab') or item.get('github')
+            if item.get('github'):
+                origin = (f'\nGitHub Actions: {provenance["repository"]} · {provenance["ref"]} · '
+                          f'run {provenance["run_id"]} · commit {provenance["commit_sha"]}')
+            else:
+                origin = (f'\nGitLab: {provenance["project_path"]} · {provenance["ref"]} · '
+                          f'pipeline {provenance["pipeline_id"]} · commit {provenance["commit_sha"]}'
+                          if provenance else '')
+            self.description.setText(f'{item["source"]} → {item["site"]}: {item["destination"]}'
+                f'\nVerification: {item["verification"]}{origin}')
+        else:
+            self.description.setText('Create a deployment profile to begin.')
         self.controls()
 
     def controls(self):
@@ -214,7 +267,17 @@ class DeploymentDialog(QDialog):
                     revisions.append((journal['created'], path.name, journal))
                 except (OSError, ValueError, KeyError, TypeError): continue
         revisions.sort(reverse=True)
-        choices = [f'{time.strftime("%Y-%m-%d %H:%M", time.localtime(created))} · {j["plan"]["profile"]["name"]} · {j["state"]} · {identity}' for created, identity, j in revisions[:100]]
+        choices = []
+        for created, identity, journal in revisions[:100]:
+            plan_profile = journal['plan']['profile']
+            provenance = plan_profile.get('gitlab') or plan_profile.get('github')
+            if plan_profile.get('github'):
+                origin = f' · GitHub Actions run {provenance["run_id"]} · {provenance["commit_sha"][:12]}'
+            else:
+                origin = (f' · GitLab pipeline {provenance["pipeline_id"]} · {provenance["commit_sha"][:12]}'
+                          if provenance else '')
+            choices.append(f'{time.strftime("%Y-%m-%d %H:%M", time.localtime(created))} · '
+                           f'{plan_profile["name"]} · {journal["state"]}{origin} · {identity}')
         if not choices:
             self.status.setText('No deployment rollback journals are available.')
             return
@@ -225,10 +288,22 @@ class DeploymentDialog(QDialog):
         if not self.plan or self.worker: return
         plan, connection, w = self.plan, self.connection, self.window
         action = 'Rollback' if plan['rollback'] else 'Deploy'
-        if QMessageBox.question(self, 'Approve deployment plan',
-            f'{action} the reviewed plan for {plan["profile"]["site"]}: {plan["profile"]["destination"]}? '
-            'Rollback restores backed-up files and deletes files created by that deployment. The queued operation starts only when you start Transfer Queue.'
-            if plan['rollback'] else f'Queue deployment of {len(plan["files"])} reviewed file(s) to {plan["profile"]["site"]}: {plan["profile"]["destination"]}? Existing files will be backed up locally before overwrite.') != QMessageBox.StandardButton.Yes:
+        provenance = plan['profile'].get('gitlab') or plan['profile'].get('github')
+        if plan['profile'].get('github'):
+            origin = (f'\nGitHub Actions run {provenance["run_id"]} · commit {provenance["commit_sha"]} '
+                      f'· {provenance["repository"]}@{provenance["ref"]}.' if provenance else '')
+        else:
+            origin = (f'\nGitLab pipeline {provenance["pipeline_id"]} · commit {provenance["commit_sha"]} '
+                      f'· {provenance["project_path"]}@{provenance["ref"]}.' if provenance else '')
+        if plan['rollback']:
+            prompt = (f'Rollback the reviewed plan for {plan["profile"]["site"]}: '
+                      f'{plan["profile"]["destination"]}?{origin} Backed-up files will be restored, '
+                      'and files created by that deployment will be removed after content checks.')
+        else:
+            prompt = (f'Queue deployment of {len(plan["files"])} reviewed file(s) to '
+                      f'{plan["profile"]["site"]}: {plan["profile"]["destination"]}?{origin} '
+                      'Existing files will be backed up locally before overwrite.')
+        if QMessageBox.question(self, 'Approve deployment plan', prompt) != QMessageBox.StandardButton.Yes:
             return
         item = dict(src=plan['profile']['source'], dst=plan['profile']['destination'], name=action + ': ' + plan['profile']['name'],
             directory=True, size=sum(f['source']['size'] for f in plan['files']), resume=False, state='queued', held=True,

@@ -69,7 +69,8 @@ def configure_task(enabled):
 def run_once(app, smoke=False):
     from PySide6.QtCore import QObject, Signal, QTimer, QSettings
     from types import SimpleNamespace
-    from .app import Window, Worker, settings_store, QStandardPaths
+    from .app import Window, settings_store, QStandardPaths
+    from .worker import Worker
     from .core import Site
     from .transfer_options import RateLimiter
     from .credentials import CredentialVault
@@ -110,6 +111,8 @@ def run_once(app, smoke=False):
     identity = host.preferences.value('Connection/proxy_profile_id', 'proxy', type=str)
     host.proxy_password = host.credential_vault.get('proxy' if identity == 'proxy' else 'proxy:' + identity)
     host.ident = IdentService()
+    from .connection_factory import ConnectionFactory
+    host.connection_factory = ConnectionFactory(host)
     log_path = host.sites_file.parent / 'background-automation.log'
     def log(message):
         if log_path.exists() and log_path.stat().st_size > 2_000_000:

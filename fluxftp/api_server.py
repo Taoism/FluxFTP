@@ -8,7 +8,7 @@ import threading
 import posixpath
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from PySide6.QtCore import QObject, Qt, Signal
 
@@ -27,7 +27,7 @@ class ControlAPI(QObject):
     """Authenticated localhost API. Remote use requires an authenticated tunnel."""
     dispatch = Signal(object)
 
-    def __init__(self, window):
+    def __init__(self, window, port=8765):
         super().__init__(window)
         self.window = window
         self.token = window.credential_vault.get(TOKEN_ID)
@@ -35,7 +35,7 @@ class ControlAPI(QObject):
             self.token = secrets.token_urlsafe(32)
             window.credential_vault.set(TOKEN_ID, self.token)
         self.dispatch.connect(self._dispatch, Qt.ConnectionType.QueuedConnection)
-        self.server = ThreadingHTTPServer(('127.0.0.1', 8765), self._handler())
+        self.server = ThreadingHTTPServer(('127.0.0.1', port), self._handler())
         self.server.daemon_threads = True
         self.thread = threading.Thread(target=self.server.serve_forever, name='FluxFTP-JSON-API', daemon=True)
         self.thread.start()
@@ -93,9 +93,12 @@ class ControlAPI(QObject):
                 if self.command not in ('GET', 'POST'):
                     self.respond(405, {'error': 'method not allowed'})
                     return
-                call = _Call(self.command, urlsplit(self.path).path, payload)
+                parsed = urlsplit(self.path)
+                if self.command == 'GET':
+                    payload = {key: values[-1] for key, values in parse_qs(parsed.query, keep_blank_values=True).items()}
+                call = _Call(self.command, parsed.path, payload)
                 controller.dispatch.emit(call)
-                if not call.done.wait(10):
+                if not call.done.wait(120 if parsed.path == '/v1/listing' else 10):
                     self.respond(503, {'error': 'desktop did not respond in time'})
                 else:
                     status, result = call.result
@@ -119,8 +122,28 @@ class ControlAPI(QObject):
     def _execute(self, method, path, payload):
         w = self.window
         if method == 'GET' and path == '/v1/sites':
-            return 200, {'sites': sorted(name for name, profile in w.sites.items()
-                if isinstance(name, str) and isinstance(profile, dict) and not profile.get('_disabled'))}
+            return 200, {'sites': [{'name': name, 'protocol': profile.get('protocol', ''),
+                                    'host': profile.get('host', ''), 'port': profile.get('port', 0)}
+                                   for name, profile in w.sites.items()
+                                   if isinstance(profile, dict) and not profile.get('_disabled')]}
+        if method == 'GET' and path == '/v1/listing':
+            site_name = payload.get('site', '')
+            directory = payload.get('path', '/')
+            if not isinstance(site_name, str) or site_name not in w.sites:
+                raise ValueError('site must name a saved FluxFTP site')
+            if not isinstance(directory, str) or any(char in directory for char in '\r\n\x00'):
+                raise ValueError('path is invalid')
+            profile = w.sites[site_name]
+            if profile.get('_disabled'):
+                raise ValueError('site is disabled')
+            site = w.site_from_profile(profile)
+            password = w.get_site_password(profile)
+            with w.new_connection(site, password) as connection:
+                entries = connection.list(directory)
+            return 200, {'site': site_name, 'path': directory, 'entries': [
+                {'name': item.name, 'directory': item.is_dir, 'size': item.size,
+                 'modified': item.modified, 'link': item.is_link}
+                for item in entries]}
         if method == 'GET' and path in ('/v1/status', '/v1/transfers'):
             jobs = [job for job in w.queue_jobs if 'src' in job]
             if path.endswith('/status'):

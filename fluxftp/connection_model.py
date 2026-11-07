@@ -72,6 +72,12 @@ def safe_name(name):
     return name
 
 
+def remote_path(path):
+    if any(c in path for c in "\r\n\x00"):
+        raise ValueError("Paths cannot contain control characters")
+    return path
+
+
 def normalize_host(host):
     """Resolve legacy hexadecimal IPv4 host values to standard dotted notation."""
     value = host.strip()

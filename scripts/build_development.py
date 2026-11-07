@@ -11,10 +11,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cloud', action='store_true', help='Include the locally built cloud backend')
     args = parser.parse_args()
-    if (ROOT / 'dist/FluxFTP-dev').exists():
+    output = ROOT / 'dist/FluxFTP-dev'
+    staging = ROOT / 'dist/FluxFTP'
+    if output.exists():
         parser.error('dist/FluxFTP-dev already exists; move it aside before building again.')
+    if staging.exists():
+        parser.error('dist/FluxFTP already exists; move it aside before building again.')
     command = [sys.executable, '-m', 'PyInstaller', '--clean', '--windowed',
-        '--name', 'FluxFTP-dev', '--distpath', str(ROOT / 'dist'),
+        '--name', 'FluxFTP', '--distpath', str(ROOT / 'dist'),
         '--workpath', str(ROOT / 'build/dev'), '--specpath', str(ROOT / 'build/dev'),
         '--add-data', f'{ROOT / "README.md"}:.',
         '--add-data', f'{ROOT / "LICENSE"}:.',
@@ -26,6 +30,7 @@ def main():
         if not backend.is_file(): parser.error('Build the cloud backend first; see docs/BUILDING.md.')
         command.extend(['--add-binary', f'{backend}:cloud_tools'])
     subprocess.run([*command, str(ROOT / 'launch.py')], cwd=ROOT, check=True)
+    staging.replace(output)
     print('Built an unsigned development package using the current Python TLS runtime.')
 
 

@@ -48,10 +48,16 @@ def test_branch_selection_preserves_both_channels_and_requires_adapter(tmp_path,
     assert runtime.selection_file(tmp_path, 3) != runtime.selection_file(tmp_path, 4)
 
 
-def test_adapter_hash_cannot_be_replaced(tmp_path):
+def test_adapter_hash_cannot_be_replaced(tmp_path, monkeypatch):
     adapter = runtime.adapter_directory()
     if not adapter.exists():
         pytest.skip('Windows adapter build needed')
+    trusted = tmp_path / 'trusted-adapter'
+    trusted.mkdir()
+    trusted_manifest = runtime.read_json(adapter / 'adapter.json')
+    trusted_manifest['python'] = f'{sys.version_info.major}.{sys.version_info.minor}'
+    runtime.write_json(trusted / 'adapter.json', trusted_manifest)
+    monkeypatch.setattr(runtime, 'adapter_directory', lambda: trusted)
     shutil.copytree(adapter, tmp_path / 'runtime')
     manifest = runtime.read_json(tmp_path / 'runtime' / 'manifest.json')
     manifest['sha256']['_ssl.pyd'] = '0' * 64
@@ -89,6 +95,9 @@ def test_real_official_package_extract_probe_and_select(tmp_path, monkeypatch):
     package = Path(__file__).parents[1] / 'build-tools/ssl4/openssl-4.1.0.msi'
     if sys.platform != 'win32' or not package.exists():
         pytest.skip('Official Windows package not cached')
+    adapter = runtime.read_json(runtime.adapter_directory() / 'adapter.json')
+    if adapter.get('python') != f'{sys.version_info.major}.{sys.version_info.minor}':
+        pytest.skip('Official adapter package targets another Python version')
     monkeypatch.setattr(updates4, 'fetch', lambda url, output, limit: output.write(package.read_bytes()))
     digest = runtime.sha256(package.read_bytes()).hexdigest()
     result = updates4.stage(tmp_path, '4.1.0', 'https://github.com/openssl/installer/releases/download/publish/4.1.0-1/OpenSSL-x64-VS-4.1.0.msi', digest)
@@ -106,6 +115,7 @@ def test_ssl_options_page_and_switch_persistence(tmp_path, monkeypatch):
     assert ('SSL', []) in PreferencesDialog.TREE
     application = QApplication.instance() or QApplication([])
     monkeypatch.setattr(runtime, 'root', lambda: tmp_path)
+    monkeypatch.setattr(runtime, 'validate_pair', lambda directory: {'version': '4.1.0'})
     window = SimpleNamespace(preferences=QSettings(str(tmp_path / 'prefs.ini'), QSettings.IniFormat),
                              runtime_updater=SimpleNamespace(start=lambda **kwargs: None))
     widget = QWidget()

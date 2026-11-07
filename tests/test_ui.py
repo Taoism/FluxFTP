@@ -63,6 +63,8 @@ def test_ui_prompts_then_pins_untrusted_ftps_certificate(servers, tmp_path, monk
         def clickedButton(self): return self._clicked
 
     monkeypatch.setattr(app_module, "QMessageBox", FakeMessageBox)
+    import fluxftp.window_workers as workers_module
+    monkeypatch.setattr(workers_module, "QMessageBox", FakeMessageBox)
     window = Window()
     window.sites_file = tmp_path / "sites.json"
     assert window.save_sites({site.name: __import__("dataclasses").asdict(site)})
@@ -122,7 +124,7 @@ def test_ui_upload_queue_and_workspaces(servers, tmp_path, monkeypatch):
     assert drop.accepted and drop.action == Qt.DropAction.CopyAction
     settle(window)
     assert (root / "queued.txt").read_bytes() == b"queued via UI"
-    assert window.queue.topLevelItem(0).text(7) == "Upload · Complete"
+    assert window.queue.topLevelItemCount() == 0  # Successful uploads are cleared from the queue.
     assert right.tree.topLevelItemCount() == 1
 
     # Switch the right pane to another local folder and verify local-to-local copy.
@@ -134,7 +136,7 @@ def test_ui_upload_queue_and_workspaces(servers, tmp_path, monkeypatch):
     window.enqueue(True)
     settle(window)
     assert (local_target / "queued.txt").read_bytes() == b"queued via UI"
-    assert window.queue.topLevelItem(1).text(7) == "Copy · Complete"
+    assert window.queue.topLevelItem(0).text(7) == "Copy · Complete"
 
     # Switching back restores the pane's last remote profile and path.
     right.change_mode("Remote")
@@ -400,7 +402,7 @@ def test_site_selection_and_explicit_connect_and_options_section():
     assert calls == [(1, None)]
     assert [manager.navigation.topLevelItem(i).text(0) for i in range(manager.navigation.topLevelItemCount())] == ["Saved sites"]
     options = PreferencesDialog(window)
-    assert [options.navigation.topLevelItem(i).text(0) for i in range(options.navigation.topLevelItemCount())][:3] == ["General", "Sites", "Connection"]
+    assert [options.navigation.topLevelItem(i).text(0) for i in range(options.navigation.topLevelItemCount())][:3] == ["General", "SSL", "Sites"]
     options.navigation.setCurrentItem(options.navigation.findItems("Sites", Qt.MatchFlag.MatchRecursive)[0])
     assert {button.text() for button in options.pages.widget(options.page_by_name["Sites"]).findChildren(QPushButton)} >= {
         "Import Sites…", "Export Sites…"}
@@ -454,7 +456,7 @@ def test_preferences_navigation_and_connection_settings(tmp_path, monkeypatch):
     window.preferences.clear()
     options = PreferencesDialog(window)
     roots = [options.navigation.topLevelItem(i).text(0) for i in range(options.navigation.topLevelItemCount())]
-    assert roots == ["General", "Sites", "Connection", "Transfer", "Misc.", "Display", "Mouse Action", "File Associations", "Event Notification", "Confirm"]
+    assert roots == ["General", "SSL", "Sites", "Connection", "Transfer", "Misc.", "Display", "Mouse Action", "File Associations", "Event Notification", "Confirm"]
     connection_item = options.navigation.topLevelItem(roots.index('Connection'))
     connection_children = [connection_item.child(i).text(0)
                            for i in range(connection_item.childCount())]

@@ -26,6 +26,7 @@ def test_priority_masks_first_match_regex_and_empty_list():
 
 def test_recursive_sibling_order(tmp_path, monkeypatch):
     import fluxftp.core as core
+    import fluxftp.connection_transfer as connection_transfer
     source, target = tmp_path / 'source', tmp_path / 'target'
     source.mkdir()
     for name in ('movie.bin', 'info.nfo', 'checksum.sfv', 'playlist.m3u', 'cover.jpg'):
@@ -38,7 +39,7 @@ def test_recursive_sibling_order(tmp_path, monkeypatch):
         from pathlib import Path
         order.append(Path(args[2]).name)
         return original(*args, **kwargs)
-    monkeypatch.setattr(core, 'transfer_tree', record)
+    monkeypatch.setattr(connection_transfer, 'transfer_tree', record)
     original(None, None, str(source), str(target), True, Event(), lambda *_: None)
     assert order == ['checksum.sfv', 'info.nfo', 'playlist.m3u', 'cover.jpg', 'Sample', 'clip.bin', 'movie.bin']
     assert (target / 'movie.bin').read_bytes() == b'contents'
