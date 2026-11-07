@@ -128,4 +128,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
-        run: gh release upload "$RELEASE_TAG" build/public-release/*.zip build/public-release/SHA256SUMS.txt --clobber
+        run: gh release upload "$RELEASE_TAG" build/public-release/*.zip build/public-release/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
