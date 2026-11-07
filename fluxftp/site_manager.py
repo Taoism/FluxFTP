@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushB
     QStackedWidget, QInputDialog, QApplication)
 from PySide6.QtGui import QKeySequence, QShortcut
 from .site_icons import folder_icon, site_icon
+from .provider_icons import provider_icon
 
 class ImportDialog(QDialog):
     def __init__(self, parent, result):
@@ -266,7 +267,8 @@ class SitesDialog(QDialog):
             folder_rows[folder] = group
         for name, data in sorted(self.window.sites.items(), key=lambda p: p[0].casefold()):
             row = QTreeWidgetItem([name, data["host"], str(data["port"]), data["protocol"], data["username"]])
-            row.setIcon(0, site_icon(data["protocol"]))
+            row.setIcon(0, provider_icon(data["protocol"]) if data.get("cloud_account")
+                        else site_icon(data["protocol"]))
             row.setData(0, Qt.ItemDataRole.UserRole, name)
             if data.get("_disabled"):
                 row.setText(0, f"{name} (disabled)")

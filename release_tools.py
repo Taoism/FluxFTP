@@ -15,7 +15,7 @@ def run(*arguments):
     subprocess.run([str(a) for a in arguments], check=True)
 
 
-def package_native(backend, expected_hash, identity=None):
+def package_native(backend, expected_hash, identity=None, build_id=None):
     if sys.platform == 'win32':
         raise ValueError('Use build_windows.py with the validated Windows runtime.')
     backend = Path(backend).resolve()
@@ -25,15 +25,29 @@ def package_native(backend, expected_hash, identity=None):
     if backend.name != 'rclone' or not os.access(backend, os.X_OK):
         raise ValueError('Supply an executable native rclone binary named rclone.')
     from fluxftp import __version__
-    destination = ROOT / 'dist' / f'FluxFTP-{__version__}-{sys.platform}-{platform.machine()}'
+    suffix = f'-{build_id}' if build_id else ''
+    destination = ROOT / 'dist' / f'FluxFTP-{__version__}-{sys.platform}-{platform.machine()}{suffix}'
     if destination.exists():
         raise ValueError(f'Release already exists: {destination}')
-    arguments = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
-        '--windowed', '--name', 'FluxFTP', '--distpath', destination,
-        '--workpath', ROOT / 'build-native', '--specpath', ROOT / 'build-native',
+    build_name = f'{__version__}-{sys.platform}-{platform.machine()}{suffix}'
+    pyinstaller_dist = ROOT / 'build-native-dist' / build_name
+    pyinstaller_work = ROOT / 'build-native' / build_name
+    if pyinstaller_dist.exists() or pyinstaller_work.exists():
+        raise ValueError('Native build staging already exists; preserve it and choose a fresh build directory.')
+    data = [
+        '--add-data', f'{ROOT / "README.md"}:.',
+        '--add-data', f'{ROOT / "LICENSE"}:.',
+        '--add-data', f'{ROOT / "THIRD_PARTY_NOTICES.md"}:.',
+        '--add-data', f'{ROOT / "docs"}:docs',
+        '--add-data', f'{ROOT / "licenses"}:licenses',
+        '--add-data', f'{ROOT / "fluxftp" / "assets" / "cloud-providers"}:fluxftp/assets/cloud-providers',
         '--add-binary', f'{backend}:cloud_tools',
-        '--add-data', f'{ROOT / "licenses" / "rclone.txt"}:licenses',
-        '--add-data', f'{ROOT / "README.md"}:.']
+        '--add-data', f'{backend.parent / "provenance.json"}:cloud_tools',
+        '--add-data', f'{backend.parent / "fluxftp-oauth-port.patch"}:cloud_tools',
+    ]
+    arguments = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
+        '--windowed', '--name', 'FluxFTP', '--distpath', pyinstaller_dist,
+        '--workpath', pyinstaller_work, '--specpath', pyinstaller_work, *data]
     if sys.platform == 'darwin':
         arguments.extend(['--osx-bundle-identifier', 'com.fluxftp.desktop'])
         if identity:
@@ -41,11 +55,17 @@ def package_native(backend, expected_hash, identity=None):
     elif identity:
         raise ValueError('A packaging signing identity is only supported on macOS.')
     run(*arguments, ROOT / 'launch.py')
-    (destination / 'build-provenance.json').write_text(json.dumps({
+    staged = pyinstaller_dist / ('FluxFTP.app' if sys.platform == 'darwin' else 'FluxFTP')
+    if not staged.is_dir():
+        raise RuntimeError(f'PyInstaller did not create the expected application bundle: {staged}')
+    (staged / 'build-provenance.json').write_text(json.dumps({
         'version': __version__, 'platform': platform.platform(),
         'python': platform.python_version(), 'backend_sha256': actual,
         'signing_identity_requested': bool(identity),
-        'release_signature_verified': False}, indent=2) + '\n')
+        'release_signature_verified': False}, indent=2) + '\n', encoding='utf-8')
+    import shutil
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(staged, destination)
     return destination
 
 
@@ -94,6 +114,7 @@ def main():
     native.add_argument('--backend', required=True)
     native.add_argument('--sha256', required=True)
     native.add_argument('--identity', help='macOS Developer ID Application identity')
+    native.add_argument('--build-id', help='Optional label for a separate native build output')
     macos = commands.add_parser('notarize-macos')
     macos.add_argument('bundle')
     macos.add_argument('--profile', required=True, help='Existing notarytool Keychain profile')
@@ -106,7 +127,7 @@ def main():
     linux.add_argument('--identity', required=True)
     args = parser.parse_args()
     if args.command == 'package-native':
-        print(package_native(args.backend, args.sha256, args.identity))
+        print(package_native(args.backend, args.sha256, args.identity, args.build_id))
     elif args.command == 'sign-windows':
         sign_windows(args.executable, args.thumbprint, args.timestamp)
     elif args.command == 'sign-linux':

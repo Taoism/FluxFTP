@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGrid
     QGroupBox, QScrollArea)
 from .core import Site, PROTOCOLS
 from .cloud import CLOUD_PROTOCOLS
+from .provider_icons import provider_icon
 from .site_import import validate_site
 from .site_options import decode as site_options
 
@@ -585,7 +586,8 @@ class SiteDialog(QDialog):
         self.cloud_account.addItem('Select a cloud account', '')
         try:
             for identity, record in owner.cloud_service.accounts().items():
-                self.cloud_account.addItem(record['name'] + ' (' + record['provider'] + ')', identity)
+                self.cloud_account.addItem(provider_icon(record['provider']),
+                    record['name'] + ' (' + record['provider'] + ')', identity)
             self.cloud_account.setCurrentIndex(max(0, self.cloud_account.findData(selected)))
         except (ValueError, OSError):
             self.cloud_account.setToolTip('Open Cloud Accounts to review the account list.')

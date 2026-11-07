@@ -88,7 +88,7 @@ class WindowChrome:
         from .setup_wizard import show_wizard
         self.wizard_action = add(help_menu, 'FluxFTP Wizard…', lambda: show_wizard(self))
         about = self.about_action = add(help_menu, "About FluxFTP…", lambda: QMessageBox.about(
-            self, "About FluxFTP", f"FluxFTP {__version__}\n\nFTP, FTPS, SFTP, and FXP file transfers.\nDevelopment build — FTP Rush parity is still in progress."))
+            self, "About FluxFTP", f"FluxFTP {__version__}\n\nA multi-platform (Windows, Ubuntu, Debian) FTP, FTPS, SFTP and cloud-storage client with synchronization, verification reports and deployment rollback."))
         about.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
 
     def _build_quick_connect(self, layout):

@@ -4,6 +4,7 @@ Run with .venv-openssl358/Scripts/python.exe. See README.md (Windows runtime).
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -33,12 +34,13 @@ def main():
         "--windowed", "--name", "FluxFTP", "--distpath", f"dist-{__version__}",
         "--runtime-hook", str(ROOT / 'openssl_runtime_hook.py'),
         "--workpath", f"build-{__version__}", "--specpath", f"build-{__version__}",
-        "--add-data", f"{ROOT / 'README.md'}:.",
+        "--add-data", f"{ROOT / 'README.md'}{os.pathsep}.",
+        "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'cloud-providers'}{os.pathsep}fluxftp/assets/cloud-providers",
         *[arg for name in ('_ssl.pyd', '_hashlib.pyd', 'libcrypto-4-x64.dll', 'libssl-4-x64.dll', 'adapter.json', 'manifest.json')
-          for arg in ('--add-data', f"{ROOT / 'runtime' / 'ssl4-adapter' / name}:ssl4-adapter")],
-        "--add-binary", f"{ROOT / 'runtime' / 'rclone' / 'rclone.exe'}:cloud_tools",
-        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'provenance.json'}:cloud_tools",
-        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'fluxftp-oauth-port.patch'}:cloud_tools",
+          for arg in ('--add-data', f"{ROOT / 'runtime' / 'ssl4-adapter' / name}{os.pathsep}ssl4-adapter")],
+        "--add-binary", f"{ROOT / 'runtime' / 'rclone' / 'rclone.exe'}{os.pathsep}cloud_tools",
+        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'provenance.json'}{os.pathsep}cloud_tools",
+        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'fluxftp-oauth-port.patch'}{os.pathsep}cloud_tools",
         str(ROOT / "launch.py"),
     ], cwd=ROOT, check=True)
     staged = ROOT / f"dist-{__version__}" / "FluxFTP"
@@ -54,7 +56,6 @@ def main():
             shutil.copytree(source_licenses, distribution_licenses / metadata.name, dirs_exist_ok=True)
     # Qt uses Windows' unversioned ICU exports. A PATH-provided ICU build can
     # have only version-suffixed exports and prevent QtCore from loading.
-    import os
     system32 = Path(os.environ['WINDIR']) / 'System32'
     for name in ('icuuc.dll', 'icu.dll'):
         # System DLLs can be read-only; do not copy that flag into generated

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, Q
     QLineEdit, QComboBox, QPushButton, QTreeWidget, QTreeWidgetItem, QMessageBox, QScrollArea)
 
 from .cloud import PROVIDERS, operation_error, cloud_path
+from .provider_icons import provider_icon
 
 
 def setup_error(details):
@@ -45,6 +46,8 @@ class CloudAccountWizard(QDialog):
         self.name = QLineEdit()
         self.provider = QComboBox()
         self.provider.addItems(PROVIDERS)
+        for index, name in enumerate(PROVIDERS):
+            self.provider.setItemIcon(index, provider_icon(name))
         if provider in PROVIDERS:
             self.provider.setCurrentText(provider)
         if self.editing:
@@ -397,6 +400,7 @@ class CloudAccounts(QDialog):
         try:
             for identity, account in self.window.cloud_service.accounts().items():
                 row = QTreeWidgetItem([account['name'], account['provider']])
+                row.setIcon(1, provider_icon(account['provider']))
                 row.setData(0, Qt.ItemDataRole.UserRole, identity)
                 self.tree.addTopLevelItem(row)
                 if identity == identity_before:

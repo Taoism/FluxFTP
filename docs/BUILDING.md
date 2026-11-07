@@ -1,5 +1,63 @@
 # Building and testing FluxFTP
 
+## Portable Ubuntu/Debian Linux release
+
+The x86_64 portable archive is built on Ubuntu 24.04 LTS and tested on Debian
+13 stable. The packaged application recorded a `GLIBC_2.38` symbol floor; it is
+intended for Ubuntu 24.04 or newer and Debian 13 or newer. Debian 12 and older
+Ubuntu releases do not meet that floor. Keep the Fedora build separate because
+its glibc baseline and native libraries differ.
+
+Install the build prerequisites on Ubuntu 24.04:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-venv python3-pip python3-dev build-essential \
+  pkg-config git golang-go binutils libxcb-cursor0 libxkbcommon-x11-0 \
+  libxcb-xinerama0 libxcb-icccm4 libxcb-keysyms1 libxcb-image0 \
+  libxcb-render-util0 libxcb-randr0 libxcb-shape0 libxcb-xfixes0 \
+  libgl1 libegl1 libdbus-1-3
+bash scripts/build_linux_release.sh
+```
+
+The script creates an isolated Python environment, builds the pinned rclone
+source revision with its FluxFTP OAuth/OneDrive patch, runs the focused rclone
+tests, packages the GUI with PyInstaller and writes a `.tar.gz` plus
+`SHA256SUMS.txt` under `dist/`. Go bootstraps the Go version required by the
+pinned rclone source, so the build needs network access. The archive contains
+the native rclone backend, runtime provenance, dependency inventory, license
+notices, documentation and per-file checksums. It does not contain saved
+accounts or credentials.
+
+To verify the archive on Debian 13:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+tar -xzf FluxFTP-*-linux-x86_64-ubuntu24.04.tar.gz
+cd FluxFTP-*-linux-x86_64-ubuntu24.04
+QT_QPA_PLATFORM=offscreen ./FluxFTP --smoke-test
+./_internal/cloud_tools/rclone version
+```
+
+For a normal desktop session, provide the host's X11/XCB libraries, an active
+user D-Bus session and a Secret Service implementation for the encrypted
+credential vault. SSHFS mounts also require the host's FUSE/SSHFS packages.
+The package is unsigned; publishing a production release requires the normal
+release approval and asset review.
+
+To build the native Debian installer from the Ubuntu-built bundle, use the
+FluxFTP source checkout on Debian 13 and point `--bundle` to the transferred
+`FluxFTP-0.133.0-linux-x86_64-debian` application folder:
+
+```bash
+python3 scripts/package_deb.py --bundle /path/to/FluxFTP-0.133.0-linux-x86_64-debian
+```
+
+The resulting `.deb` declares the Debian runtime dependencies, installs the
+application under `/opt/fluxftp`, and registers a desktop entry and `fluxftp`
+launcher. The package builder extracts the package and runs the packaged GUI
+smoke check and bundled rclone version check before reporting success.
+
 ## Source environment
 
 Use Windows x64 and Python 3.13 for the primary development path. The project
@@ -91,7 +149,7 @@ review, artifact checksums and release notes. GitHub publishing is a separate st
 ## Automated public Windows releases
 
 Publishing a GitHub Release starts `.github/workflows/public-windows-release.yml`.
-The tag must match the version in `pyproject.toml` (for example, `v0.132.0`).
+The tag must match the version in `pyproject.toml` (for example, `v0.133.0`).
 The workflow builds the pinned, patched rclone backend, runs the release-focused
 tests and source smoke check, builds and smoke-checks the Windows application,
 then prepares the public ZIP with license notices, a dependency inventory, a

@@ -33,7 +33,9 @@ def main():
     if actual != COMMIT: raise RuntimeError('Unexpected upstream revision')
     subprocess.run([git, 'apply', '--check', str(patch)], cwd=source, check=True)
     subprocess.run([git, 'apply', str(patch)], cwd=source, check=True)
-    environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='local')
+    # rclone's go.mod pins its minimum Go toolchain. Let Go bootstrap that
+    # pinned toolchain when the distro compiler is older than that baseline.
+    environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='auto')
     for package, pattern in (('./lib/oauthutil', '.'), ('./backend/onedrive', 'TestFluxFTP')):
         subprocess.run([go, 'test', package, '-run', pattern, '-count=1'], cwd=source, env=environment, check=True)
     destination = ROOT / 'runtime/rclone'
@@ -47,7 +49,8 @@ def main():
     provenance = dict(version=VERSION, source_url='https://github.com/rclone/rclone',
         source_commit=COMMIT, patch_sha256=PATCH_SHA256,
         executable_sha256=hashlib.sha256(output.read_bytes()).hexdigest(),
-        go=subprocess.check_output([go, 'version'], text=True).strip())
+        go=subprocess.check_output([go, 'env', 'GOVERSION'], cwd=source,
+            env=environment, text=True).strip())
     (destination / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n', encoding='utf-8')
     print('Built patched cloud backend; no files were published.')
 

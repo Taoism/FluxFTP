@@ -4,6 +4,17 @@ The root MIT license covers FluxFTP's original code and documentation. It does n
 replace dependency licenses. No third-party executable, DLL, Python environment,
 private key or runtime adapter is committed here.
 
+The bundled provider marks in `fluxftp/assets/cloud-providers` use provider brand
+colors. The single-color SVG glyphs are from Simple Icons 12.0.0 (CC0 1.0); the
+Google Drive logo is the official 2026 product logo from Google, and the Google
+Cloud Storage icon is from Google's official product-icon library. Provider names
+and marks remain their respective owners' trademarks and are shown only to identify
+supported storage services. Sources: <https://github.com/simple-icons/simple-icons>,
+<https://developers.google.com/workspace/drive/api/guides/branding>, and
+<https://cloud.google.com/icons>. The Google Drive mark is used under Google's
+Drive branding guidance; Google Drive is a trademark of Google LLC. FluxFTP does
+not claim sponsorship or endorsement by Google or any listed provider.
+
 Direct dependencies are declared in `pyproject.toml`; the maintained Windows
 environment snapshot is `requirements-windows.txt`. They include PySide6/Qt,
 Paramiko, cryptography, keyring and miniupnpc. Test/build dependencies include

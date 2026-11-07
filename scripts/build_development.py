@@ -1,5 +1,6 @@
 """Build an unsigned development app with the current Python runtime."""
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -20,15 +21,16 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--clean', '--windowed',
         '--name', 'FluxFTP', '--distpath', str(ROOT / 'dist'),
         '--workpath', str(ROOT / 'build/dev'), '--specpath', str(ROOT / 'build/dev'),
-        '--add-data', f'{ROOT / "README.md"}:.',
-        '--add-data', f'{ROOT / "LICENSE"}:.',
-        '--add-data', f'{ROOT / "THIRD_PARTY_NOTICES.md"}:.',
-        '--add-data', f'{ROOT / "docs"}:docs',
-        '--add-data', f'{ROOT / "licenses"}:licenses']
+        '--add-data', f'{ROOT / "README.md"}{os.pathsep}.',
+        '--add-data', f'{ROOT / "LICENSE"}{os.pathsep}.',
+        '--add-data', f'{ROOT / "THIRD_PARTY_NOTICES.md"}{os.pathsep}.',
+        '--add-data', f'{ROOT / "docs"}{os.pathsep}docs',
+        '--add-data', f'{ROOT / "licenses"}{os.pathsep}licenses',
+        '--add-data', f'{ROOT / "fluxftp" / "assets" / "cloud-providers"}{os.pathsep}fluxftp/assets/cloud-providers']
     if args.cloud:
         backend = ROOT / 'runtime/rclone' / ('rclone.exe' if sys.platform == 'win32' else 'rclone')
         if not backend.is_file(): parser.error('Build the cloud backend first; see docs/BUILDING.md.')
-        command.extend(['--add-binary', f'{backend}:cloud_tools'])
+        command.extend(['--add-binary', f'{backend}{os.pathsep}cloud_tools'])
     subprocess.run([*command, str(ROOT / 'launch.py')], cwd=ROOT, check=True)
     staging.replace(output)
     print('Built an unsigned development package using the current Python TLS runtime.')
