@@ -85,6 +85,15 @@ def icon_colors(window):
     return ink, disabled
 
 
+def toolbar_button_style(window):
+    layout = window.preferences.value('Display/icon_layout', 'Icons only', type=str)
+    return {
+        'Icons only': Qt.ToolButtonStyle.ToolButtonIconOnly,
+        'Text beside icons': Qt.ToolButtonStyle.ToolButtonTextBesideIcon,
+        'Text below icons': Qt.ToolButtonStyle.ToolButtonTextUnderIcon,
+    }.get(layout, Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+
 def apply_mode_icon(pane):
     mode = pane.mode
     target = 'Remote' if mode == 'Local' else 'Local'
@@ -92,7 +101,7 @@ def apply_mode_icon(pane):
     button = pane.mode_button
     button.setText(mode)
     button.setIcon(icon_for(mode.lower(), *icon_colors(pane.window)))
-    button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+    button.setToolButtonStyle(toolbar_button_style(pane.window))
     button.setToolTip(f'{mode} — Switch to {target}\n{description}')
     button.setStatusTip(description)
     button.setAccessibleName(f'{mode}: switch to {target}')
@@ -135,7 +144,7 @@ def apply_toolbar_icons(window):
             item.setToolTip(title + '\n' + description)
             item.setStatusTip(description)
             if isinstance(item, QToolButton):
-                item.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+                item.setToolButtonStyle(toolbar_button_style(window))
                 item.setAccessibleName(title)
                 item.setAccessibleDescription(description)
 

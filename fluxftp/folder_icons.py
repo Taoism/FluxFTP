@@ -1,5 +1,6 @@
 """Folder icons that remain legible on dark application palettes."""
 from functools import lru_cache
+from pathlib import Path
 
 from PySide6.QtCore import QByteArray, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPixmap
@@ -37,6 +38,11 @@ def _dark_folder_icon(fill, flap, edge):
 
 
 def directory_icon(pane):
+    custom = pane.window.preferences.value('Display/folder_icon_path', '', type=str)
+    if custom and Path(custom).is_file():
+        icon = QIcon(custom)
+        if not icon.isNull():
+            return icon
     from .themes import palette_for
     colors = palette_for(pane.window.preferences)
     if colors:
@@ -47,7 +53,10 @@ def directory_icon(pane):
         surface = palette.color(QPalette.ColorRole.Window).name()
         text = palette.color(QPalette.ColorRole.Text).name()
     if QColor(base).lightness() >= 128:
-        return pane.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+        fill = _mix(surface, base, .24)
+        edge = _mix(base, text, .38)
+        flap = _mix(fill, text, .16)
+        return _dark_folder_icon(fill, flap, edge)
     fill = _mix(base, surface, .58)
     edge = _mix(base, text, .42)
     flap = _mix(fill, text, .18)

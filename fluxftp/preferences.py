@@ -48,7 +48,7 @@ class PreferencesDialog(QDialog):
 
         ("Misc.", []),
 
-        ("Display", ["Sort", "Highlights", "Font", "Color", "Layout", "Themes", "Status bar"]),
+        ("Display", ["Sort", "Highlights", "Font", "Color", "Layout", "Icons", "Themes", "Status bar"]),
 
         ("Mouse Action", []),
 
@@ -1077,6 +1077,12 @@ class PreferencesDialog(QDialog):
             check(rows, 'double_buffer', 'Enable Double Buffer painting for Dock panel')
             description.setText('Changes save immediately. Caption settings control panel titles. Double buffering can reduce painting flicker.')
 
+        elif title == "Icons":
+            self._combo(form, 'Display/icon_layout', 'Toolbar icon layout',
+                ['Icons only', 'Text beside icons', 'Text below icons'], 'Icons only',
+                lambda _value: self.window.apply_layout_settings())
+            description.setText('Choose how toolbar commands appear. Icon colors follow the active light or dark theme automatically.')
+
         elif title == "Themes":
 
             self.theme_combo = self._combo(form, "Display/style", "Theme", ["Classic", "System", "Follow OS", "Light", "Midnight", "Dark Grey", "Black"], "Classic", self._apply_style)
@@ -1085,7 +1091,22 @@ class PreferencesDialog(QDialog):
                 ['Follow theme', 'Classic', 'System', 'Light', 'Midnight', 'Dark Grey', 'Black'], 'Follow theme',
                 self.window.apply_display_settings)
 
-            description.setText("Follow OS automatically switches between Light and Midnight when the operating system appearance changes. Named themes are fixed presets. System allows custom colors. Selecting a theme restores its matching headers.")
+            icon_row = QWidget()
+            icon_layout = QHBoxLayout(icon_row)
+            icon_layout.setContentsMargins(0, 0, 0, 0)
+            self.folder_icon_path = QLineEdit(self._value('Display/folder_icon_path', ''))
+            self.folder_icon_path.setReadOnly(True)
+            self.folder_icon_path.setPlaceholderText('Theme-matched folder icons')
+            choose_folder_icon = QPushButton('Choose image…')
+            reset_folder_icon = QPushButton('Use theme icons')
+            choose_folder_icon.clicked.connect(self._choose_folder_icon)
+            reset_folder_icon.clicked.connect(self._reset_folder_icon)
+            icon_layout.addWidget(self.folder_icon_path, 1)
+            icon_layout.addWidget(choose_folder_icon)
+            icon_layout.addWidget(reset_folder_icon)
+            form.addRow('Folder icons:', icon_row)
+
+            description.setText("Follow OS automatically switches between Light and Midnight when the operating system appearance changes. Named themes are fixed presets. System allows custom colors. Choose an image to use your own folder icon throughout the app, or restore the theme-matched dark and light icons.")
 
         elif title == "Status bar":
 
@@ -1827,6 +1848,19 @@ class PreferencesDialog(QDialog):
         self._refresh_theme_controls()
         if hasattr(self.window, 'system_appearance'):
             self.window.system_appearance.refresh()
+
+    def _choose_folder_icon(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Choose a folder icon', '',
+            'Images (*.svg *.png *.ico *.jpg *.jpeg *.bmp);;All files (*.*)')
+        if path:
+            self.settings.setValue('Display/folder_icon_path', path)
+            self.folder_icon_path.setText(path)
+            self.window.apply_display_settings()
+
+    def _reset_folder_icon(self):
+        self.settings.remove('Display/folder_icon_path')
+        self.folder_icon_path.clear()
+        self.window.apply_display_settings()
 
     def _refresh_theme_controls(self):
         from .themes import palette_for, theme_name

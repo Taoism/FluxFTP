@@ -1,5 +1,6 @@
 """Compact, distinct icons for saved-site protocols and site folders."""
 from functools import lru_cache
+from pathlib import Path
 
 from PySide6.QtCore import QByteArray, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPixmap
@@ -72,6 +73,11 @@ def site_icon(protocol):
 
 
 def folder_icon(window):
+    custom = window.preferences.value('Display/folder_icon_path', '', type=str)
+    if custom and Path(custom).is_file():
+        icon = QIcon(custom)
+        if not icon.isNull():
+            return icon
     dark = window.palette().color(QPalette.ColorRole.Window).lightness() < 128
-    return _folder_icon('#40566f' if dark else '#e8b84f',
-                        '#afc7df' if dark else '#a47623')
+    return _folder_icon('#343a40' if dark else '#e8e9eb',
+                        '#aeb4bb' if dark else '#9ca3aa')
