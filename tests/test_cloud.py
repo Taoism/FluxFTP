@@ -4,7 +4,7 @@ import subprocess
 import time
 from dataclasses import asdict, replace
 from pathlib import Path
-from threading import Event, Thread, Timer
+from threading import Event, Thread
 from uuid import uuid4
 
 import pytest
@@ -186,13 +186,8 @@ def test_active_cancellation_preserves_existing_download(service, tmp_path, monk
                 cancel.set()
             return result
         monkeypatch.setattr(service, 'call', delayed)
-        timer = Timer(.5, cancel.set)
-        timer.start()
-        try:
-            with pytest.raises(Cancelled):
-                connection.transfer(target, '/large', False, cancel, lambda *_: None)
-        finally:
-            timer.cancel()
+        with pytest.raises(Cancelled):
+            connection.transfer(target, '/large', False, cancel, lambda *_: None)
     assert target.read_bytes() == b'keep original'
     assert service.process.poll() is None
     assert jobs and service.call('job/status', {'jobid': jobs[0]})['finished']
