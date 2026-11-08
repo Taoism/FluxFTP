@@ -717,25 +717,12 @@ class PreferencesDialog(QDialog):
             self.skip_empty = self._check(right, "Transfer/skip_empty", "Skip Empty Directory", True, self._refresh_skip_colors)
             self.skip_folders = self._check(right, "Transfer/skip_folders", "Apply SkipList to Folder", False, self._refresh_skip_colors)
             grid.addRow(top)
-            color_row = QWidget()
-            color_layout = QHBoxLayout(color_row)
-            color_layout.setContentsMargins(0, 0, 0, 0)
-            self.skip_color = QComboBox()
-            for name, color in (("Red", "#ff0000"), ("Blue", "#0000ff"), ("Gray", "#808080"), ("Orange", "#ff8000")):
-                self.skip_color.addItem(name, color)
-            current = self._value("Transfer/skip_color", "#ff0000", str)
-            if self.skip_color.findData(current) < 0:
-                self.skip_color.addItem(current, current)
-            self.skip_color.setCurrentIndex(self.skip_color.findData(current))
-            self.skip_color.setStyleSheet(f"background:{current};")
-            self.skip_color.currentIndexChanged.connect(self._save_skip_color)
-            choose_color = QPushButton("…")
-            choose_color.setMaximumWidth(32)
-            choose_color.clicked.connect(self._choose_skip_color)
-            color_layout.addWidget(self.skip_color)
-            color_layout.addWidget(choose_color)
-            color_layout.addStretch()
-            grid.addRow("Color of Skipped items", color_row)
+            from .color_options import ColorControl
+            self.skip_color = ColorControl(self._value("Transfer/skip_color", "#ff0000", str),
+                settings=self.settings, setting_key='transfer/skip_color',
+                choices=(('Red', '#ff0000'), ('Blue', '#0000ff'), ('Gray', '#808080'), ('Orange', '#ff8000')))
+            self.skip_color.changed.connect(self._save_skip_color)
+            grid.addRow("Color of Skipped items", self.skip_color)
             form.addRow(options)
             mode = QGroupBox("Skip Mode")
             mode_layout = QHBoxLayout(mode)
@@ -999,7 +986,8 @@ class PreferencesDialog(QDialog):
                 grid.addWidget(theme, 0, 1, 1, 2)
                 self.color_themes[scope] = theme
                 for col, (role, label) in enumerate((('selection', 'Selection'), ('even', 'Even row'), ('odd', 'Odd row'))):
-                    control = ColorControl(color_value(self.settings, scope, role))
+                    control = ColorControl(color_value(self.settings, scope, role),
+                        settings=self.settings, setting_key=f'{scope}/{role}')
                     grid.addWidget(QLabel(label), 1, col)
                     grid.addWidget(control, 2, col)
                     self.color_controls[(scope, role)] = control
@@ -1013,7 +1001,8 @@ class PreferencesDialog(QDialog):
                 ('reply1', 'Server (1) Reply Message'), ('reply2', 'Server (2) Reply Message'),
                 ('command', 'FTP Command'), ('prompt', 'Prompt Message'))):
                 row, col = divmod(index, 2)
-                control = ColorControl(color_value(self.settings, 'log', role))
+                control = ColorControl(color_value(self.settings, 'log', role),
+                    settings=self.settings, setting_key=f'log/{role}')
                 grid.addWidget(QLabel(label), row * 2, col)
                 grid.addWidget(control, row * 2 + 1, col)
                 self.color_controls[('log', role)] = control
@@ -1047,7 +1036,8 @@ class PreferencesDialog(QDialog):
             self.layout_checks['limit_tab_width'].toggled.connect(self.window.apply_layout_settings)
             self.tab_width.valueChanged.connect(self.window.apply_layout_settings)
             active = check(rows, 'custom_active_font', 'Use customize font color for active tab')
-            self.active_tab_color = ColorControl(self._value('Layout/active_color', '#ff0000', str))
+            self.active_tab_color = ColorControl(self._value('Layout/active_color', '#ff0000', str),
+                settings=self.settings, setting_key='layout/active_color')
             self.active_tab_color.setEnabled(active.isChecked())
             active.toggled.connect(self.active_tab_color.setEnabled)
             self.active_tab_color.changed.connect(lambda value: (self.settings.setValue('Layout/active_color', value), self.window.apply_layout_settings()))
@@ -1081,7 +1071,13 @@ class PreferencesDialog(QDialog):
             self._combo(form, 'Display/icon_layout', 'Toolbar icon layout',
                 ['Icons only', 'Text beside icons', 'Text below icons'], 'Icons only',
                 lambda _value: self.window.apply_layout_settings())
-            description.setText('Choose how toolbar commands appear. Icon colors follow the active light or dark theme automatically.')
+            self._combo(form, 'Display/icon_set', 'Toolbar icon set',
+                ['Theme matched', 'Light (for dark theme)', 'Dark (for light theme)', 'Bold', 'Color accents'], 'Theme matched',
+                lambda _value: self.window.apply_layout_settings())
+            self._combo(form, 'Display/folder_icon_set', 'Folder icon set',
+                ['Soft grayscale', 'Black & white', 'Outline', 'Windows tan'], 'Soft grayscale',
+                lambda _value: self.window.apply_display_settings())
+            description.setText('Choose a toolbar icon style and a coordinated folder icon set. Folder sets include monochrome styles and classic Windows tan, with theme-aware contrast. Choose a custom folder image in Themes.')
 
         elif title == "Themes":
 
@@ -1461,20 +1457,10 @@ class PreferencesDialog(QDialog):
         self.settings.setValue("Transfer/skip_mode", mode)
         self._refresh_skip_colors()
 
-    def _save_skip_color(self, *_):
-        color = self.skip_color.currentData()
+    def _save_skip_color(self, color=None):
+        color = color or self.skip_color.current_color
         self.settings.setValue("Transfer/skip_color", color)
-        self.skip_color.setStyleSheet(f"background:{color};")
         self._refresh_skip_colors()
-
-    def _choose_skip_color(self):
-        color = QColorDialog.getColor(QColor(self.skip_color.currentData()), self, "Color of Skipped items")
-        if color.isValid():
-            index = self.skip_color.findData(color.name())
-            if index < 0:
-                self.skip_color.addItem(color.name(), color.name())
-                index = self.skip_color.count() - 1
-            self.skip_color.setCurrentIndex(index)
 
     def _load_skip_rules(self, rules):
         self.skip_list.clear()

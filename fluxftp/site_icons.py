@@ -50,23 +50,6 @@ def _site_icon(mark, color):
     return icon
 
 
-@lru_cache(maxsize=8)
-def _folder_icon(fill, edge):
-    icon = QIcon()
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-           f'<path d="M2.5 5.5h7l2 2h10v12h-19Z" fill="{fill}" stroke="{edge}" '
-           'stroke-width="1.5" stroke-linejoin="round"/></svg>')
-    renderer = QSvgRenderer(QByteArray(svg.encode('utf-8')))
-    for size in (16, 20, 24, 32, 48):
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
-        icon.addPixmap(pixmap)
-    return icon
-
-
 def site_icon(protocol):
     mark, color = SITE_MARKS.get(protocol, ('?', '#667788'))
     return _site_icon(mark, color)
@@ -78,6 +61,14 @@ def folder_icon(window):
         icon = QIcon(custom)
         if not icon.isNull():
             return icon
-    dark = window.palette().color(QPalette.ColorRole.Window).lightness() < 128
-    return _folder_icon('#343a40' if dark else '#e8e9eb',
-                        '#aeb4bb' if dark else '#9ca3aa')
+    from .folder_icons import folder_icon_for
+    from .themes import palette_for
+    colors = palette_for(window.preferences)
+    if colors:
+        base, surface, text = colors['base'], colors['surface'], colors['text']
+    else:
+        palette = window.palette()
+        base = palette.color(QPalette.ColorRole.Base).name()
+        surface = palette.color(QPalette.ColorRole.Window).name()
+        text = palette.color(QPalette.ColorRole.Text).name()
+    return folder_icon_for(window.preferences, base, surface, text)

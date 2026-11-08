@@ -1,7 +1,7 @@
 """Crisp, distinct toolbar symbols with descriptive hover text."""
 from functools import lru_cache
 from PySide6.QtCore import QByteArray, Qt
-from PySide6.QtGui import QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QToolButton
 
@@ -59,12 +59,47 @@ DESCRIPTIONS = {
 }
 
 
-@lru_cache(maxsize=128)
-def icon_for(key, ink, disabled):
+ACCENT_PAIRS = {
+    'local': ('#70baff', '#1769aa'),
+    'remote': ('#c29bff', '#7042a0'),
+    'sites': ('#ffd166', '#9a6800'),
+    'options': ('#9db0c4', '#526579'),
+    'workspace': ('#54d7c5', '#087e72'),
+    'verify': ('#77d99a', '#21804b'),
+    'disconnect': ('#ff8d91', '#ae353b'),
+    'swap': ('#71c9e8', '#147491'),
+    'parent': ('#b3ceff', '#4269ae'),
+    'bookmark': ('#ffbd70', '#a45d14'),
+    'start': ('#74df99', '#168447'),
+    'stop': ('#ff8e94', '#bb343a'),
+    'refresh': ('#75d5e1', '#167481'),
+    'compare': ('#c2a0fa', '#69439d'),
+    'right': ('#70baff', '#1769aa'),
+    'left': ('#70baff', '#1769aa'),
+    'folder': ('#ffd166', '#9a6800'),
+    'rename': ('#ffbe79', '#a65f19'),
+    'delete': ('#ff8d91', '#ae353b'),
+    'refresh_both': ('#75d5e1', '#167481'),
+    'log': ('#9db0c4', '#526579'),
+    'queue_window': ('#c29bff', '#7042a0'),
+    'terminal': ('#77d99a', '#21804b'),
+}
+
+
+@lru_cache(maxsize=256)
+def icon_for(key, ink, disabled, icon_set='Theme matched'):
     icon = QIcon()
+    width = '2.8' if icon_set == 'Bold' else '2'
+    dark_background = QColor(ink).lightness() >= 128
     for mode, color in ((QIcon.Mode.Normal, ink), (QIcon.Mode.Disabled, disabled)):
+        if icon_set == 'Light (for dark theme)':
+            color = '#e2e5e9' if mode == QIcon.Mode.Normal else '#8b9199'
+        elif icon_set == 'Dark (for light theme)':
+            color = '#343a40' if mode == QIcon.Mode.Normal else '#a0a5ab'
+        elif icon_set == 'Color accents' and mode == QIcon.Mode.Normal:
+            color = ACCENT_PAIRS.get(key, ('#70baff', '#1769aa'))[0 if dark_background else 1]
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-               f'<path d="{GLYPHS[key]}" fill="none" stroke="{color}" stroke-width="2" '
+               f'<path d="{GLYPHS[key]}" fill="none" stroke="{color}" stroke-width="{width}" '
                'stroke-linecap="round" stroke-linejoin="round"/></svg>')
         renderer = QSvgRenderer(QByteArray(svg.encode()))
         for size in (16, 20, 24, 32, 40, 48, 64, 96):
@@ -94,13 +129,17 @@ def toolbar_button_style(window):
     }.get(layout, Qt.ToolButtonStyle.ToolButtonIconOnly)
 
 
+def toolbar_icon_set(window):
+    return window.preferences.value('Display/icon_set', 'Theme matched', type=str)
+
+
 def apply_mode_icon(pane):
     mode = pane.mode
     target = 'Remote' if mode == 'Local' else 'Local'
     description = f'Showing {mode.lower()} files. Switch this pane to {target.lower()} files.'
     button = pane.mode_button
     button.setText(mode)
-    button.setIcon(icon_for(mode.lower(), *icon_colors(pane.window)))
+    button.setIcon(icon_for(mode.lower(), *icon_colors(pane.window), toolbar_icon_set(pane.window)))
     button.setToolButtonStyle(toolbar_button_style(pane.window))
     button.setToolTip(f'{mode} — Switch to {target}\n{description}')
     button.setStatusTip(description)
@@ -118,10 +157,12 @@ def apply_toolbar_icons(window):
             apply_mode_icon(split.widget(side))
         bars.extend((split.widget(side).file_toolbar, side == 1) for side in (0, 1))
     for bar, right_pane in bars:
+        bar.setToolButtonStyle(toolbar_button_style(window))
         bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
         items = [*bar.actions(), *bar.findChildren(QToolButton)]
         for item in items:
             if isinstance(item, QToolButton):
+                item.setToolButtonStyle(toolbar_button_style(window))
                 item.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
                 if item.objectName() == 'qt_toolbar_ext_button':
                     item.setAccessibleName('More toolbar commands')
@@ -140,11 +181,10 @@ def apply_toolbar_icons(window):
                 item.setText(title)
             if key == 'right' and right_pane:
                 key = 'left'
-            item.setIcon(icon_for(key, ink, disabled))
+            item.setIcon(icon_for(key, ink, disabled, toolbar_icon_set(window)))
             item.setToolTip(title + '\n' + description)
             item.setStatusTip(description)
             if isinstance(item, QToolButton):
-                item.setToolButtonStyle(toolbar_button_style(window))
                 item.setAccessibleName(title)
                 item.setAccessibleDescription(description)
 
