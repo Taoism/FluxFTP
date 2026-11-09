@@ -78,6 +78,8 @@ class WindowChrome:
 
         self.tools_commands = ToolsMenu(self, menus)
         self.tools_menu = self.tools_commands.menu
+        # Share the main-window F6 action so Options is reachable from Edit too.
+        self.edit_menu.addAction(self.tools_commands.actions['Options…'])
 
         help_menu = menus.addMenu("Help")
         self.help_menu = help_menu

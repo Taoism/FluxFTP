@@ -42,6 +42,16 @@ remaining companion requirements are combined here as well.
 
 ### Desktop features
 
+- [x] Fix Backspace navigation so pressing Backspace in a remote directory view
+  navigates to the parent directory (`..`).
+- [x] Fix double-click activation for file and folder items in the browser panes.
+- [x] Fix opening Options from the F6/Edit menu path; it now shares one action
+  across Edit and Tools.
+- [ ] Review and fix rendering of items in the left sidebar.
+- [ ] Add FluxFTP CLI scripting compatibility for RushApp FTP Transfer
+  (`rush_cmdline.exe`, `Script RushApp.FTP.Transfer(...)`), including its path
+  placeholders and transfer/directory/logout flags (`RS_UP`, `RS_DIRDES`,
+  `RS_DIRSRC`, `RS_LOGOUT`).
 - [ ] Define the intended workflow and requirements for auto trading before
   implementation.
 - [x] Validate SSHFS mounts end to end on Windows with WinFsp/SSHFS-Win and a

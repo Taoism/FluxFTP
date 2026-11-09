@@ -1,7 +1,7 @@
 """Mouse action preferences shared by the options page and event handlers."""
 
 DOUBLE_CLICK_DEFAULTS = {
-    'ftp_file': '(None)',
+    'ftp_file': 'Begin Transfer',
     'local_file': 'Execute File',
     'log': 'Max/Restore Window',
     'site': 'Show Site property',

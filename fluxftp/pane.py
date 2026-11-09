@@ -39,10 +39,8 @@ class TransferTree(QTreeWidget):
     def mouseDoubleClickEvent(self, event):
         row = self.itemAt(event.position().toPoint())
         entry = row.data(0, Qt.ItemDataRole.UserRole) if row else None
-        if event.button() == Qt.MouseButton.LeftButton and entry and entry.is_dir:
-            # Folder activation must not depend on the delegate's checkbox or
-            # previous-click state. Do not invoke Qt again after navigation
-            # replaces the directory's rows.
+        if event.button() == Qt.MouseButton.LeftButton and row is not None and entry is not None:
+            # Route file and folder activation through the pane's shared handler.
             event.accept()
             if not self.pane.busy:
                 self.setFocus()
@@ -50,6 +48,13 @@ class TransferTree(QTreeWidget):
                 self.pane.open_item(row)
             return
         super().mouseDoubleClickEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Backspace and not event.modifiers():
+            self.pane.up()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def startDrag(self, supported_actions):
         pane = self.pane

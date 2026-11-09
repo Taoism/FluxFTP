@@ -97,12 +97,14 @@ class ToolsMenu(QObject):
     def add(self, label, callback=None, shortcut='', icon=None):
         action = self.menu.addAction(label)
         if callback:
-            action.triggered.connect(callback)
+            action.triggered.connect(lambda checked=False, callback=callback: callback())
         else:
             action.setEnabled(False)
             action.setToolTip('Not implemented yet.')
         if shortcut:
             action.setShortcut(shortcut)
+            action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+            self.window.addAction(action)
         if icon is not None:
             action.setIcon(self.window.style().standardIcon(icon))
         self.actions[label] = action
