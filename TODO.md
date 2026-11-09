@@ -42,6 +42,15 @@ remaining companion requirements are combined here as well.
 
 ### Desktop features
 
+- [x] Double-click any column divider to size that column to its contents;
+  keep workspace tabs beneath the Workspaces heading and mark duplicated tab
+  pairs, and start Quick Connect with blank fields.
+- [x] Put workspace tabs and a new-workspace button beside the single
+  Workspaces heading, keep generic workspace names, and show a close button on
+  the active tab only when multiple workspaces are open.
+- [x] Add right-click Hide panel actions and saved-site Edit site actions to
+  the Workspaces site menus.
+
 - [x] Fix Backspace navigation so pressing Backspace in a remote directory view
   navigates to the parent directory (`..`).
 - [x] Fix double-click activation for file and folder items in the browser panes.

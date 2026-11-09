@@ -1,7 +1,44 @@
 """Optional native dock layout; existing widgets and transfer workers stay alive."""
 from PySide6.QtCore import QObject, Qt, QTimer, QEvent, QByteArray
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QDockWidget
+from PySide6.QtWidgets import (QMainWindow, QDockWidget, QWidget, QHBoxLayout, QLabel,
+    QToolButton, QMenu, QStyle, QTabBar)
+
+
+class DockTitleBar(QWidget):
+    def __init__(self, docking, key, dock):
+        super().__init__(dock)
+        self.docking, self.key = docking, key
+        row = QHBoxLayout(self)
+        row.setContentsMargins(6, 2, 4, 2)
+        row.setSpacing(4)
+        title = QLabel(docking.panel_titles[key], self)
+        title.setStyleSheet('font-weight:600;')
+        row.addWidget(title)
+        if key == 'workspace':
+            window = docking.window
+            add = window.workspace_panel.add_button
+            add.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            add.customContextMenuRequested.connect(
+                lambda point: docking.show_panel_context_menu(key, add.mapToGlobal(point)))
+            row.addWidget(add)
+            row.addWidget(window.workspace_navigation)
+        row.addStretch(1)
+        close = QToolButton(self)
+        close.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close.setToolTip('Hide panel')
+        close.setAccessibleName(f'Hide {docking.panel_titles[key]}')
+        close.clicked.connect(dock.hide)
+        row.addWidget(close)
+        close.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        close.customContextMenuRequested.connect(
+            lambda point: docking.show_panel_context_menu(key, close.mapToGlobal(point)))
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(
+            lambda point: docking.show_panel_context_menu(key, self.mapToGlobal(point)))
+        title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        title.customContextMenuRequested.connect(
+            lambda point: docking.show_panel_context_menu(key, title.mapToGlobal(point)))
 
 
 class DockLayout(QObject):
@@ -65,6 +102,8 @@ class DockLayout(QObject):
                         dock = QDockWidget(self.panel_titles[key], self.host)
                         dock.setObjectName('fluxftp-dock-' + key)
                         dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
+                        titlebar = DockTitleBar(self, key, dock)
+                        dock.setTitleBarWidget(titlebar)
                         dock.installEventFilter(self)
                         dock.dockLocationChanged.connect(self.schedule)
                         dock.topLevelChanged.connect(self.schedule)
@@ -72,6 +111,14 @@ class DockLayout(QObject):
                         self.docks[key] = dock
                         self.menu.addAction(dock.toggleViewAction())
                     dock.setWidget(panel)
+                    if not getattr(panel, '_dock_context_connected', False):
+                        panel.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+                        panel.customContextMenuRequested.connect(
+                            lambda point, key=key, panel=panel:
+                                self.show_panel_context_menu(key, panel.mapToGlobal(point)))
+                        panel._dock_context_connected = True
+                    if key == 'workspace':
+                        panel.show_caption(False, False)
                     area = (Qt.DockWidgetArea.TopDockWidgetArea if key in ('workspace', 'tools')
                             else Qt.DockWidgetArea.BottomDockWidgetArea)
                     self.host.addDockWidget(area, dock)
@@ -81,6 +128,8 @@ class DockLayout(QObject):
                 logs = [self.docks[key] for key in window.log_panels]
                 for dock in logs:
                     self.host.tabifyDockWidget(self.docks['queue'], dock)
+                for tab_bar in self.host.findChildren(QTabBar):
+                    tab_bar.installEventFilter(self)
                 self.docks['queue'].raise_()
                 self.host.splitDockWidget(self.docks['tools'], self.docks['workspace'], Qt.Orientation.Vertical)
                 self.host.splitDockWidget(self.docks['workspace'], self.docks['queue'], Qt.Orientation.Vertical)
@@ -95,10 +144,20 @@ class DockLayout(QObject):
                 self.save()
                 self.active = False
                 # Reparent before hiding docks: closing a panel never destroys it.
+                workspace_dock = self.docks.get('workspace')
+                if workspace_dock:
+                    titlebar = workspace_dock.titleBarWidget()
+                    if titlebar and titlebar.layout():
+                        titlebar.layout().removeWidget(window.workspace_navigation)
+                        titlebar.layout().removeWidget(window.workspace_panel.add_button)
+                        window.workspace_panel.caption_row.layout().insertWidget(1, window.workspace_panel.add_button)
+                        window.workspace_panel.caption_row.layout().insertWidget(2, window.workspace_navigation)
+                    workspace_dock.setTitleBarWidget(None)
                 for panel in self.panels().values(): panel.setParent(window.work_area)
                 for index, panel in enumerate((window.workspace_panel, window.log_tabs, window.queue_panel)):
                     window.work_area.insertWidget(index, panel)
                     panel.show()
+                window.workspace_panel.show_caption(True, False)
                 for key, panel in window.log_panels.items():
                     window.log_tabs.addTab(panel, dict(ftp='FTP Log', transfer='Transfer Log', system='System Log', tasks='Tasks')[key])
                 tools_row = window.header_rows.rows['tools']
@@ -133,6 +192,15 @@ class DockLayout(QObject):
         focus = {'queue': self.window.queue, 'ftp': self.window.ftp_log, 'transfer': self.window.transfer_log,
                  'system': self.window.log, 'tasks': self.window.tasks_log}
         if key in focus: focus[key].setFocus()
+
+    def show_panel_context_menu(self, key, position):
+        dock = self.docks.get(key)
+        if dock is None:
+            return
+        menu = QMenu(self.window)
+        menu.addAction('Hide panel', dock.hide)
+        menu.exec(position)
+        menu.deleteLater()
 
     def move_to_bottom(self, key):
         """Move and show one panel in the bottom dock area."""
@@ -198,6 +266,15 @@ class DockLayout(QObject):
 
     def eventFilter(self, obj, event):
         if self.active:
+            if isinstance(obj, QTabBar) and event.type() == QEvent.Type.ContextMenu:
+                index = obj.tabAt(event.pos())
+                if index >= 0:
+                    title = obj.tabText(index)
+                    key = next((name for name, value in self.panel_titles.items() if value == title), None)
+                    if key:
+                        self.show_panel_context_menu(key, event.globalPos())
+                        event.accept()
+                        return True
             if obj is self.host and self.window.preferences.value('Layout/locked', False, type=bool) and event.type() in (
                     QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick, QEvent.Type.MouseMove):
                 return True  # The host handles separators; child controls remain usable.

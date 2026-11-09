@@ -1031,7 +1031,7 @@ class PreferencesDialog(QDialog):
             check(rows, 'tabs_bottom', 'Show Tab(s) at Bottom')
             if hasattr(self.window, 'header_rows'):
                 self.layout_checks['tabs_bottom'].setEnabled(False)
-                self.layout_checks['tabs_bottom'].setToolTip('Use the Workspace tabs row handle to choose its position.')
+                self.layout_checks['tabs_bottom'].setToolTip('Workspace tabs stay beneath the Workspaces heading.')
                 rows.addRow(QLabel('Drag row handles to arrange the toolbar, connection fields, tabs and window list.'))
             self.layout_checks['limit_tab_width'], self.tab_width = self._checked_spin(rows,
                 'Layout/limit_tab_width', 'Limit width of Tabs', 'Layout/tab_width', 100, 60, 1000, ' px')

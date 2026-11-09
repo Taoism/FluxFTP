@@ -62,3 +62,14 @@ def test_fit_and_manual_width_survive_refresh_and_window_resize(window):
     window.resize(window.width() + 120, window.height())
     QTest.qWait(30)
     assert sum(header.sectionSize(i) for i in range(8)) == tree.viewport().width()
+
+
+def test_double_clicking_a_column_divider_fits_that_column(window):
+    window.show(); window.show_transfer_queue()
+    QTest.qWait(50)
+    tree = window.queue
+    header = tree.header()
+    column = 0
+    header.resizeSection(column, 42)
+    header.sectionHandleDoubleClicked.emit(column)
+    assert header.sectionSize(column) > 42

@@ -30,6 +30,8 @@ def test_misc_preferences(window):
 
 def test_new_tabs_and_quick_connect(window, monkeypatch):
     from fluxftp import app as module
+    assert window.quick_username.text() == ''
+    assert window.quick_path.text() == ''
     pane = window.current_panes()[0]
     pane.change_mode('Local')
     window.add_workspace()

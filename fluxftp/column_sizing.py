@@ -17,7 +17,23 @@ class ColumnSizing(QObject):
         header.setMinimumSectionSize(32)
         header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self.menu)
+        header.sectionHandleDoubleClicked.connect(self.fit_section)
         header.setToolTip('Drag any column divider to resize. Double-click to fit its contents. Right-click to fit all columns to the window.')
+
+    def fit_section(self, column):
+        if column < 0 or self.tree.isColumnHidden(column):
+            return
+        header = self.tree.header()
+        self.tree._fitting_columns = True
+        try:
+            self.tree.resizeColumnToContents(column)
+            # Keep an auto-sized column usable when unusually long content
+            # would otherwise push the remaining columns out of view.
+            width = min(header.sectionSize(column), max(header.minimumSectionSize(), self.tree.viewport().width()))
+            header.resizeSection(column, width)
+        finally:
+            self.tree._fitting_columns = False
+        self.options.save_width(self.tree, column, header.sectionSize(column))
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):

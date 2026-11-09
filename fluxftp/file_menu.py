@@ -19,6 +19,7 @@ class FileMenu:
             return
         title = self.workspace_name(self.tabs.tabText(self.tabs.currentIndex())[:68] + ' (copy)')
         original = self.tabs.currentWidget()
+        duplicate_group = original.property('duplicate_group')
         splitter_state = getattr(original, '_workspace_saved_state', original.saveState())
         states = [dict(mode=pane.mode, path=pane.path, local_path=pane.local_path,
                        site=replace(pane.site) if pane.site else None, password=pane.password,
@@ -29,6 +30,8 @@ class FileMenu:
             if source.site is source.remote_site:
                 state['remote_site'] = state['site']
         self.add_workspace()
+        if duplicate_group:
+            self.tabs.currentWidget().setProperty('duplicate_group', duplicate_group)
         self.tabs.setTabText(self.tabs.currentIndex(), title)
         self.tabs.currentWidget().restoreState(splitter_state)
         for pane, state in zip(self.current_panes(), states):

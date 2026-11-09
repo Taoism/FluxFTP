@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QWidget, QFrame, QVBoxLayout, QHBoxLayout, QToolB
     QApplication, QMenu, QSplitter, QSizePolicy, QScrollArea)
 
 MIME = 'application/x-fluxftp-header-row'
-DEFAULT_ORDER = ('tools', 'connection', 'tabs', 'overview')
+DEFAULT_ORDER = ('tools', 'connection', 'overview')
 
 
 class ConnectionStrip(QScrollArea):
@@ -256,13 +256,17 @@ class HeaderRows(QWidget):
         self.rows = {key: HeaderRow(self, key, title, content) for key, title, content in contents}
         try:
             saved = json.loads(window.preferences.value('Layout/header_row_order', '[]', type=str))
+            if isinstance(saved, list) and set(saved) == {'tools', 'connection', 'tabs', 'overview'}:
+                saved = [key for key in saved if key != 'tabs']
             valid = isinstance(saved, list) and len(saved) == len(DEFAULT_ORDER) and set(saved) == set(DEFAULT_ORDER)
         except (ValueError, TypeError):
             valid = False
         order = saved if valid else list(DEFAULT_ORDER)
         try:
             groups = json.loads(window.preferences.value('Layout/header_row_groups', '[]', type=str))
-            valid_groups = (isinstance(groups, list) and 0 < len(groups) <= 4 and
+            groups = [[key for key in group if key != 'tabs'] for group in groups] if isinstance(groups, list) else groups
+            groups = [group for group in groups if group] if isinstance(groups, list) else groups
+            valid_groups = (isinstance(groups, list) and 0 < len(groups) <= 3 and
                 all(isinstance(group, list) and group and all(isinstance(k, str) for k in group) for group in groups) and
                 [key for group in groups for key in group] == order)
         except (ValueError, TypeError):

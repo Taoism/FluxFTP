@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QInp
 from .browse_session import BrowseSession
 from .compare_menu import RESULT_ROLE
 from .core import Cancelled, Entry, PROTOCOLS, remove_remote_items, safe_name
-from .display_options import AddressBar
+from .display_options import AddressBar, SavedSiteMenu
 from .site_dialog import SiteDialog
 from .site_options import SiteSettings, decode as site_options
 from .sort_options import sorted_entries
@@ -160,7 +160,7 @@ class Pane(QWidget):
         self.sites_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
         self.sites_button.setToolTip("Connect to a saved site")
         self.sites_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.sites_menu = QMenu(self.sites_button)
+        self.sites_menu = SavedSiteMenu(window, self, self.sites_button)
         self.sites_menu.aboutToShow.connect(self.populate_site_menu)
         self.sites_button.setMenu(self.sites_menu)
         self.file_toolbar.addWidget(self.sites_button)

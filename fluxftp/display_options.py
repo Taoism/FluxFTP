@@ -12,6 +12,27 @@ from .queue_tree import RATE_ROLE, PROGRESS_ROLE, STREAM_ROLE
 from .transfer_reporting import update_group
 
 
+class SavedSiteMenu(QMenu):
+    def __init__(self, window, pane, parent=None, title=None):
+        if title is None:
+            super().__init__(parent)
+        else:
+            super().__init__(title, parent)
+        self.window, self.pane = window, pane
+
+    def contextMenuEvent(self, event):
+        action = self.actionAt(event.pos())
+        name = action.data() if action else None
+        if isinstance(name, str) and name in self.window.sites:
+            menu = QMenu(self)
+            menu.addAction('Edit site…', lambda: self.window.edit_saved_site(name))
+            menu.exec(event.globalPos())
+            menu.deleteLater()
+            event.accept()
+            return
+        super().contextMenuEvent(event)
+
+
 class AddressBar(QLineEdit):
     def __init__(self, pane):
         super().__init__(pane.path)
@@ -366,10 +387,12 @@ class DisplayOptions:
                 reconnect = menu.addAction('Reconnect to ' + str(session_site.get('name') or session_site['host']),
                     lambda: self.choose_recent_site(pane, session_site))
                 reconnect.setEnabled(not pane.busy)
-            recent = menu.addMenu('Recent sites')
+            recent = SavedSiteMenu(self, pane, menu, 'Recent sites')
+            menu.addMenu(recent)
             for profile in profiles:
                 if not isinstance(profile, dict): continue
                 action = recent.addAction(str(profile.get('name') or profile.get('host') or 'Site'))
+                action.setData(self.saved_site_name(profile))
                 action.triggered.connect(lambda checked=False, profile=profile: self.choose_recent_site(pane, profile))
             recent.setEnabled(not pane.busy)
         names = sorted(self.sites, key=str.casefold)
@@ -381,14 +404,26 @@ class DisplayOptions:
         def add_sites(parent, site_names):
             for offset, name in enumerate(site_names):
                 if split and offset % count == 0:
-                    group = parent.addMenu(f'Sites {offset + 1}–{min(offset + count, len(site_names))}')
+                    group = SavedSiteMenu(self, pane, parent,
+                        f'Sites {offset + 1}–{min(offset + count, len(site_names))}')
+                    parent.addMenu(group)
                 target = group if split else parent
                 action = target.addAction(name)
+                action.setData(name)
                 action.setEnabled(not self.sites[name].get('_disabled', False))
                 action.triggered.connect(lambda checked=False, name=name: pane.connect_saved_site(name))
         for folder in sorted(folders, key=str.casefold):
-            child = menu.addMenu(folder)
+            child = SavedSiteMenu(self, pane, menu, folder)
+            menu.addMenu(child)
             members = [name for name in names if self.sites[name].get('_folder') == folder]
             add_sites(child, members)
             child.setEnabled(bool(members))
         add_sites(menu, [name for name in names if not self.sites[name].get('_folder')])
+
+    def saved_site_name(self, profile):
+        identity = ('host', 'port', 'protocol', 'username', 'cloud_account')
+        for name, saved in self.sites.items():
+            current = self.site_from_profile(saved)
+            if all(getattr(current, key) == profile.get(key) for key in identity):
+                return name
+        return ''

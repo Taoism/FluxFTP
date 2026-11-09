@@ -1,8 +1,10 @@
 """Window-level pane selection, quick-connect, and refresh actions."""
+from dataclasses import asdict
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from .cloud import CLOUD_PROTOCOLS
 from .core import PROTOCOLS, Site
+from .site_dialog import SiteDialog
 from .site_import import validate_site
 
 
@@ -33,6 +35,32 @@ class WindowConnections:
         self.quick_password.setText(password)
         self.quick_path.setText(site.root)
         self.quick_target.setCurrentIndex(target)
+
+    def edit_saved_site(self, name):
+        old_profile = self.sites.get(name)
+        if not old_profile:
+            return
+        editor = SiteDialog(self, {}, editing=True)
+        editor.load(old_profile)
+        if not editor.exec():
+            return
+        site = editor.site()
+        if any(existing.casefold() == site.name.casefold() and existing != name for existing in self.sites):
+            QMessageBox.warning(self, 'Name already exists', 'Choose a different site name.')
+            return
+        proposed = dict(self.sites)
+        proposed.pop(name, None)
+        profile = asdict(site)
+        for key in ('_credential_id', '_folder', '_disabled'):
+            if key in old_profile:
+                profile[key] = old_profile[key]
+        proposed[site.name] = profile
+        if not self.save_sites(proposed):
+            return
+        try:
+            self.set_site_password(site.name, editor.password.text())
+        except RuntimeError as error:
+            QMessageBox.warning(self, 'Password not remembered', str(error))
 
     def quick_connect(self):
         if self.quick_protocol.currentText() in CLOUD_PROTOCOLS:

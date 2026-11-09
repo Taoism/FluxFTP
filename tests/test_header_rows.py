@@ -51,9 +51,10 @@ def test_bad_saved_order_and_external_drop_rejected(window):
         reopened.add_workspace()
         reopened.preferences.setValue('Layout/multiple_lines', False)
         reopened.apply_layout_settings()
-        bar = reopened.workspace_navigation.native_bar
-        bar.setCurrentIndex(0)
-        assert reopened.tabs.currentIndex() == 0
+        assert not reopened.tabs.tabBar().isVisible()
+        assert not reopened.workspace_navigation.isHidden()
+        assert reopened.workspace_panel.add_button.text() == '+'
+        assert reopened.docking.docks['workspace'].titleBarWidget().layout().indexOf(reopened.workspace_navigation) >= 0
     finally:
         reopened.close()
 
@@ -64,11 +65,7 @@ def test_shared_rows_height_and_icons_persist(window):
     window.show()
     rows = window.header_rows
     original = window.quick_password
-    rows.join('tabs', 'tools')
     QApplication.processEvents()
-    assert rows.groups[0] == ['tools', 'tabs']
-    assert rows.rows['tools'].y() == rows.rows['tabs'].y()
-    assert not window.layout_value('multiple_lines')
     band = rows.bands[0]
     band.setSizes([700, 500])
     band.splitterMoved.emit(700, 1)
@@ -95,8 +92,7 @@ def test_shared_rows_height_and_icons_persist(window):
         assert reopened.main_toolbar.iconSize().width() == 24
         reopened.header_rows.detach('connection')
         assert ['connection'] in reopened.header_rows.groups
-        assert ['tools', 'tabs'] in reopened.header_rows.groups
         reopened.header_rows.drop('overview', 'connection', True)
-        assert ['tools', 'tabs'] in reopened.header_rows.groups
+        assert reopened.docking.docks['workspace'].titleBarWidget().layout().indexOf(reopened.workspace_navigation) >= 0
     finally:
         reopened.close()

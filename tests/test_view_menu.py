@@ -1,11 +1,12 @@
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QEvent
+from PySide6.QtCore import Qt, QEvent, QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from fluxftp.core import Site
+from fluxftp.display_options import SavedSiteMenu
 from fluxftp.remote_editor import RemoteTextDialog
 from fluxftp.association_actions import ExternalFileSession
 from fluxftp.transfer_options import TransferOptions
@@ -16,6 +17,39 @@ def visible(window):
     window.show()
     window.activateWindow()
     QTest.qWait(20)
+
+
+def fake_context_menu(on_exec):
+    class Action:
+        def __init__(self, text, callback):
+            self._text, self.callback = text, callback
+
+        def text(self):
+            return self._text
+
+        def trigger(self):
+            if self.callback:
+                self.callback()
+
+    class Menu:
+        def __init__(self, *_args):
+            self._actions = []
+
+        def addAction(self, text, callback=None):
+            action = Action(text, callback)
+            self._actions.append(action)
+            return action
+
+        def actions(self):
+            return self._actions
+
+        def exec(self, *_args):
+            on_exec(self)
+
+        def deleteLater(self):
+            pass
+
+    return Menu
 
 
 def test_view_menu_reference_order_shortcuts_and_submenus(window):
@@ -53,6 +87,46 @@ def test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels(window):
     window.work_area.setSizes([800, 0, 100])
     window.view_commands.show_panel('ftp')
     assert window.work_area.sizes()[1] > 0
+
+
+def test_panel_context_menu_can_hide_panel(window, monkeypatch):
+    dock = window.docking.docks['queue']
+    shown = []
+
+    def open_menu(menu, *_):
+        shown.extend(action.text() for action in menu.actions())
+        menu.actions()[0].trigger()
+
+    import fluxftp.docking as docking_module
+    monkeypatch.setattr(docking_module, 'QMenu', fake_context_menu(open_menu))
+    dock.show()
+    window.docking.show_panel_context_menu('queue', QPoint(10, 10))
+    assert shown == ['Hide panel']
+    assert dock.isHidden()
+
+
+def test_sites_dropdown_context_menu_opens_site_editor(window, monkeypatch):
+    from dataclasses import asdict
+    from types import SimpleNamespace
+
+    window.sites['Example'] = asdict(Site(name='Example', host='example.test'))
+    pane = window.current_panes()[0]
+    window.populate_display_site_menu(pane)
+    action = next(action for action in pane.sites_menu.actions() if action.text() == 'Example')
+    assert action.data() == 'Example'
+    monkeypatch.setattr(SavedSiteMenu, 'actionAt', lambda self, _point: action)
+    edited = []
+    monkeypatch.setattr(window, 'edit_saved_site', edited.append)
+
+    def open_menu(menu, *_):
+        assert [entry.text() for entry in menu.actions()] == ['Edit site…']
+        menu.actions()[0].trigger()
+
+    import fluxftp.display_options as display_options
+    monkeypatch.setattr(display_options, 'QMenu', fake_context_menu(open_menu))
+    event = SimpleNamespace(pos=lambda: QPoint(2, 2), globalPos=lambda: QPoint(20, 20), accept=lambda: None)
+    pane.sites_menu.contextMenuEvent(event)
+    assert edited == ['Example']
 
 
 def test_refresh_targets_last_active_pane_without_duplicate_shortcuts(window, monkeypatch):

@@ -10,16 +10,17 @@ def connect(pane, name, monkeypatch):
     pane.refresh()
 
 
-def test_connected_names_follow_pane_order_and_disconnect(window, monkeypatch):
+def test_connections_do_not_replace_workspace_names(window, monkeypatch):
     left, right = window.current_panes()
     connect(right, 'Beta', monkeypatch)
-    assert window.tabs.tabText(0) == 'Beta'
+    assert window.tabs.tabText(0) == 'Workspace 1'
     connect(left, 'Alpha', monkeypatch)
-    assert window.tabs.tabText(0) == 'Alpha - Beta'
-    assert window.window_list.topLevelItem(0).text(0) == 'Alpha - Beta'
-    assert json.loads(window.preferences.value('Workspaces/session'))['items'][0]['name'] == 'Alpha - Beta'
+    assert window.tabs.tabText(0) == 'Workspace 1'
+    assert window.window_list.topLevelItem(0).text(0) == 'Workspace 1'
+    window.save_workspaces()
+    assert json.loads(window.preferences.value('Workspaces/session'))['items'][0]['name'] == 'Workspace 1'
     left.set_remote(None)
-    assert window.tabs.tabText(0) == 'Beta'
+    assert window.tabs.tabText(0) == 'Workspace 1'
 
 
 def test_failed_connection_does_not_rename_workspace(window, monkeypatch):
@@ -37,10 +38,10 @@ def test_connection_updates_own_workspace_and_refresh_keeps_manual_name(window, 
     window.add_workspace()
     other_name = window.tabs.tabText(1)
     connect(first, 'Alpha', monkeypatch)
-    assert window.tabs.tabText(0) == 'Alpha'
+    assert window.tabs.tabText(0) == 'Workspace 1'
     assert window.tabs.tabText(1) == other_name
     window.tabs.setTabText(0, 'Custom name')
     first.refresh()
     assert window.tabs.tabText(0) == 'Custom name'
     connect(first, 'Gamma', monkeypatch)
-    assert window.tabs.tabText(0) == 'Gamma'
+    assert window.tabs.tabText(0) == 'Custom name'

@@ -15,6 +15,12 @@ class Workspaces:
             items = saved.get('items', []) if isinstance(saved, dict) else []
             if not isinstance(items, list) or not 1 <= len(items) <= 100:
                 items = []
+            saved_site_names = set()
+            for site_key, profile in self.sites.items():
+                if isinstance(profile, dict):
+                    for candidate in (site_key, profile.get('name'), profile.get('host')):
+                        if isinstance(candidate, str) and candidate.strip():
+                            saved_site_names.add(candidate.strip().casefold())
             for index, item in enumerate(items):
                 if not isinstance(item, dict):
                     continue
@@ -23,7 +29,14 @@ class Workspaces:
                 split = self.tabs.widget(index)
                 name = item.get('name')
                 if isinstance(name, str) and name.strip() and len(name) <= 80 and not any(ord(c) < 32 for c in name):
-                    self.tabs.setTabText(index, name.strip())
+                    name = name.strip()
+                    parts = [part.strip().casefold() for part in name.split(' - ')]
+                    if parts and all(part in saved_site_names for part in parts):
+                        name = f'Workspace {index + 1}'
+                    self.tabs.setTabText(index, name)
+                group = item.get('duplicate_group')
+                if isinstance(group, str) and group:
+                    split.setProperty('duplicate_group', group[:80])
                 modes = item.get('modes', [])
                 for side, mode in enumerate(modes[:2] if isinstance(modes, list) else []):
                     if mode in ('Local', 'Remote'):
@@ -72,6 +85,7 @@ class Workspaces:
         for index in range(self.tabs.count()):
             split = self.tabs.widget(index)
             items.append(dict(name=self.tabs.tabText(index),
+                              duplicate_group=split.property('duplicate_group'),
                               modes=[split.widget(side).mode for side in range(2)],
                               splitter=bytes(getattr(split, '_workspace_saved_state', split.saveState())).hex()))
         self.preferences.setValue('Workspaces/session', json.dumps(dict(items=items, current=self.tabs.currentIndex())))
@@ -94,24 +108,9 @@ class Workspaces:
         return f'{base} {index}'
 
     def update_connected_workspace_name(self, pane):
-        for index in range(self.tabs.count()):
-            split = self.tabs.widget(index)
-            panes = [split.widget(side) for side in range(2)]
-            if pane not in panes:
-                continue
-            names = []
-            for current in panes:
-                site = current.site
-                if (current.mode == 'Remote' and site is not None
-                        and getattr(current, '_workspace_connected_site', None) is site):
-                    name = ' '.join((site.name or site.host).split())
-                    if name:
-                        names.append(name)
-            title = ' - '.join(names)[:80] if names else self.workspace_name()
-            self.tabs.setTabText(index, title)
-            self.refresh_workspace_names()
-            self.save_workspaces()
-            return
+        # Site connections must not rename workspaces; users can rename them
+        # explicitly through the tab or Workspaces list context menu.
+        return
 
     def rename_workspace(self, index=None):
         index = self.tabs.currentIndex() if index is None else index
@@ -167,8 +166,18 @@ class Workspaces:
     def duplicate_workspace(self, workspace):
         index = self.tabs.indexOf(workspace)
         if index >= 0 and self.tabs.count() < 100:
+            group = workspace.property('duplicate_group') or f'duplicate-{id(workspace)}'
+            workspace.setProperty('duplicate_group', group)
             self.tabs.setCurrentIndex(index)
             self.new_window_of_current()
+            duplicate = self.tabs.currentWidget()
+            if duplicate is not workspace:
+                new_index = self.tabs.indexOf(duplicate)
+                if new_index > index + 1:
+                    self.tabs.tabBar().moveTab(new_index, index + 1)
+                duplicate.setProperty('duplicate_group', group)
+                self.save_workspaces()
+                self.refresh_workspace_names()
 
     def close_other_workspaces(self, keep):
         if self.tabs.indexOf(keep) < 0:

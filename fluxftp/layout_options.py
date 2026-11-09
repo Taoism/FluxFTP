@@ -2,8 +2,8 @@
 from PySide6.QtCore import Qt, QSize, QTimer, QPoint, QByteArray
 import json
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
-    QTabBar, QToolButton, QComboBox, QGraphicsEffect, QStyle)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
+    QTabBar, QToolButton, QComboBox, QGraphicsEffect, QStyle, QSizePolicy)
 
 
 DEFAULTS = dict(navigate_tabs=True, multiple_lines=True, tabs_bottom=False, limit_tab_width=False,
@@ -49,22 +49,37 @@ class PanelBuffer(QGraphicsEffect):
 
 
 class CaptionPanel(QWidget):
-    def __init__(self, content, title):
+    def __init__(self, content, title, add_callback=None):
         super().__init__()
         self.rows = QVBoxLayout(self)
         self.rows.setContentsMargins(0, 0, 0, 0)
         self.rows.setSpacing(2)
         self.caption = QLabel(title)
         self.caption.setStyleSheet('font-weight:600; padding:3px 6px;')
+        self.caption_row = QWidget()
+        caption_layout = QHBoxLayout(self.caption_row)
+        caption_layout.setContentsMargins(0, 0, 0, 0)
+        caption_layout.setSpacing(4)
+        caption_layout.addWidget(self.caption)
+        self.add_button = None
+        if add_callback:
+            self.add_button = QToolButton()
+            self.add_button.setText('+')
+            self.add_button.setToolTip('New workspace')
+            self.add_button.setAccessibleName('New workspace')
+            self.add_button.clicked.connect(add_callback)
+            caption_layout.addWidget(self.add_button)
+        caption_layout.addStretch(1)
         self.caption_tab = QTabBar()
         self.caption_tab.addTab(title)
         self.caption_tab.setExpanding(False)
-        self.rows.addWidget(self.caption)
+        self.rows.addWidget(self.caption_row)
         self.rows.addWidget(self.caption_tab)
         self.rows.addWidget(content, 1)
 
     def show_caption(self, visible, tab_style):
         self.caption.setVisible(visible and not tab_style)
+        self.caption_row.setVisible(visible and not tab_style)
         self.caption_tab.setVisible(visible and tab_style)
 
 
@@ -72,9 +87,10 @@ class WorkspaceNavigation(QWidget):
     def __init__(self, window):
         super().__init__()
         self.window = window
-        self.grid = QGridLayout(self)
+        self.grid = QHBoxLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(2)
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.signature = None
         self.buttons = []
         self.selector = None
@@ -89,7 +105,8 @@ class WorkspaceNavigation(QWidget):
             self.width(), w.layout_value('navigate_tabs'), w.layout_value('multiple_lines'),
             w.layout_value('limit_tab_width'), w.preferences.value('Layout/tab_width', 100, type=int),
             w.layout_value('custom_active_font'), w.preferences.value('Layout/active_color', '#ff0000', type=str),
-            tuple(w.tabs.tabToolTip(i) for i in range(w.tabs.count())))
+            tuple(w.tabs.tabToolTip(i) for i in range(w.tabs.count())),
+            tuple(w.tabs.widget(i).property('duplicate_group') for i in range(w.tabs.count())))
         if signature == self.signature: return
         self.signature = signature
         while self.grid.count():
@@ -98,27 +115,6 @@ class WorkspaceNavigation(QWidget):
         self.buttons = []
         self.selector = None
         self.native_bar = None
-        if getattr(w, 'header_rows', None) is not None and w.layout_value('navigate_tabs') and not w.layout_value('multiple_lines'):
-            bar = self.native_bar = WorkspaceTabBar(w)
-            bar.setExpanding(False)
-            bar.setTabsClosable(True)
-            bar.setUsesScrollButtons(True)
-            for index, title in enumerate(signature[0]):
-                bar.addTab(title)
-                bar.setTabToolTip(index, title + '\n' + w.tabs.tabToolTip(index))
-            bar.setCurrentIndex(w.tabs.currentIndex())
-            bar.currentChanged.connect(w.tabs.setCurrentIndex)
-            bar.tabCloseRequested.connect(w.close_tab)
-            bar.setStyleSheet(w.active_tab_style('QTabBar::tab:selected'))
-            self.grid.addWidget(bar, 0, 0)
-            add = QToolButton()
-            add.setText('+')
-            add.setToolTip('New workspace')
-            add.setAccessibleName('New workspace')
-            add.clicked.connect(w.add_workspace)
-            self.grid.addWidget(add, 0, 1)
-            return
-
         if not w.layout_value('navigate_tabs'):
             self.selector = QComboBox()
             self.selector.addItems(signature[0])
@@ -127,18 +123,25 @@ class WorkspaceNavigation(QWidget):
             self.selector.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             self.selector.customContextMenuRequested.connect(
                 lambda point: w.workspace_menu(w.tabs.currentWidget(), self.selector.mapToGlobal(point)))
-            self.grid.addWidget(self.selector, 0, 0)
-            close = QToolButton()
-            close.setText('×')
-            close.setToolTip('Close current workspace')
-            close.clicked.connect(lambda: w.close_tab(w.tabs.currentIndex()))
-            self.grid.addWidget(close, 0, 1)
-            row, col = 0, 2
+            self.grid.addWidget(self.selector)
+            if w.tabs.count() > 1:
+                close = QToolButton()
+                close.setText('×')
+                close.setToolTip('Close current workspace')
+                close.setAccessibleName('Close current workspace')
+                close.clicked.connect(lambda: w.close_tab(w.tabs.currentIndex()))
+                self.grid.addWidget(close)
         else:
-            row, col, used = 0, 0, 0
-            available = max(100, self.width())
-            row_boxes = {}
             for index, title in enumerate(signature[0]):
+                duplicate_group = signature[-1][index]
+                previous_group = signature[-1][index - 1] if index else None
+                if duplicate_group and duplicate_group == previous_group:
+                    marker = QFrame()
+                    marker.setFrameShape(QFrame.Shape.VLine)
+                    marker.setFrameShadow(QFrame.Shadow.Sunken)
+                    marker.setFixedWidth(5)
+                    marker.setToolTip('Duplicated workspace pair')
+                    self.grid.addWidget(marker)
                 cell = QWidget()
                 box = QHBoxLayout(cell)
                 box.setContentsMargins(0, 0, 0, 0)
@@ -147,44 +150,24 @@ class WorkspaceNavigation(QWidget):
                 button.setCheckable(True)
                 button.setChecked(index == w.tabs.currentIndex())
                 button.setToolTip(title + '\n' + w.tabs.tabToolTip(index))
-                width = min(available, max(70, button.fontMetrics().horizontalAdvance(title) + 44))
+                width = max(70, button.fontMetrics().horizontalAdvance(title) + 28)
                 if w.layout_value('limit_tab_width'):
                     width = min(width, max(60, w.preferences.value('Layout/tab_width', 100, type=int)))
-                button.setText(button.fontMetrics().elidedText(title, Qt.TextElideMode.ElideRight, max(20, width - 35)))
+                button.setText(button.fontMetrics().elidedText(title, Qt.TextElideMode.ElideRight, max(20, width - 8)))
+                button.setFixedWidth(width)
                 button.setStyleSheet(w.active_tab_style('QToolButton:checked'))
                 button.clicked.connect(lambda checked=False, i=index: w.tabs.setCurrentIndex(i))
-                close = QToolButton()
-                close.setText('×')
-                close.setToolTip('Close ' + title)
-                close.setFixedWidth(22)
-                close.clicked.connect(lambda checked=False, i=index: w.close_tab(i))
                 box.addWidget(button, 1)
-                box.addWidget(close)
-                cell.setFixedWidth(width)
-                if used and used + width > available:
-                    row, col, used = row + 1, 0, 0
-                if row not in row_boxes:
-                    row_widget = QWidget()
-                    row_box = QHBoxLayout(row_widget)
-                    row_box.setContentsMargins(0, 0, 0, 0)
-                    row_box.setSpacing(2)
-                    row_box.setAlignment(Qt.AlignmentFlag.AlignLeft)
-                    self.grid.addWidget(row_widget, row, 0)
-                    row_boxes[row] = row_box
-                row_boxes[row].addWidget(cell)
-                used += width + 2
-                col += 1
+                if index == w.tabs.currentIndex() and w.tabs.count() > 1:
+                    close = QToolButton()
+                    close.setText('×')
+                    close.setToolTip('Close ' + title)
+                    close.setAccessibleName('Close current workspace')
+                    close.setFixedWidth(22)
+                    close.clicked.connect(lambda checked=False, i=index: w.close_tab(i))
+                    box.addWidget(close)
+                self.grid.addWidget(cell)
                 self.buttons.append(button)
-        add = QToolButton()
-        add.setText('+')
-        add.setToolTip('New workspace')
-        add.setAccessibleName('New workspace')
-        add.clicked.connect(w.add_workspace)
-        if self.buttons and used + add.sizeHint().width() <= available:
-            row_boxes[row].addWidget(add)
-        else:
-            self.grid.addWidget(add, row + 1 if self.buttons else row, 0 if self.buttons else col,
-                                alignment=Qt.AlignmentFlag.AlignLeft)
 
 
 class LayoutOptions:
@@ -193,12 +176,10 @@ class LayoutOptions:
         self.removeToolBar(self.main_toolbar)
         root = self.centralWidget().layout()
         root.removeWidget(self.quick_connect_row)
-        self.workspace_panel.rows.removeWidget(self.workspace_navigation)
         self.workspace_panel.rows.removeWidget(self.window_list)
         self.header_rows = HeaderRows(self, [
             ('tools', 'Toolbar', self.main_toolbar),
             ('connection', 'Connection fields', self.quick_connect_row),
-            ('tabs', 'Workspace tabs', self.workspace_navigation),
             ('overview', 'Window / FTP / Action list', self.window_list),
         ])
         root.insertWidget(0, self.header_rows)
@@ -288,7 +269,7 @@ class LayoutOptions:
 
     def initialize_layout(self):
         self.workspace_navigation = WorkspaceNavigation(self)
-        self.workspace_panel.rows.insertWidget(2, self.workspace_navigation)
+        self.workspace_panel.caption_row.layout().insertWidget(2, self.workspace_navigation)
         self.tabs.currentChanged.connect(lambda _: self.workspace_navigation.rebuild())
         self.apply_layout_settings()
 
@@ -304,21 +285,22 @@ class LayoutOptions:
         if not hasattr(self, 'workspace_navigation'): return
         from .font_zoom import install_icon_wheel
         style = self.layout_value('caption_tab_style')
-        self.workspace_panel.show_caption(self.layout_value('caption_windows'), style)
+        if getattr(getattr(self, 'docking', None), 'active', False):
+            self.workspace_panel.show_caption(False, False)
+        else:
+            self.workspace_panel.show_caption(True, False)
         self.queue_panel.show_caption(self.layout_value('caption_queue'), style)
         for key, panel in self.log_panels.items(): panel.show_caption(self.layout_value('caption_' + key), style)
         native = self.layout_value('navigate_tabs') and not self.layout_value('multiple_lines')
         detached = hasattr(self, 'header_rows')
-        self.tabs.tabBar().setVisible(native and not detached)
-        self.tabs.cornerWidget().setVisible(native and not detached)
-        self.workspace_navigation.setVisible(not native or detached)
+        self.tabs.tabBar().setVisible(False)
+        self.tabs.cornerWidget().setVisible(False)
+        # Workspace switching and closing stay in the Workspaces list. Keep
+        # the panel header compact: one label and one add button.
+        self.workspace_navigation.setVisible(True)
         from PySide6.QtWidgets import QTabWidget
         bottom = self.layout_value('tabs_bottom')
         self.tabs.setTabPosition(QTabWidget.TabPosition.South if bottom else QTabWidget.TabPosition.North)
-        rows = self.workspace_panel.rows
-        if not detached:
-            rows.removeWidget(self.workspace_navigation)
-            rows.insertWidget(rows.count() if bottom else 2, self.workspace_navigation)
         self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideRight)
         self.tabs.tabBar().setExpanding(False)
         css = self.active_tab_style('QTabBar::tab:selected')

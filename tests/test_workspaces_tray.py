@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from PySide6.QtCore import Qt, QTimer, QPoint
 from PySide6.QtGui import QContextMenuEvent, QPalette
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QInputDialog, QMessageBox, QMenu
+from PySide6.QtWidgets import QApplication, QInputDialog, QMessageBox, QMenu, QFrame
 from shiboken6 import isValid
 from fluxftp.app import Window
 from fluxftp.core import Site, Entry, PROTOCOLS
@@ -100,6 +100,12 @@ def test_duplicate_and_close_others_guard(window, monkeypatch):
     rename(window, monkeypatch, 0, 'Archive')
     window.duplicate_workspace(window.tabs.widget(0))
     assert window.tabs.tabText(1) == 'Archive (copy)'
+    first, second = window.tabs.widget(0), window.tabs.widget(1)
+    assert first.property('duplicate_group') == second.property('duplicate_group')
+    window.workspace_navigation.signature = None
+    window.workspace_navigation.rebuild()
+    assert any(widget.toolTip() == 'Duplicated workspace pair'
+               for widget in window.workspace_navigation.findChildren(QFrame))
     window.add_workspace()
     keep = window.tabs.widget(0)
     busy = window.tabs.widget(1)

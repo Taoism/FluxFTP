@@ -28,16 +28,15 @@ def test_wrapping_selection_closing_width_and_bottom(window):
     QTest.qWait(50)
     window.apply_layout_settings()
     nav = window.workspace_navigation
-    # The compact '+' button may fit on the second row; require actual wrapping.
-    assert len(nav.buttons) == 11 and nav.grid.rowCount() > 1
-    assert all(button.parentWidget().width() <= 100 for button in nav.buttons)
-    nav.buttons[0].click()
+    assert not nav.isHidden()
+    assert len(nav.buttons) == 11
+    assert window.docking.docks['workspace'].titleBarWidget().layout().indexOf(nav) >= 0
+    assert window.workspace_panel.add_button.text() == '+'
+    assert window.window_list.topLevelItemCount() == 11
+    window.window_list.setCurrentItem(window.window_list.topLevelItem(0))
     assert window.tabs.currentIndex() == 0
-    window.preferences.setValue('Layout/tabs_bottom', True)
-    window.apply_layout_settings()
-    assert nav.parentWidget() is window.header_rows.rows['tabs']
-    window.close_tab(10)
-    assert window.tabs.count() == 10 and len(nav.buttons) == 10
+    window.workspace_panel.add_button.click()
+    assert window.tabs.count() == 12
 
 
 def test_native_tabs_and_dropdown_navigation(window):
@@ -51,16 +50,13 @@ def test_native_tabs_and_dropdown_navigation(window):
     window.apply_layout_settings()
     assert window.tabs.tabBar().isHidden()
     assert not window.workspace_navigation.isHidden()
-    assert window.workspace_navigation.native_bar is not None
+    assert window.workspace_navigation.native_bar is None
     assert window.tabs.tabPosition() == QTabWidget.TabPosition.South
     assert '#123456' in window.tabs.tabBar().styleSheet()
-    window.show()
-    QTest.qWait(20)
-    assert window.workspace_navigation.native_bar.tabRect(0).width() <= 100
     window.preferences.setValue('Layout/navigate_tabs', False)
     window.apply_layout_settings()
     assert window.tabs.tabBar().isHidden()
-    window.workspace_navigation.selector.setCurrentIndex(0)
+    window.window_list.setCurrentItem(window.window_list.topLevelItem(0))
     assert window.tabs.currentIndex() == 0
 
 
@@ -70,11 +66,13 @@ def test_captions_and_tab_style(window):
     for name in ('queue', 'windows', 'ftp', 'system', 'transfer', 'tasks'):
         window.preferences.setValue('Layout/caption_' + name, True)
     window.apply_layout_settings()
-    panels = [window.queue_panel, window.workspace_panel, *window.log_panels.values()]
+    panels = [window.queue_panel, *window.log_panels.values()]
     assert all(not panel.caption.isHidden() and panel.caption_tab.isHidden() for panel in panels)
+    assert window.workspace_panel.caption_row.isHidden()
     window.preferences.setValue('Layout/caption_tab_style', True)
     window.apply_layout_settings()
     assert all(panel.caption.isHidden() and not panel.caption_tab.isHidden() for panel in panels)
+    assert window.workspace_panel.caption_row.isHidden()
     assert not window.current_panes()[0].caption_tab.isHidden()
     window.preferences.setValue('Layout/caption_panes', False)
     window.apply_layout_settings()

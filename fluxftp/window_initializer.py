@@ -186,7 +186,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.resume.toggled.connect(lambda value: self.preferences.setValue("Transfer/resume", value))
     self.add_workspace()
     self.work_area = QSplitter(Qt.Orientation.Vertical)
-    self.workspace_panel = CaptionPanel(self.tabs, 'Window List')
+    self.workspace_panel = CaptionPanel(self.tabs, 'Workspaces', self.add_workspace)
     self.queue_panel = CaptionPanel(self.queue, 'Queue')
     self.work_area.addWidget(self.workspace_panel)
     self.work_area.addWidget(self.log_tabs)
