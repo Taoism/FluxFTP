@@ -106,7 +106,9 @@ def test_ui_upload_queue_and_workspaces(servers, tmp_path, monkeypatch):
     right.set_remote(site, "password", "/")
     right.refresh()
     settle(window)
-    left.tree.topLevelItem(0).setSelected(True)
+    next(left.tree.topLevelItem(i) for i in range(left.tree.topLevelItemCount())
+         if left.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+         and left.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'queued.txt').setSelected(True)
     # Exercise a pane-to-pane drop into the encrypted upload queue.
     from types import SimpleNamespace
     left.tree.drag_source = SimpleNamespace(mode=left.mode, site=left.site,
@@ -132,7 +134,9 @@ def test_ui_upload_queue_and_workspaces(servers, tmp_path, monkeypatch):
     local_target = tmp_path / "local-target"
     local_target.mkdir()
     right.navigate(str(local_target))
-    left.tree.topLevelItem(0).setSelected(True)
+    next(left.tree.topLevelItem(i) for i in range(left.tree.topLevelItemCount())
+         if left.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+         and left.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'queued.txt').setSelected(True)
     window.enqueue(True)
     settle(window)
     assert (local_target / "queued.txt").read_bytes() == b"queued via UI"
@@ -373,7 +377,8 @@ def test_compare_folder_contents_marks_unique_and_different_files(tmp_path):
     def row_for(pane, name):
         for index in range(pane.tree.topLevelItemCount()):
             row = pane.tree.topLevelItem(index)
-            if row.data(0, Qt.ItemDataRole.UserRole).name == name:
+            entry = row.data(0, Qt.ItemDataRole.UserRole)
+            if entry is not None and entry.name == name:
                 return row
         raise AssertionError(f"missing row: {name}")
 

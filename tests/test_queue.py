@@ -242,7 +242,7 @@ def test_certificate_prompt_keeps_queue_worker_tracked(window, monkeypatch, acce
     assert job['retries'] == 0
 
 
-def test_paused_queue_close_requires_successful_save(window, tmp_path, monkeypatch):
+def test_paused_queue_close_closes_even_when_save_fails(window, tmp_path, monkeypatch):
     from PySide6.QtGui import QCloseEvent
     from fluxftp import queue_manager
     window.initialize_queue_storage(tmp_path / 'queue.json')
@@ -257,7 +257,7 @@ def test_paused_queue_close_requires_successful_save(window, tmp_path, monkeypat
     monkeypatch.setattr(module.QMessageBox, 'information', lambda *_: None)
     event = QCloseEvent()
     window.closeEvent(event)
-    assert not event.isAccepted()
+    assert event.isAccepted()
 
 
 def test_old_cancellation_does_not_fail_new_batch(window, tmp_path):

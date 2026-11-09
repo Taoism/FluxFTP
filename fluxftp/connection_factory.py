@@ -64,7 +64,7 @@ class ConnectionFactory:
             max_retries=preferences.value("Connection/max_retries", 2, type=int),
             retry_delay=preferences.value("Connection/retry_delay", 3, type=int),
             send_feat=preferences.value("Connection/send_feat", True, type=bool),
-            smart_pasv=(preferences.value("Connection/smart_pasv", True, type=bool)
+            smart_pasv=(preferences.value("Connection/smart_pasv", False, type=bool)
                         if site.use_masq is None else site.use_masq),
             proxy=proxy,
             tcp_keepalive=preferences.value("Connection/tcp_keepalive", True, type=bool),

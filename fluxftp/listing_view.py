@@ -1,10 +1,12 @@
 """Populate large directory views in short, pane-owned GUI batches."""
 import time
 from PySide6.QtCore import QTimer, Qt, QSignalBlocker
-from PySide6.QtWidgets import QTreeWidgetItem
+from PySide6.QtWidgets import QTreeWidgetItem, QStyle
 from PySide6.QtGui import QBrush, QColor
 from .site_options import SiteSettings
 from .sort_options import sorted_entries
+
+PARENT_DIRECTORY_ROLE = int(Qt.ItemDataRole.UserRole) + 7
 
 
 def populate(pane, entries, finished):
@@ -15,6 +17,7 @@ def populate(pane, entries, finished):
     settings = SiteSettings(pane.window.preferences, pane.site if pane.mode == 'Remote' else None)
     server_order = pane.mode == 'Remote' and settings.value('Connection/list_server_order', False, type=bool)
     pane.tree.header().setSortIndicatorShown(not server_order)
+    entries = [entry for entry in entries if entry.name not in ('.', '..')]
     ordered = entries if server_order else sorted_entries(entries, pane.window.preferences,
                                                          pane.mode.lower(), pane.sort_key, pane.sort_descending)
     batch_size = max(100, min(2000, settings.value('Connection/list_batch_size', 300, type=int)))
@@ -28,7 +31,7 @@ def populate(pane, entries, finished):
         rules = () if pane.window.preferences.value('Display/highlights_disabled', False, type=bool) else highlight_rules(pane.window.preferences.value('Display/highlight_rules', '[]', type=str))
     except ValueError:
         rules = ()
-    loaded, generation = 0, pane.generation
+    loaded, generation, parent_added = 0, pane.generation, False
     asynchronous = max(count, pane.tree.topLevelItemCount()) > 2000
     clearing = bool(pane.tree.topLevelItemCount())
     pane.tree.setProperty('marksEmpty', True)
@@ -37,7 +40,7 @@ def populate(pane, entries, finished):
     timer = QTimer(pane)
     pane._listing_timer = timer
     def batch():
-        nonlocal loaded, clearing
+        nonlocal loaded, clearing, parent_added
         if generation != pane.generation:
             timer.stop()
             timer.deleteLater()
@@ -56,9 +59,19 @@ def populate(pane, entries, finished):
             if clearing:
                 pane.status.setText('Loading folder… replacing previous listing')
                 return
+        if not parent_added:
+            parent_added = True
+            if pane.can_go_up():
+                parent = QTreeWidgetItem(['Parent directory', '', '', '', '', ''])
+                parent.setIcon(0, pane.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
+                parent.setData(0, PARENT_DIRECTORY_ROLE, True)
+                parent.setData(0, Qt.ItemDataRole.UserRole, None)
+                parent.setToolTip(0, 'Go up one level to the parent directory')
+                parent.setFlags(parent.flags() & ~Qt.ItemFlag.ItemIsDragEnabled)
+                pane.tree.addTopLevelItem(parent)
         while loaded < count:
             entry = next(iterator)
-            row = QTreeWidgetItem([entry.name, 'Folder' if entry.is_dir else pane.window.file_size(entry.size),
+            row = QTreeWidgetItem([entry.name, pane.window.file_size(entry.size),
                                    entry.modified, entry.attributes or ('L' if entry.is_link else 'D' if entry.is_dir else 'A'),
                                    entry.user, entry.group])
             row.setData(0, Qt.ItemDataRole.UserRole, entry)

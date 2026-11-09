@@ -221,4 +221,4 @@ def test_100001_import_export_recovery_and_expansion_remain_responsive(window, t
     window.expand_queue_files(parent, result['planned'])
     assert len(window.queue_jobs) <= 257
     print('\nASYNC_100K_METRICS=' + json.dumps(reports))
-    (Path(__file__).resolve().parents[1] / 'logs/async-100k-075.json').write_text(json.dumps(reports, indent=2))
+    (tmp_path / 'async-100k-075.json').write_text(json.dumps(reports, indent=2))

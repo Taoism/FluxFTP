@@ -73,8 +73,8 @@ class SiteDialog(QDialog):
         default_passive = preferences.preferences.value("Connection/default_passive", True, type=bool) if preferences and hasattr(preferences, "preferences") else True
         self._default_passive = default_passive
         self.passive.setChecked(default_passive)
-        self._default_masq = (preferences.preferences.value("Connection/smart_pasv", True, type=bool)
-                              if preferences and hasattr(preferences, "preferences") else True)
+        self._default_masq = (preferences.preferences.value("Connection/smart_pasv", False, type=bool)
+                              if preferences and hasattr(preferences, "preferences") else False)
         self.use_masq.setChecked(self._default_masq)
 
         outer = QVBoxLayout(self)
@@ -429,7 +429,7 @@ class SiteDialog(QDialog):
             if use_masq is None:
                 parent = self.parent()
                 owner = parent if hasattr(parent, "preferences") else getattr(parent, "window", None)
-                use_masq = owner.preferences.value("Connection/smart_pasv", True, type=bool) if owner and hasattr(owner, "preferences") else True
+                use_masq = owner.preferences.value("Connection/smart_pasv", False, type=bool) if owner and hasattr(owner, "preferences") else False
             self.use_masq.setChecked(bool(use_masq))
             timezone_index = self.site_timezone.findData(data.get("timezone", ""))
             self.site_timezone.setCurrentIndex(max(0, timezone_index))

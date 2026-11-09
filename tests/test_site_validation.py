@@ -51,3 +51,9 @@ def test_editor_accepts_auth_ssl_and_nat_checkbox(window, monkeypatch, masq):
     assert dialog.site().use_masq is masq
     assert dialog.site().port == 30001
     dialog.close()
+
+
+def test_new_site_defaults_nat_masquerade_off(window):
+    dialog = SiteDialog(window, {})
+    assert not dialog.use_masq.isChecked()
+    dialog.close()

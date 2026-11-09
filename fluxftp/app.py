@@ -94,9 +94,9 @@ def settings_store():
 def human(n):
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if n < 1024:
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}"
         n /= 1024
-    return f"{n:.1f} PB"
+    return f"{n:.0f} PB"
 
 
 class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmOptions, FileMenu, Workspaces, TransferQueue, ConfigurationPersistence, ConfigurationBackupActions, WindowChrome, WindowWorkers, WindowConnections, QMainWindow, QueueManager):
@@ -202,6 +202,8 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                 for row_index in range(pane.tree.topLevelItemCount()):
                     row = pane.tree.topLevelItem(row_index)
                     entry = row.data(0, Qt.ItemDataRole.UserRole)
+                    if entry is None:
+                        continue
                     reason = options.skip_reason(entry.name, entry.is_dir, entry.size)
                     color = highlight_color(entry.name, rules)
                     for column in range(row.columnCount()):
@@ -357,45 +359,41 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
             self.tabs.currentWidget().widget(index).connect_saved_site(name)
 
     def closeEvent(self, event):
-        if getattr(self, '_queue_operation_depth', 0) or getattr(self, '_queue_commit', False):
-            event.ignore()
-            return
-        saved = self.save_queue_state()
-        if self.workers or (self.pending and not ((self.paused or all(j.get('held') for j in self.pending)) and saved)):
-            QMessageBox.information(self, "Work in progress", "Cancel queued transfers and wait for active operations to finish before closing.")
-            event.ignore()
-        else:
-            if not (getattr(self, '_smoke_test', False) or getattr(self, '_configuration_restored', False)) and not self.confirm_action('exit', 'Exit FluxFTP', 'Exit FluxFTP?'):
-                event.ignore()
-                return
-            if self.workers or self.active:
-                event.ignore()
-                return
-            for dialog in list(getattr(self, 'mouse_windows', [])):
-                if not dialog.close():
-                    event.ignore()
-                    return
-            self.save_panel_layout()
-            self.save_workspaces()
-            self.docking.shutdown()
-            for index in range(self.tabs.count()):
-                for side in range(2):
-                    self.tabs.widget(index).widget(side).browse_session.close()
-            self.ident.close()
-            self.cloud_service.close()
-            self.automation_runtime.shutdown()
-            for mount in list(getattr(getattr(self, 'sshfs_mounts', None), 'mounts', [])):
-                self.sshfs_mounts.stop(mount)
-            if getattr(self, 'control_api', None):
-                self.control_api.close()
-            self.bandwidth_control.timer.stop()
-            self.browse_timer.stop()
-            self.system_appearance.close()
-            self.tray_timer.stop()
-            self.download_display_timer.stop()
-            self.tray.hide()
-            self.window_positions.close()
-            event.accept()
+        # The title-bar close button is an unconditional exit. Persist the queue
+        # first, then ask all background work to stop; confirmation prompts and
+        # active-transfer guards must not trap the user in the window.
+        self.save_queue_state()
+        for record in list(getattr(self, 'active', {}).values()):
+            job = record.get('job')
+            if job is not None:
+                job['suppress_retry'] = True
+            record['worker'].cancel.set()
+        for worker in list(getattr(self, 'workers', ())):
+            worker.cancel.set()
+        for dialog in list(getattr(self, 'mouse_windows', [])):
+            if not dialog.close():
+                dialog.hide()
+        self.save_panel_layout()
+        self.save_workspaces()
+        self.docking.shutdown()
+        for index in range(self.tabs.count()):
+            for side in range(2):
+                self.tabs.widget(index).widget(side).browse_session.close()
+        self.ident.close()
+        self.cloud_service.close()
+        self.automation_runtime.shutdown()
+        for mount in list(getattr(getattr(self, 'sshfs_mounts', None), 'mounts', [])):
+            self.sshfs_mounts.stop(mount)
+        if getattr(self, 'control_api', None):
+            self.control_api.close()
+        self.bandwidth_control.timer.stop()
+        self.browse_timer.stop()
+        self.system_appearance.close()
+        self.tray_timer.stop()
+        self.download_display_timer.stop()
+        self.tray.hide()
+        self.window_positions.close()
+        event.accept()
 
 
 def main():
@@ -404,9 +402,14 @@ def main():
     parser.add_argument("--log-file", type=Path, help="Debug log destination (requires --debug)")
     parser.add_argument("--smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--runtime-smoke-test", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--credential-vault-smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--screenshot", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument('--automation-once', action='store_true', help='Run due saved automation without opening the desktop')
     args, qt_args = parser.parse_known_args()
+    if args.credential_vault_smoke_test:
+        from .credentials import smoke_test_system_vault
+        smoke_test_system_vault()
+        return
     args.smoke_test = args.smoke_test or args.runtime_smoke_test
     if args.log_file and not args.debug:
         parser.error("--log-file requires --debug")

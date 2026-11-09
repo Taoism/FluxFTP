@@ -27,7 +27,8 @@ def select(pane, name):
     pane.tree.clearSelection()
     for i in range(pane.tree.topLevelItemCount()):
         row = pane.tree.topLevelItem(i)
-        if row.data(0, Qt.ItemDataRole.UserRole).name == name:
+        entry = row.data(0, Qt.ItemDataRole.UserRole)
+        if entry is not None and entry.name == name:
             pane.tree.setCurrentItem(row)
             row.setSelected(True)
             return
@@ -210,7 +211,8 @@ def test_navigation_cache_manual_refresh_and_clear(window, servers):
     (root / 'new.txt').write_text('new')
     pane.navigate('/')
     assert not pane.busy and 'cached' in pane.status.text()
-    assert not any(pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'new.txt' for i in range(pane.tree.topLevelItemCount()))
+    assert not any((entry := pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole)) is not None
+                   and entry.name == 'new.txt' for i in range(pane.tree.topLevelItemCount()))
     pane.refresh()
     settle(window)
     select(pane, 'new.txt')

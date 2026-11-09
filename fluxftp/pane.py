@@ -21,6 +21,7 @@ from .display_options import AddressBar, SavedSiteMenu
 from .site_dialog import SiteDialog
 from .site_options import SiteSettings, decode as site_options
 from .sort_options import sorted_entries
+from .listing_view import PARENT_DIRECTORY_ROLE, populate
 
 
 class TransferTree(QTreeWidget):
@@ -39,7 +40,8 @@ class TransferTree(QTreeWidget):
     def mouseDoubleClickEvent(self, event):
         row = self.itemAt(event.position().toPoint())
         entry = row.data(0, Qt.ItemDataRole.UserRole) if row else None
-        if event.button() == Qt.MouseButton.LeftButton and row is not None and entry is not None:
+        if event.button() == Qt.MouseButton.LeftButton and row is not None and (
+                entry is not None or row.data(0, PARENT_DIRECTORY_ROLE)):
             # Route file and folder activation through the pane's shared handler.
             event.accept()
             if not self.pane.busy:
@@ -521,7 +523,18 @@ class Pane(QWidget):
                 self._navigation_cache = False
 
     def up(self):
-        self.navigate(posixpath.dirname(self.path.rstrip("/")) or "/" if self.mode == "Remote" else str(Path(self.path).parent))
+        self.navigate(self.parent_path())
+
+    def parent_path(self):
+        if self.mode == "Remote":
+            return posixpath.dirname(self.path.rstrip("/")) or "/"
+        return str(Path(self.path).parent)
+
+    def can_go_up(self):
+        parent = self.parent_path()
+        if self.mode == "Remote":
+            return posixpath.normpath(parent) != posixpath.normpath(self.path)
+        return os.path.normcase(os.path.abspath(parent)) != os.path.normcase(os.path.abspath(self.path))
 
     def refresh(self):
         if self.busy:
@@ -655,7 +668,6 @@ class Pane(QWidget):
             self.tree.setProperty('colorScope', self.mode.lower())
             self.window.update_selection_display(self.tree)
             self.window.view_commands.options.apply()
-        from .listing_view import populate
         populate(self, entries, finished)
 
     def sort_column(self, column):
@@ -675,8 +687,12 @@ class Pane(QWidget):
         scroll = self.tree.verticalScrollBar().value()
         with QSignalBlocker(self.tree):
             rows = [self.tree.takeTopLevelItem(0) for _ in range(self.tree.topLevelItemCount())]
+            parents = [row for row in rows if row.data(0, PARENT_DIRECTORY_ROLE)]
+            rows = [row for row in rows if not row.data(0, PARENT_DIRECTORY_ROLE)]
             entries = [row.data(0, Qt.ItemDataRole.UserRole) for row in rows]
             mapping = {id(entry): row for entry, row in zip(entries, rows)}
+            for row in parents:
+                self.tree.addTopLevelItem(row)
             for entry in sorted_entries(entries, self.window.preferences, self.mode.lower(), self.sort_key, self.sort_descending):
                 self.tree.addTopLevelItem(mapping[id(entry)])
             if current: self.tree.setCurrentItem(current)
@@ -688,13 +704,17 @@ class Pane(QWidget):
         needle = self.filter.text().casefold()
         for i in range(self.tree.topLevelItemCount()):
             row = self.tree.topLevelItem(i)
+            if row.data(0, PARENT_DIRECTORY_ROLE):
+                row.setHidden(False)
+                continue
             row.setHidden(needle not in row.text(0).casefold() or (
                 row.data(0, RESULT_ROLE) == "same" and
                 self.window.preferences.value("Compare/hide", True, type=bool)))
         self.window.mark_commands.update()
 
     def selected(self):
-        return [row.data(0, Qt.ItemDataRole.UserRole) for row in self.tree.selectedItems() if not row.isHidden()]
+        return [row.data(0, Qt.ItemDataRole.UserRole) for row in self.tree.selectedItems()
+                if not row.isHidden() and not row.data(0, PARENT_DIRECTORY_ROLE)]
 
     def join(self, name):
         safe_name(name)
@@ -702,7 +722,12 @@ class Pane(QWidget):
 
     def open_item(self, row):
         entry = row.data(0, Qt.ItemDataRole.UserRole)
-        if self.busy or entry is None:
+        if self.busy:
+            return
+        if row.data(0, PARENT_DIRECTORY_ROLE):
+            self.up()
+            return
+        if entry is None:
             return
         if entry.is_dir:
             self.navigate(self.join(entry.name))

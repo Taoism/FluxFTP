@@ -33,6 +33,8 @@ def main():
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
         "--windowed", "--name", "FluxFTP", "--distpath", f"dist-{__version__}",
+        # keyring selects OS vaults through entry-point metadata at runtime.
+        "--collect-submodules", "keyring.backends", "--copy-metadata", "keyring",
         "--runtime-hook", str(ROOT / 'openssl_runtime_hook.py'),
         "--workpath", f"build-{__version__}", "--specpath", f"build-{__version__}",
         "--add-data", f"{ROOT / 'README.md'}{os.pathsep}.",

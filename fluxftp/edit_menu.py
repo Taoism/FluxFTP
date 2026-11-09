@@ -106,7 +106,8 @@ class EditMenu(QObject):
             return
         try:
             existing = [pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name
-                        for i in range(pane.tree.topLevelItemCount())]
+                        for i in range(pane.tree.topLevelItemCount())
+                        if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None]
             pairs = rename_plan(names, find, replacement, existing)
             if not pairs:
                 self.window.statusBar().showMessage('No selected names match the search text.', 5000)

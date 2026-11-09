@@ -43,7 +43,9 @@ def test_local_hidden_address_size_and_focus(window, tmp_path):
     pane = window.current_panes()[0]
     pane.local_path = str(tmp_path)
     pane.change_mode('Local')
-    assert '.hidden' not in [pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name for i in range(pane.tree.topLevelItemCount())]
+    assert '.hidden' not in [pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name
+                             for i in range(pane.tree.topLevelItemCount())
+                             if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None]
     assert pane.address.text() == tmp_path.name
     window.show()
     pane.address.setFocus()
@@ -57,15 +59,17 @@ def test_local_hidden_address_size_and_focus(window, tmp_path):
     window.preferences.setValue('Display/size_mode', 'Bytes')
     pane.refresh()
     assert pane.address.text() == str(tmp_path)
-    rows = {pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name: pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())}
+    rows = {pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name: pane.tree.topLevelItem(i)
+            for i in range(pane.tree.topLevelItemCount())
+            if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None}
     assert '.hidden' in rows and rows['visible'].text(1) == '2,048 B'
     row = QTreeWidgetItem(['queued'])
     window.queue.addTopLevelItem(row)
     window.transfer_display_progress(row, 50, 1, 1024, 2048)
     window.preferences.setValue('Display/size_mode', 'KBytes')
     window.apply_display_settings()
-    assert rows['visible'].text(1) == '2.0 KB'
-    assert row.text(3) == '1.0 KB / 2.0 KB' and row.text(4) == '2.0 KB'
+    assert rows['visible'].text(1) == '2 KB'
+    assert row.text(3) == '1 KB / 2 KB' and row.text(4) == '2 KB'
 
 
 def test_folder_icons_turn_dark_and_refresh_with_theme(window, tmp_path):
@@ -77,7 +81,8 @@ def test_folder_icons_turn_dark_and_refresh_with_theme(window, tmp_path):
     pane.local_path = str(tmp_path)
     pane.change_mode('Local')
     row = next(pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())
-               if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'folder')
+               if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+               and pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'folder')
 
     window.preferences.setValue('Display/style', 'Midnight')
     apply_application(window.app_instance, window.preferences, window.STYLE)
@@ -171,14 +176,18 @@ def test_download_listing_timer_keeps_selection(window, tmp_path):
     pane.local_path = str(tmp_path)
     (tmp_path / 'existing').write_text('keep')
     pane.change_mode('Local')
-    row = next(pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount()) if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'existing')
+    row = next(pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())
+               if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+               and pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'existing')
     row.setSelected(True)
     (tmp_path / 'download.fluxpart').write_bytes(b'x' * 4096)
     window.active['test'] = {'route': 'Download', 'job': {'dst': str(tmp_path / 'download'), 'directory': False}}
     try:
         window.update_downloading_sizes()
         assert [e.name for e in pane.selected()] == ['existing']
-        entries = [pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) for i in range(pane.tree.topLevelItemCount())]
+        entries = [pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole)
+                   for i in range(pane.tree.topLevelItemCount())
+                   if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None]
         assert any(e.name == 'download.fluxpart' and e.size == 4096 for e in entries)
     finally: window.active.clear()
 

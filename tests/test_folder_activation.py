@@ -17,7 +17,9 @@ def test_remote_folder_double_click_without_prior_selection(window, monkeypatch,
     QTest.qWait(20)
     paths = []
     monkeypatch.setattr(pane, 'navigate', paths.append)
-    row = pane.tree.topLevelItem(0)
+    row = next(pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())
+               if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+               and pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'folder')
     position = pane.tree.visualItemRect(row).center()
     if first_click:
         QTest.mouseClick(pane.tree.viewport(), Qt.MouseButton.LeftButton, pos=position)
@@ -46,8 +48,10 @@ def test_double_click_enters_real_remote_folder(window, servers, tls):
     assert pane.path == '/folder'
     assert pane.browse_session.connection is connection
     assert pane.address.text() == '/folder'
-    assert pane.tree.topLevelItemCount() == 1
-    assert pane.tree.topLevelItem(0).data(0, Qt.ItemDataRole.UserRole).name == 'inside.txt'
+    assert pane.tree.topLevelItemCount() == 2
+    assert any(pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+               and pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'inside.txt'
+               for i in range(pane.tree.topLevelItemCount()))
     assert not window.queue_jobs
 
 

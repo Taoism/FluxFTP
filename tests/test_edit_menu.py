@@ -10,7 +10,7 @@ def test_reference_and_active_pane(window, tmp_path, monkeypatch):
     commands = window.edit_commands
     assert [a.text() if not a.isSeparator() else '---' for a in window.edit_menu.actions()] == [
         'Search', '---', 'Rename', 'Delete', '---', 'Make Directory', '---',
-        'Rename Multiple Files…', '---', 'Copy Selected Names', '---', 'Toolbars']
+        'Rename Multiple Files…', '---', 'Copy Selected Names', 'Options…', '---', 'Toolbars']
     assert [a.shortcut().toString() for a in commands.actions.values()] == [
         'Ctrl+F', 'F2', 'Del', 'Ins', 'Ctrl+Shift+M', '']
     pane = window.current_panes()[1]

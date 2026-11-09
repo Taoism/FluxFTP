@@ -10,13 +10,17 @@ def test_moved_panels_and_panes_restore_on_next_window(window):
     window.show()
     window.resize(1600, 1100)
     QTest.qWait(20)
-    window.work_area.moveSplitter(540, 1)
+    docking = window.docking
+    workspace = docking.docks['workspace']
+    ftp = docking.docks['ftp']
+    transfer = docking.docks['transfer']
+    docking.host.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, workspace)
+    docking.host.tabifyDockWidget(ftp, transfer)
+    transfer.raise_()
     window.tabs.widget(0).moveSplitter(420, 1)
-    window.log_tabs.setCurrentWidget(window.log_panels['transfer'])
-    before = window.work_area.sizes()
     panes = window.tabs.widget(0).sizes()
+    docking.save()
     window.close()
-    assert window.preferences.value('Layout/manual_panel_positions', type=bool)
     configuration(window.preferences, {})  # Saved state remains JSON-backup compatible.
     reopened = Window()
     reopened._smoke_test = True
@@ -24,13 +28,12 @@ def test_moved_panels_and_panes_restore_on_next_window(window):
         reopened.resize(1600, 1100)
         reopened.show()
         QTest.qWait(30)
-        after = reopened.work_area.sizes()
-        assert all(abs(a / sum(after) - b / sum(before)) < .03 for a, b in zip(after, before))
+        docking = reopened.docking
+        assert docking.host.dockWidgetArea(docking.docks['workspace']) == Qt.DockWidgetArea.RightDockWidgetArea
+        assert docking.docks['transfer'] in docking.host.tabifiedDockWidgets(docking.docks['ftp'])
+        assert docking.docks['transfer'].isVisible()
         restored = reopened.tabs.widget(0).sizes()
         assert abs(restored[0] / sum(restored) - panes[0] / sum(panes)) < .03
-        assert reopened.log_tabs.currentWidget() is reopened.log_panels['transfer']
-        reopened.show_transfer_queue()
-        assert reopened.work_area.sizes() == after
     finally:
         reopened.close()
 
@@ -38,17 +41,20 @@ def test_moved_panels_and_panes_restore_on_next_window(window):
 def test_panel_order_collapsed_log_and_bad_state(window):
     window.show()
     QTest.qWait(20)
-    window.work_area.insertWidget(0, window.queue_panel)
-    window.work_area.setSizes([250, 650, 0])
-    window.save_panel_layout()
+    docking = window.docking
+    queue = docking.docks['queue']
+    tasks = docking.docks['tasks']
+    queue.hide()
+    docking.host.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, tasks)
+    docking.save()
     window.preferences.setValue('Layout/pane_positions/0/horizontal', 'not valid hex')
     reopened = Window()
     reopened._smoke_test = True
     try:
         reopened.show()
         QTest.qWait(20)
-        assert reopened.work_area.widget(0) is reopened.queue_panel
-        assert reopened.work_area.sizes()[2] == 0
+        assert reopened.docking.docks['queue'].isHidden()
+        assert reopened.docking.host.dockWidgetArea(reopened.docking.docks['tasks']) == Qt.DockWidgetArea.RightDockWidgetArea
         assert reopened.tabs.widget(0).orientation() == Qt.Orientation.Horizontal
     finally:
         reopened.close()

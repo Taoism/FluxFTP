@@ -37,13 +37,17 @@ def test_remote_shortcut_double_click_uses_exact_server_name(window, servers, mo
     pane.refresh()
     settle(window)
     row = pane.tree.topLevelItem(0)
-    assert row.text(0) == '+Latest' and row.text(1) == 'Folder'
+    assert row.text(0) == '+Latest'
+    entry = row.data(0, Qt.ItemDataRole.UserRole)
+    assert row.text(1) == pane.window.file_size(entry.size)
     window.show()
     QTest.qWait(20)
     QTest.mouseDClick(pane.tree.viewport(), Qt.MouseButton.LeftButton, pos=pane.tree.visualItemRect(row).center())
     settle(window)
     assert pane.path == '/+Latest'
-    assert pane.tree.topLevelItem(0).data(0, Qt.ItemDataRole.UserRole).name == 'inside.bin'
+    assert any(pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None
+               and pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name == 'inside.bin'
+               for i in range(pane.tree.topLevelItemCount()))
     assert not window.queue_jobs
 
 

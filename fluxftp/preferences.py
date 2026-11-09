@@ -485,7 +485,7 @@ class PreferencesDialog(QDialog):
             description.setText("Retries apply only to connection setup. Configure NAT handling, socket binding and active local ports under Data connection.")
 
         elif title == "Data connection":
-            self.data_smart_nat = self._check(form, "Connection/smart_pasv", "Smart handle FTP server behind NAT", True)
+            self.data_smart_nat = self._check(form, "Connection/smart_pasv", "Smart handle FTP server behind NAT", False)
             self.data_bind_sockets = self._check(form, "Connection/bind_sockets", "Bind sockets to an IP Address",
                                                  self._value("Connection/bind_local_ip", False, bool))
             self.data_bind_local, self.data_local_ip = self._checked_field(

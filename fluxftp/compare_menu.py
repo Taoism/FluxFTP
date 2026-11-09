@@ -71,7 +71,8 @@ class CompareMenu(QObject):
             return
         size = self.actions['Compare name and size'].isChecked()
         partial = self.actions['Partial Match'].isChecked()
-        rows = [[pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())]
+        rows = [[pane.tree.topLevelItem(i) for i in range(pane.tree.topLevelItemCount())
+                 if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None]
                 for pane in panes]
         panes[0].parentWidget()._comparison_active = True
         counts = [0, 0, 0]

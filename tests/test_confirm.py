@@ -1,4 +1,5 @@
 from pathlib import Path
+from threading import Event
 
 import pytest
 from PySide6.QtCore import Qt
@@ -34,18 +35,27 @@ def test_reference_defaults_persistence(window):
     window.preferences.setValue('Confirm/exit', False)
 
 
-def test_exit_accept_cancel_and_disabled(window, monkeypatch):
+def test_title_bar_close_does_not_wait_for_exit_confirmation(window, monkeypatch):
     calls = answer(monkeypatch, False)
     event = QCloseEvent()
     window.closeEvent(event)
-    assert not event.isAccepted() and calls[-1][1] == 'Exit FluxFTP'
-    calls = answer(monkeypatch, True)
-    window.closeEvent(event)
-    assert event.isAccepted() and len(calls) == 1
-    calls = answer(monkeypatch, False)
-    window.preferences.setValue('Confirm/exit', False)
-    window.closeEvent(event)
     assert event.isAccepted() and not calls
+
+
+def test_title_bar_close_requests_cancellation_of_active_transfer(window):
+    class Cancellable:
+        def __init__(self):
+            self.cancel = Event()
+
+    worker = Cancellable()
+    job = {}
+    window.active = {1: {'worker': worker, 'job': job}}
+    event = QCloseEvent()
+    window.closeEvent(event)
+    assert event.isAccepted()
+    assert worker.cancel.is_set()
+    assert job['suppress_retry'] is True
+    window.active = {}
 
 
 def test_connected_workspace_cancel_accept_and_disabled(window, monkeypatch):

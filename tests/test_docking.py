@@ -10,7 +10,7 @@ def test_dock_float_tab_hide_restore_and_return_preserves_widgets(window):
     tabs, queue, ftp = window.tabs, window.queue, window.ftp_log
     controller.action.setChecked(True)
     QTest.qWait(100)
-    assert controller.active and len(controller.docks) == 6
+    assert controller.active and len(controller.docks) == len(controller.panel_titles)
     assert not controller.host.isWindow()
     assert controller.host.isVisibleTo(window)
     dock = controller.docks['queue']
@@ -44,8 +44,10 @@ def test_docking_lock_and_reset(window, monkeypatch):
     assert controller.docks['queue'].features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
     monkeypatch.setattr(QMessageBox, 'question', lambda *a, **k: QMessageBox.StandardButton.Yes)
     window.reset_layout()
-    assert not controller.active and window.work_area.count() == 3
-    assert not window.preferences.contains('Layout/dock_state')
+    # Custom docking is the default layout; reset restores that default after
+    # clearing custom panel positions.
+    assert controller.active and controller.action.isChecked() and window.work_area.count() == 1
+    assert not window.preferences.value('Layout/manual_panel_positions', False, type=bool)
 
 
 def test_docking_restores_in_new_window(window):
@@ -63,3 +65,21 @@ def test_docking_restores_in_new_window(window):
     finally:
         second.close()
         window.docking.action.setChecked(False)
+
+
+def test_floating_dock_geometry_is_saved_and_restored(window):
+    controller = window.docking
+    window.show()
+    QTest.qWait(50)
+    controller.action.setChecked(True)
+    dock = controller.docks['queue']
+    dock.setFloating(True)
+    QTest.qWait(30)
+    dock.setGeometry(120, 100, 520, 340)
+    QTest.qWait(350)
+    saved = window.preferences.value('Layout/dock_geometry/queue', '', type=str)
+    assert saved
+    dock.setGeometry(20, 30, 300, 200)
+    assert controller.restore_floating_geometries() is None
+    assert dock.geometry().width() >= 500
+    controller.action.setChecked(False)

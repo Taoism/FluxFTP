@@ -140,6 +140,7 @@ class DockLayout(QObject):
                 window.work_area.hide()
                 self.host.show()
                 self.lock(window.preferences.value('Layout/locked', False, type=bool))
+                QTimer.singleShot(0, self.restore_floating_geometries)
             else:
                 self.save()
                 self.active = False
@@ -178,7 +179,25 @@ class DockLayout(QObject):
     def save(self):
         if self.active and not self.closing and not getattr(self.window, '_configuration_restored', False):
             self.window.preferences.setValue('Layout/dock_state', bytes(self.host.saveState(1)).hex())
+            for key, dock in self.docks.items():
+                if dock.isFloating():
+                    self.window.preferences.setValue(f'Layout/dock_geometry/{key}',
+                        bytes(dock.saveGeometry()).hex())
             self.window.preferences.sync()
+
+    def restore_floating_geometries(self):
+        if not self.active:
+            return
+        for key, dock in self.docks.items():
+            if not dock.isFloating():
+                continue
+            value = self.window.preferences.value(f'Layout/dock_geometry/{key}', '', type=str)
+            if not value or len(value) > 16384:
+                continue
+            try:
+                dock.restoreGeometry(QByteArray.fromHex(value.encode('ascii')))
+            except (ValueError, UnicodeError):
+                continue
 
     def shutdown(self):
         self.closing = True

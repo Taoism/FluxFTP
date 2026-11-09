@@ -69,3 +69,19 @@ def test_plaintext_backend_refused_os_backend_selected_from_chain(monkeypatch):
         'delete_password': lambda *args: None})
     monkeypatch.setattr(keyring, 'get_keyring', lambda: SimpleNamespace(priority=10, backends=[Plain(), Secure()]))
     assert secure_backend().get_password('service', 'account') == 'protected'
+
+
+def test_system_vault_smoke_test_removes_temporary_record(monkeypatch):
+    from types import SimpleNamespace
+    records = {}
+    errors = type('Errors', (), {'KeyringError': Exception, 'PasswordDeleteError': KeyError})
+    backend = SimpleNamespace(
+        errors=errors,
+        set_password=lambda service, account, password: records.__setitem__((service, account), password),
+        get_password=lambda service, account: records.get((service, account)),
+        delete_password=lambda service, account: records.pop((service, account)),
+    )
+    monkeypatch.setattr(credentials, '_keyring', lambda: backend)
+
+    credentials.smoke_test_system_vault()
+    assert records == {}

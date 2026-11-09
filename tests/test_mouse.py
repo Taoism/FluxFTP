@@ -139,12 +139,21 @@ def test_site_double_click_cancels_single_click(window, monkeypatch):
 def test_log_actions_and_empty_tabs(window):
     window.show()
     QTest.qWait(30)
-    sizes = window.work_area.sizes()
-    QTest.mouseDClick(window.log.viewport(), Qt.MouseButton.LeftButton)
-    assert window.work_area.sizes()[0] == 0 and window.work_area.sizes()[2] == 0
-    window.mouse_log(window.log)
-    assert all(value > 0 for value in window.work_area.sizes())
-    assert all(abs(a - b) < 30 for a, b in zip(window.work_area.sizes(), sizes))
+    if window.docking.active:
+        dock = window.docking.docks['system']
+        dock.hide()
+        QTest.mouseDClick(window.log.viewport(), Qt.MouseButton.LeftButton)
+        assert not dock.isHidden()
+        dock.hide()
+        window.mouse_log(window.log)
+        assert not dock.isHidden()
+    else:
+        sizes = window.work_area.sizes()
+        QTest.mouseDClick(window.log.viewport(), Qt.MouseButton.LeftButton)
+        assert window.work_area.sizes()[0] == 0 and window.work_area.sizes()[2] == 0
+        window.mouse_log(window.log)
+        assert all(value > 0 for value in window.work_area.sizes())
+        assert all(abs(a - b) < 30 for a, b in zip(window.work_area.sizes(), sizes))
     window.preferences.setValue('Mouse/log', 'View log at new window')
     window.log.setPlainText('test log')
     window.mouse_log(window.log)

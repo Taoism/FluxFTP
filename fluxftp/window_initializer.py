@@ -69,6 +69,13 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
         self.sites = {}
     if not isinstance(self.sites, dict):
         self.sites = {}
+    if not self.preferences.value("Connection/masq_default_migrated", False, type=bool):
+        for profile in self.sites.values():
+            if isinstance(profile, dict):
+                profile["use_masq"] = False
+        if not self.sites or self.save_sites(self.sites):
+            self.preferences.setValue("Connection/masq_default_migrated", True)
+        self.preferences.setValue("Connection/smart_pasv", False)
     for profile in self.sites.values():
         if isinstance(profile, dict) and profile.get("_credential_id"):
             try:

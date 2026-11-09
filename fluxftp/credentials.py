@@ -153,6 +153,27 @@ class CredentialVault:
         return password
 
 
+def smoke_test_system_vault():
+    """Verify that the selected OS credential backend can write and read a record."""
+    keyring = _keyring()
+    account = 'packaging-smoke-' + secrets.token_hex(16)
+    expected = secrets.token_urlsafe(24)
+    service = SERVICE_NAME + ' packaging smoke test'
+    try:
+        keyring.set_password(service, account, expected)
+        if keyring.get_password(service, account) != expected:
+            raise RuntimeError('The system credential vault did not return the saved smoke-test value.')
+    except keyring.errors.KeyringError as error:
+        raise RuntimeError('Could not verify read/write access to the system credential vault.') from error
+    finally:
+        try:
+            keyring.delete_password(service, account)
+        except keyring.errors.PasswordDeleteError:
+            pass
+        except keyring.errors.KeyringError as error:
+            raise RuntimeError('Could not remove the temporary system credential vault smoke-test value.') from error
+
+
 def get_legacy_password(credential_id):
     keyring = _keyring()
     try:

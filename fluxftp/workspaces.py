@@ -202,6 +202,9 @@ class Workspaces:
         if hasattr(self, 'docking'):
             self.docking.action.setChecked(False)
             self.preferences.remove('Layout/dock_state')
+            for key in self.preferences.allKeys():
+                if key.startswith('Layout/dock_geometry/'):
+                    self.preferences.remove(key)
         keys = ('Layout/panel_order', 'Layout/panel_positions', 'Layout/manual_panel_positions',
                 'Layout/pane_positions', 'Layout/header_row_order', 'Layout/header_row_groups',
                 'Layout/header_band_widths', 'Layout/workspace_list_height', 'Layout/toolbar_icon_size',

@@ -16,7 +16,8 @@ def populate(window):
 
 def rows(pane):
     return {pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name: pane.tree.topLevelItem(i)
-            for i in range(pane.tree.topLevelItemCount())}
+            for i in range(pane.tree.topLevelItemCount())
+            if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None}
 
 
 def test_compare_options_and_selection(window):

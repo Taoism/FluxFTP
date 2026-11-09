@@ -297,7 +297,7 @@ def test_feature_dialog_previews(window, tmp_path):
         QFontDatabase.addApplicationFont(str(Path(os.environ.get('WINDIR', 'C:/Windows'))/'Fonts'/name))
     QApplication.instance().setFont(QFont('Tahoma', 10))
     apply_application(QApplication.instance(), window.preferences, STYLE)
-    folder = Path(__file__).resolve().parents[1]/'logs'
+    folder = tmp_path
     dialog = CertificationDialog(window)
     dialog.site.addItem('Example saved connection')
     dialog.show()

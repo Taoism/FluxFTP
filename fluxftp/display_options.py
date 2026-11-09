@@ -161,7 +161,7 @@ class DisplayOptions:
         from .app import human
         mode = self.display_value('size_mode', 'Dynamic')
         if mode == 'Bytes': return f'{size:,} B'
-        if mode == 'KBytes': return f'{size / 1024:.1f} KB'
+        if mode == 'KBytes': return f'{size / 1024:.0f} KB'
         return human(size)
 
     def initialize_display(self):
@@ -278,7 +278,7 @@ class DisplayOptions:
                     entry = row.data(0, Qt.ItemDataRole.UserRole)
                     if entry and entry.is_dir:
                         row.setIcon(0, folder_icon)
-                    if entry and not entry.is_dir: row.setText(1, self.file_size(entry.size))
+                    if entry: row.setText(1, self.file_size(entry.size))
             labels = [p.site.name if p.mode == 'Remote' and p.site else p.mode for p in (split.widget(0), split.widget(1))]
             separator = ' - ' if self.display_value('hyphen_separator', False) else ' ↔ '
             self.tabs.setTabToolTip(index, separator.join(labels))
@@ -332,7 +332,9 @@ class DisplayOptions:
                     pane.refresh()
                     for n in range(pane.tree.topLevelItemCount()):
                         row = pane.tree.topLevelItem(n)
-                        row.setSelected(row.data(0, Qt.ItemDataRole.UserRole).name in selected)
+                        entry = row.data(0, Qt.ItemDataRole.UserRole)
+                        if entry is not None:
+                            row.setSelected(entry.name in selected)
                     pane.tree.verticalScrollBar().setValue(scroll)
 
     def recent_sites(self):

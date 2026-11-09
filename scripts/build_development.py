@@ -21,6 +21,9 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--clean', '--windowed',
         '--name', 'FluxFTP', '--distpath', str(ROOT / 'dist'),
         '--workpath', str(ROOT / 'build/dev'), '--specpath', str(ROOT / 'build/dev'),
+        # keyring selects OS vaults through entry-point metadata at runtime.
+        # Keep those dynamically loaded backend modules in frozen builds.
+        '--collect-submodules', 'keyring.backends', '--copy-metadata', 'keyring',
         '--add-data', f'{ROOT / "README.md"}{os.pathsep}.',
         '--add-data', f'{ROOT / "LICENSE"}{os.pathsep}.',
         '--add-data', f'{ROOT / "THIRD_PARTY_NOTICES.md"}{os.pathsep}.',

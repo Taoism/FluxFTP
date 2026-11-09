@@ -80,6 +80,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Windows application build failed.' }
           .\dist\FluxFTP-dev\FluxFTP.exe --smoke-test
           if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows smoke check failed.' }
+          .\dist\FluxFTP-dev\FluxFTP.exe --credential-vault-smoke-test
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows credential vault check failed.' }
 
       - name: Prepare ZIP and checksums
         shell: pwsh
