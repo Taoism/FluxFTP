@@ -52,6 +52,10 @@ remaining companion requirements are combined here as well.
   (`rush_cmdline.exe`, `Script RushApp.FTP.Transfer(...)`), including its path
   placeholders and transfer/directory/logout flags (`RS_UP`, `RS_DIRDES`,
   `RS_DIRSRC`, `RS_LOGOUT`).
+- [x] Add direct View → Dock panels → Move to Bottom commands for Queue,
+  Workspaces, and each log panel.
+- [x] Preserve fractional high-DPI scaling and refresh FluxFTP's custom font and
+  toolbar sizing when moving the window between monitors or changing DPI.
 - [ ] Define the intended workflow and requirements for auto trading before
   implementation.
 - [x] Validate SSHFS mounts end to end on Windows with WinFsp/SSHFS-Win and a

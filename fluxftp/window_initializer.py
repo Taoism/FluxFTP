@@ -233,6 +233,8 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.toolbar_visibility = ToolbarVisibility(self)
     from .themes import SystemAppearance
     self.system_appearance = SystemAppearance(self)
+    from .dpi_scaling import DpiScaling
+    self.dpi_scaling = DpiScaling(self)
     self.browse_timer = QTimer(self)
     self.browse_timer.setInterval(1000)
     self.browse_timer.timeout.connect(self.maintain_browse_sessions)

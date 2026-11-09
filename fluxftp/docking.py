@@ -31,6 +31,12 @@ class DockLayout(QObject):
         self.action.toggled.connect(self.enable)
         window.view_commands.menu.addAction(self.action)
         self.menu = window.view_commands.menu.addMenu('Dock panels')
+        self.move_bottom_menu = self.menu.addMenu('Move to Bottom')
+        self.panel_titles = dict(workspace='Workspaces', queue='Transfer Queue', ftp='FTP Log',
+            transfer='Transfer Log', system='System Log', tasks='Tasks')
+        for key, title in self.panel_titles.items():
+            action = self.move_bottom_menu.addAction(title)
+            action.triggered.connect(lambda checked=False, key=key: self.move_to_bottom(key))
         self.menu.setEnabled(False)
         self.action.setChecked(window.preferences.value('Layout/docking_enabled', False, type=bool))
 
@@ -45,11 +51,10 @@ class DockLayout(QObject):
             if enabled:
                 window.save_panel_layout()
                 self.active = True
-                titles = dict(workspace='Workspaces', queue='Transfer Queue', ftp='FTP Log', transfer='Transfer Log', system='System Log', tasks='Tasks')
                 for key, panel in self.panels().items():
                     dock = self.docks.get(key)
                     if dock is None:
-                        dock = QDockWidget(titles[key], self.host)
+                        dock = QDockWidget(self.panel_titles[key], self.host)
                         dock.setObjectName('fluxftp-dock-' + key)
                         dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
                         dock.installEventFilter(self)
@@ -112,6 +117,16 @@ class DockLayout(QObject):
         focus = {'queue': self.window.queue, 'ftp': self.window.ftp_log, 'transfer': self.window.transfer_log,
                  'system': self.window.log, 'tasks': self.window.tasks_log}
         if key in focus: focus[key].setFocus()
+
+    def move_to_bottom(self, key):
+        """Move and show one panel in the bottom dock area."""
+        if not self.active or key not in self.docks:
+            return
+        dock = self.docks[key]
+        self.host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        dock.show()
+        dock.raise_()
+        self.save()
 
     def lock(self, locked):
         self.action.setEnabled(not locked)

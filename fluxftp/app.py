@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal, QStandardPaths, QTimer, QSettings
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor, QGuiApplication
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QComboBox, QSpinBox, QCheckBox, QSplitter,
     QHeaderView, QAbstractItemView, QTabWidget, QPlainTextEdit, QMessageBox,
@@ -409,6 +409,10 @@ def main():
     args.smoke_test = args.smoke_test or args.runtime_smoke_test
     if args.log_file and not args.debug:
         parser.error("--log-file requires --debug")
+    # Preserve fractional Windows display scaling (for example 125% and 150%).
+    # Qt requires the policy to be set before constructing the application.
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication([sys.argv[0], *qt_args])
     app.setApplicationName("FluxFTP")
     app.setOrganizationName("FluxFTP")
