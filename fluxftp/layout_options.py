@@ -261,6 +261,11 @@ class LayoutOptions:
         self.preferences.setValue('Layout/manual_panel_positions', self._manual_panel_layout)
         for i in range(self.tabs.count()):
             split = self.tabs.widget(i)
+            for side in range(split.count()):
+                pane = split.widget(side)
+                save_controls = getattr(pane, 'save_control_layout', None)
+                if save_controls:
+                    save_controls()
             if sum(split.sizes()):
                 self.preferences.setValue(self.pane_layout_key(split), bytes(split.saveState()).hex())
         for key, panel in self.log_panels.items():

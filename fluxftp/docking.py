@@ -29,19 +29,27 @@ class DockLayout(QObject):
         self.action = QAction('Customizable docking layout', self)
         self.action.setCheckable(True)
         self.action.toggled.connect(self.enable)
-        window.view_commands.menu.addAction(self.action)
+        self.rush_layout_action = QAction('FTP Rush layout', self)
+        self.rush_layout_action.setToolTip(
+            'Put the two-pane workspace above the transfer queue. Drag panels to customize; FluxFTP remembers their positions.')
+        self.rush_layout_action.triggered.connect(self.apply_ftp_rush_layout)
+        window.view_commands.menu.addAction(self.rush_layout_action)
         self.menu = window.view_commands.menu.addMenu('Dock panels')
         self.move_bottom_menu = self.menu.addMenu('Move to Bottom')
-        self.panel_titles = dict(workspace='Workspaces', queue='Transfer Queue', ftp='FTP Log',
+        self.panel_titles = dict(workspace='Workspaces', tools='Tools', queue='Transfer Queue', ftp='FTP Log',
             transfer='Transfer Log', system='System Log', tasks='Tasks')
         for key, title in self.panel_titles.items():
             action = self.move_bottom_menu.addAction(title)
             action.triggered.connect(lambda checked=False, key=key: self.move_to_bottom(key))
         self.menu.setEnabled(False)
-        self.action.setChecked(window.preferences.value('Layout/docking_enabled', False, type=bool))
+        # Docking is the normal layout; the user can drag and nest panels directly.
+        # Keep the action internal for reset/lock integration, without a mode toggle.
+        window.preferences.setValue('Layout/docking_enabled', True)
+        self.action.setChecked(True)
 
     def panels(self):
-        return dict(workspace=self.window.workspace_panel, queue=self.window.queue_panel, **self.window.log_panels)
+        return dict(workspace=self.window.workspace_panel, tools=self.window.main_toolbar,
+            queue=self.window.queue_panel, **self.window.log_panels)
 
     def enable(self, enabled):
         if enabled == self.active: return
@@ -64,13 +72,18 @@ class DockLayout(QObject):
                         self.docks[key] = dock
                         self.menu.addAction(dock.toggleViewAction())
                     dock.setWidget(panel)
-                    self.host.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea if key == 'workspace' else Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+                    area = (Qt.DockWidgetArea.TopDockWidgetArea if key in ('workspace', 'tools')
+                            else Qt.DockWidgetArea.BottomDockWidgetArea)
+                    self.host.addDockWidget(area, dock)
                     dock.show()
                     panel.show()
+                self.window.header_rows.rows['tools'].hide()
                 logs = [self.docks[key] for key in window.log_panels]
-                for dock in logs[1:]: self.host.tabifyDockWidget(logs[0], dock)
+                for dock in logs:
+                    self.host.tabifyDockWidget(self.docks['queue'], dock)
+                self.docks['queue'].raise_()
+                self.host.splitDockWidget(self.docks['tools'], self.docks['workspace'], Qt.Orientation.Vertical)
                 self.host.splitDockWidget(self.docks['workspace'], self.docks['queue'], Qt.Orientation.Vertical)
-                logs[0].raise_()
                 state = window.preferences.value('Layout/dock_state', '', type=str)
                 if state:
                     try: self.host.restoreState(QByteArray.fromHex(state.encode('ascii')), 1)
@@ -88,6 +101,9 @@ class DockLayout(QObject):
                     panel.show()
                 for key, panel in window.log_panels.items():
                     window.log_tabs.addTab(panel, dict(ftp='FTP Log', transfer='Transfer Log', system='System Log', tasks='Tasks')[key])
+                tools_row = window.header_rows.rows['tools']
+                tools_row.layout().itemAt(0).layout().addWidget(window.main_toolbar, 1)
+                tools_row.show()
                 for dock in self.docks.values(): dock.hide()
                 self.host.hide()
                 window.work_area.show()
@@ -126,6 +142,47 @@ class DockLayout(QObject):
         self.host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
         dock.show()
         dock.raise_()
+        self.save()
+
+    def apply_ftp_rush_layout(self):
+        """Place the tools above the two-pane workspace and logs with the queue below."""
+        if not self.active:
+            self.action.setChecked(True)
+        if not self.active:
+            return
+        if getattr(self.window, 'layout_lock', None):
+            self.window.layout_lock.action.setChecked(False)
+
+        self.changing = True
+        self.host.setUpdatesEnabled(False)
+        try:
+            workspace = self.docks['workspace']
+            tools = self.docks['tools']
+            queue = self.docks['queue']
+            self.host.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, tools)
+            self.host.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, workspace)
+            self.host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, queue)
+            tools.show()
+            workspace.show()
+            queue.show()
+            for key in self.window.log_panels:
+                dock = self.docks[key]
+                self.host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+                self.host.tabifyDockWidget(queue, dock)
+                dock.show()
+            queue.raise_()
+            self.host.splitDockWidget(tools, workspace, Qt.Orientation.Vertical)
+            self.host.splitDockWidget(workspace, queue, Qt.Orientation.Vertical)
+
+            # FTP Rush's main work area is two panes side by side.
+            self.window.tools_commands.layout('Side by side')
+            self.host.setUpdatesEnabled(True)
+            self.host.resizeDocks([tools, workspace, queue],
+                [48, max(200, int(self.host.height() * 0.55)), max(160, int(self.host.height() * 0.40))],
+                Qt.Orientation.Vertical)
+        finally:
+            self.host.setUpdatesEnabled(True)
+            self.changing = False
         self.save()
 
     def lock(self, locked):

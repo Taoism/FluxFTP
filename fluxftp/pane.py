@@ -8,10 +8,10 @@ from pathlib import Path
 from threading import Event
 from types import SimpleNamespace
 
-from PySide6.QtCore import Qt, QMimeData, QSignalBlocker
+from PySide6.QtCore import Qt, QMimeData, QSignalBlocker, QByteArray, QTimer
 from PySide6.QtGui import QDrag, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QLineEdit, QMenu, QMessageBox, QStyle, QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem,
+    QLineEdit, QMainWindow, QMenu, QMessageBox, QStyle, QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget)
 
 from .browse_session import BrowseSession
@@ -133,13 +133,28 @@ class Pane(QWidget):
         self.number = "1" if label in ("LEFT BROWSER", "1") else "2"
         self.title_label = QLabel(f"({self.number}) {mode}")
         self.title_label.setStyleSheet("background:#d9e7f7; color:#183b63; font-weight:600; padding:5px 7px; border:1px solid #aebfd2;")
+        layout.addWidget(self.title_label)
+        self.control_host = QMainWindow(self)
+        self.control_host.setObjectName('paneControlHost' + self.number)
+        self.control_host.setWindowFlags(Qt.WindowType.Widget)
+        self.control_host.setDockOptions(QMainWindow.DockOption.AllowNestedDocks |
+            QMainWindow.DockOption.AllowTabbedDocks | QMainWindow.DockOption.AnimatedDocks)
+        self.control_host.setDockNestingEnabled(True)
+        movable_toolbars = not window.preferences.value('Layout/locked', False, type=bool)
+        layout.addWidget(self.control_host, 1)
+        content = QWidget(self.control_host)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(2)
         top = QHBoxLayout()
         top.setContentsMargins(0, 0, 0, 0)
         top.addWidget(self.title_label, 1)
         layout.addLayout(top)
         self.file_toolbar = QToolBar(f"Pane {self.number} tools", self)
-        self.file_toolbar.setMovable(False)
-        self.file_toolbar.setFloatable(False)
+        self.file_toolbar.setObjectName(f'pane{self.number}Tools')
+        self.file_toolbar.setMovable(movable_toolbars)
+        self.file_toolbar.setFloatable(movable_toolbars)
+        self.file_toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
         self.file_toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.sites_button = QToolButton(self)
         self.sites_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
@@ -187,7 +202,7 @@ class Pane(QWidget):
         self.mode_button.setToolTip("Switch this pane between Remote and Local")
         self.mode_button.clicked.connect(self.toggle_mode)
         self.file_toolbar.addWidget(self.mode_button)
-        layout.addWidget(self.file_toolbar)
+        self.control_host.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.file_toolbar)
         self.refresh_shortcut = QShortcut(QKeySequence("F5"), self)
         self.refresh_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.refresh_shortcut.setEnabled(False)  # View's window-wide F5 action owns this shortcut.
@@ -195,21 +210,33 @@ class Pane(QWidget):
         self.transfer_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
         self.transfer_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.transfer_shortcut.activated.connect(self.transfer_to_other)
-        bar = QHBoxLayout()
-        bar.setContentsMargins(0, 0, 0, 0)
         self.address = AddressBar(self)
         side = 'Left' if self.number == '1' else 'Right'
         self.address.setAccessibleName(side + ' pane path')
         self.address.setToolTip("Current local or remote path")
         self.address.returnPressed.connect(lambda: self.navigate(self.address.text()))
-        bar.addWidget(self.address, 1)
+        self.address.setMinimumWidth(100)
+        self.address_toolbar = QToolBar(f'Pane {self.number} address', self.control_host)
+        self.address_toolbar.setObjectName(f'pane{self.number}Address')
+        self.address_toolbar.setMovable(movable_toolbars)
+        self.address_toolbar.setFloatable(movable_toolbars)
+        self.address_toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
+        self.address_toolbar.addWidget(self.address)
         self.filter = QLineEdit()
         self.filter.setAccessibleName(side + ' pane filename filter')
         self.filter.setPlaceholderText("Filter…")
         self.filter.setMaximumWidth(180)
+        self.filter.setMinimumWidth(60)
         self.filter.textChanged.connect(self.filter_rows)
-        bar.addWidget(self.filter)
-        layout.addLayout(bar)
+        self.filter_toolbar = QToolBar(f'Pane {self.number} filter', self.control_host)
+        self.filter_toolbar.setObjectName(f'pane{self.number}Filter')
+        self.filter_toolbar.setMovable(movable_toolbars)
+        self.filter_toolbar.setFloatable(movable_toolbars)
+        self.filter_toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
+        self.filter_toolbar.addWidget(self.filter)
+        self.control_host.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
+        self.control_host.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.address_toolbar)
+        self.control_host.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.filter_toolbar)
         self.tree = TransferTree(self)
         self.tree.setAccessibleName(side + ' pane files')
         self.tree.setAccessibleDescription('Select files with arrow keys. Enter opens a folder. Ctrl+T transfers selected items to the other pane.')
@@ -231,13 +258,41 @@ class Pane(QWidget):
         self.tree.itemSelectionChanged.connect(self.window.queue_commands.update)
         self.tree.itemSelectionChanged.connect(self.window.command_commands.update)
         self.tree.addAction(self.window.ftp_commands.actions['Attributes(CHMOD)'])
-        layout.addWidget(self.tree)
+        content_layout.addWidget(self.tree)
         self.status = QLabel("Not connected" if mode == "Remote" else "Local files")
         self.status.setObjectName("muted")
-        layout.addWidget(self.status)
+        content_layout.addWidget(self.status)
+        self.control_host.setCentralWidget(content)
+        self._control_layout_timer = QTimer(self)
+        self._control_layout_timer.setSingleShot(True)
+        self._control_layout_timer.setInterval(250)
+        self._control_layout_timer.timeout.connect(self.save_control_layout)
+        for toolbar in (self.file_toolbar, self.address_toolbar, self.filter_toolbar):
+            toolbar.topLevelChanged.connect(self._schedule_control_layout_save)
+            toolbar.orientationChanged.connect(self._schedule_control_layout_save)
+        self.restore_control_layout()
         self.window.mark_commands.install(self)
         self.window.edit_commands.install(self)
         self.refresh()
+
+    def _control_layout_key(self):
+        return f'Layout/pane_controls/{self.number}'
+
+    def restore_control_layout(self):
+        state = self.window.preferences.value(self._control_layout_key(), '', type=str)
+        if not state or len(state) > 16384:
+            return
+        try:
+            self.control_host.restoreState(QByteArray.fromHex(state.encode('ascii')), 1)
+        except (ValueError, UnicodeError):
+            pass
+
+    def _schedule_control_layout_save(self, *_):
+        self._control_layout_timer.start()
+
+    def save_control_layout(self):
+        self.window.preferences.setValue(self._control_layout_key(),
+            bytes(self.control_host.saveState(1)).hex())
 
     def _toolbar_action_for_pane(self, icon, tooltip, callback, shortcut=None):
         action = self.file_toolbar.addAction(self.style().standardIcon(icon), "", callback)

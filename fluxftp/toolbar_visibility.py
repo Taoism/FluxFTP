@@ -66,7 +66,13 @@ class ToolbarVisibility(QObject):
             self.install(row, key)
             if key in ('tools', 'connection'):
                 self.install(row.content, key)
-            row.setVisible(self.visible(key))
+            if key == 'tools' and getattr(window, 'docking', None) and window.docking.active:
+                row.hide()
+                dock = window.docking.docks.get('tools')
+                if dock:
+                    dock.setVisible(self.visible(key))
+            else:
+                row.setVisible(self.visible(key))
         for group, band in zip(window.header_rows.groups, window.header_rows.bands):
             band.setVisible(any(self.visible(key) for key in group))
         for index in range(window.tabs.count()):

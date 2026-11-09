@@ -13,6 +13,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
+RUNTIME_ROOT = Path(os.environ.get('FLUXFTP_RUNTIME_ROOT', ROOT / 'runtime')).resolve()
 
 
 def main():
@@ -22,8 +23,8 @@ def main():
         raise SystemExit(f"Expected Python 3.13.15 / OpenSSL 3.5.8; got {sys.version} / {ssl.OPENSSL_VERSION}")
     sys.path.insert(0, str(ROOT))
     from fluxftp import __version__
-    cloud_provenance = json.loads((ROOT / 'runtime' / 'rclone' / 'provenance.json').read_text('utf-8'))
-    cloud_hash = hashlib.sha256((ROOT / 'runtime' / 'rclone' / 'rclone.exe').read_bytes()).hexdigest()
+    cloud_provenance = json.loads((RUNTIME_ROOT / 'rclone' / 'provenance.json').read_text('utf-8'))
+    cloud_hash = hashlib.sha256((RUNTIME_ROOT / 'rclone' / 'rclone.exe').read_bytes()).hexdigest()
     if cloud_hash != cloud_provenance['executable_sha256']:
         raise SystemExit('Cloud backend checksum does not match its verified provenance.')
     destination = ROOT / "dist" / f"FluxFTP-{__version__}"
@@ -37,17 +38,17 @@ def main():
         "--add-data", f"{ROOT / 'README.md'}{os.pathsep}.",
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'cloud-providers'}{os.pathsep}fluxftp/assets/cloud-providers",
         *[arg for name in ('_ssl.pyd', '_hashlib.pyd', 'libcrypto-4-x64.dll', 'libssl-4-x64.dll', 'adapter.json', 'manifest.json')
-          for arg in ('--add-data', f"{ROOT / 'runtime' / 'ssl4-adapter' / name}{os.pathsep}ssl4-adapter")],
-        "--add-binary", f"{ROOT / 'runtime' / 'rclone' / 'rclone.exe'}{os.pathsep}cloud_tools",
-        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'provenance.json'}{os.pathsep}cloud_tools",
-        "--add-data", f"{ROOT / 'runtime' / 'rclone' / 'fluxftp-oauth-port.patch'}{os.pathsep}cloud_tools",
+          for arg in ('--add-data', f"{RUNTIME_ROOT / 'ssl4-adapter' / name}{os.pathsep}ssl4-adapter")],
+        "--add-binary", f"{RUNTIME_ROOT / 'rclone' / 'rclone.exe'}{os.pathsep}cloud_tools",
+        "--add-data", f"{RUNTIME_ROOT / 'rclone' / 'provenance.json'}{os.pathsep}cloud_tools",
+        "--add-data", f"{RUNTIME_ROOT / 'rclone' / 'fluxftp-oauth-port.patch'}{os.pathsep}cloud_tools",
         str(ROOT / "launch.py"),
     ], cwd=ROOT, check=True)
     staged = ROOT / f"dist-{__version__}" / "FluxFTP"
     for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'requirements-windows.txt'):
         shutil.copy2(ROOT / name, staged / name)
     shutil.copytree(ROOT / 'licenses', staged / 'licenses', dirs_exist_ok=True)
-    shutil.copy2(ROOT / 'runtime' / 'python-3.13.15' / 'LICENSE.txt', staged / 'licenses' / 'Python-LICENSE.txt')
+    shutil.copy2(RUNTIME_ROOT / 'python-3.13.15' / 'LICENSE.txt', staged / 'licenses' / 'Python-LICENSE.txt')
     site_packages = Path(sys.prefix) / 'Lib' / 'site-packages'
     distribution_licenses = staged / 'licenses' / 'python-distributions'
     for metadata in site_packages.glob('*.dist-info'):
@@ -79,7 +80,6 @@ def main():
                        for name in ("libssl-3.dll", "libcrypto-3.dll")},
     }, indent=2) + "\n", encoding="utf-8")
     # Copy rather than move: the inspected DLL may remain loaded on Windows.
-    import shutil
     shutil.copytree(staged, destination)
     print(f"Packaged {destination}; {bundled}")
     print('After verification, TLS selection and shortcut updates, run ./cleanup_builds.ps1 -Apply. Keep only the verified current release.')

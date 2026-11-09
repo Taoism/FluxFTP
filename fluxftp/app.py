@@ -464,6 +464,9 @@ def main():
         from .openssl_update_ui import RuntimeUpdater
         window.runtime_updater = RuntimeUpdater(window)
     if not args.smoke_test:
+        from .app_updates_ui import ApplicationUpdates
+        window.application_updates = ApplicationUpdates(window)
+    if not args.smoke_test:
         def recover_queue():
             window.initialize_queue_storage(defer=True)
             window.show_saved_queue()

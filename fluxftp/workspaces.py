@@ -225,6 +225,8 @@ class Workspaces:
                     action.setChecked(True)
         self.apply_layout_settings()
         self.view_commands.options.apply()
+        if hasattr(self, 'docking'):
+            self.docking.action.setChecked(True)
         self.save_panel_layout()
         self.save_workspaces()
         self.statusBar().showMessage('Default layout restored.', 5000)

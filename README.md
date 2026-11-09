@@ -5,14 +5,14 @@ client with synchronization, verification reports and deployment rollback.
 FluxFTP also combines two-pane workspaces, recoverable transfer queues and
 deployment tools in a Qt interface inspired by classic file-transfer clients.
 
-**Source version: 0.133.0 · License: MIT · Packages: Windows x64, Ubuntu x86_64, Debian amd64**
+**Source version: 0.138.0 · License: MIT · Packages: Windows x64, Ubuntu x86_64, Debian amd64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest),
 the [Ubuntu/Debian x86_64 portable archive](https://github.com/Taoism/FluxFTP/releases/latest),
 or the [Debian 13 amd64 installer](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the Windows ZIP and run `FluxFTP.exe`; extract the Linux archive and run
 `./FluxFTP`. On Debian 13 or newer, install the `.deb` with
-`sudo apt install ./fluxftp_0.133.0-1_amd64.deb`. SHA-256 checksums are provided
+`sudo apt install ./fluxftp_0.138.0-1_amd64.deb`. SHA-256 checksums are provided
 with each release. Packages are unsigned.
 
 See [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) for the coordinated

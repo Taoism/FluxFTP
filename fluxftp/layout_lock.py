@@ -26,6 +26,16 @@ class LayoutLock(QObject):
         for splitter in self.window.findChildren(QSplitter):
             for index in range(1, splitter.count()):
                 splitter.handle(index).setEnabled(enabled)
+        for index in range(self.window.tabs.count()):
+            split = self.window.tabs.widget(index)
+            for side in range(split.count()):
+                pane = split.widget(side)
+                for toolbar in (getattr(pane, 'file_toolbar', None),
+                                getattr(pane, 'address_toolbar', None),
+                                getattr(pane, 'filter_toolbar', None)):
+                    if toolbar:
+                        toolbar.setMovable(enabled)
+                        toolbar.setFloatable(enabled)
         for row in self.window.header_rows.rows.values():
             row.grip.setEnabled(enabled)
             row.setAcceptDrops(enabled)

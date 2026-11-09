@@ -45,7 +45,7 @@ def main():
     shutil.copytree(ROOT / 'docs', stage / 'docs')
     shutil.copytree(ROOT / 'docs', stage / '_internal/docs', dirs_exist_ok=True)
     notices = stage / 'licenses'
-    shutil.copytree(ROOT / 'licenses', notices)
+    shutil.copytree(ROOT / 'licenses', notices, dirs_exist_ok=True)
     shutil.copyfile(args.python_license, notices / 'Python.txt')
     inventory = []
     for distribution in sorted(metadata.distributions(), key=lambda d: d.metadata['Name'].lower()):
