@@ -389,7 +389,7 @@ class PreferencesDialog(QDialog):
 
             self._check(form, "General/log_to_disk", "Write activity log to disk", False, self.window.set_activity_logging)
 
-            self._check(form, "General/update_check", "Check GitHub for FluxFTP updates at startup", True)
+            self._check(form, "General/update_check", "Check for new FluxFTP releases on GitHub at startup", True)
 
             self._check(form, "Connection/send_feat", "Send FEAT command after login", True)
 

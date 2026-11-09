@@ -61,7 +61,8 @@ remaining companion requirements are combined here as well.
 - [x] Add an FTP Rush-style FluxFTP layout preset with the two-pane workspace
   above a bottom tab area for the transfer queue and logs. Keep panels movable
   and persist the user's customized dock layout when FluxFTP exits. Make the
-  Tools panel and each pane's icons, address bar, and filter independently movable.
+  Tools panel and each pane's icons, address bar, and filter independently movable;
+  double-clicking the pane divider centers the two workspaces.
 - [ ] Define the intended workflow and requirements for auto trading before
   implementation.
 - [x] Validate SSHFS mounts end to end on Windows with WinFsp/SSHFS-Win and a

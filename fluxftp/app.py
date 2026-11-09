@@ -49,6 +49,7 @@ from .window_chrome import WindowChrome
 from .configuration_backup_ui import ConfigurationBackupActions
 from .window_workers import WindowWorkers
 from .window_connections import WindowConnections
+from .workspace_splitter import WorkspaceSplitter
 from . import __version__
 
 
@@ -306,7 +307,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         if len(modes) != 2 or self.preferences.value('Misc/new_tab_remote', False, type=bool):
             modes = ['Remote', 'Remote']
         orientation = Qt.Orientation.Horizontal if self.preferences.value("Display/pane_layout", "Side by side", type=str) == "Side by side" else Qt.Orientation.Vertical
-        splitter = QSplitter(orientation)
+        splitter = WorkspaceSplitter(orientation)
         splitter.addWidget(Pane(self, "1", modes[0]))
         splitter.addWidget(Pane(self, "2", modes[1]))
         if hasattr(self, 'mouse_filter'):

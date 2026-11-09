@@ -224,6 +224,8 @@ class LayoutOptions:
         if not getattr(splitter, '_positions_connected', False):
             splitter._positions_connected = True
             splitter.splitterMoved.connect(lambda *_: self.save_panel_layout())
+            if hasattr(splitter, 'centered'):
+                splitter.centered.connect(self.save_panel_layout)
 
     def initialize_panel_positions(self):
         panels = dict(workspace=self.workspace_panel, logs=self.log_tabs, queue=self.queue_panel)
