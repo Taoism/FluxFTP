@@ -13,7 +13,7 @@
 
 ## SonarQube
 
-- Project: `codex_fluxftp_publish`
+- Project: `sonar_fluxftp_publish`
 - Quality Gate: **OK**
 - Open issues: **0**; new findings: **0**
 - Security hotspots awaiting review: **0**
