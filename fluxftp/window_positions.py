@@ -75,4 +75,5 @@ class WindowPositions(QObject):
                 self.save(widget)
             elif widget.isVisible():
                 widget._geometry_timer.start()
-        return False
+        # This observer records geometry but must never consume Qt events.
+        return super().eventFilter(widget, event)

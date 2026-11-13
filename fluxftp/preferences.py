@@ -490,7 +490,7 @@ class PreferencesDialog(QDialog):
                                                  self._value("Connection/bind_local_ip", False, bool))
             self.data_bind_local, self.data_local_ip = self._checked_field(
                 form, "Connection/bind_local_ip", "Bind Local IP address to:",
-                "Connection/local_ip", "", "192.168.1.10", False)
+                "Connection/local_ip", "", "", False)
             def update_binding_controls(*_):
                 enabled = self.data_bind_sockets.isChecked()
                 self.data_bind_local.setEnabled(enabled)

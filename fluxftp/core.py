@@ -196,9 +196,7 @@ def bypass_proxy(host, local_addresses=False, exceptions=""):
         return False
     try:
         address = ipaddress.ip_address(host)
-        return address.is_loopback or address.is_link_local or any(address in network for network in (
-            ipaddress.ip_network("10.0.0.0/8"), ipaddress.ip_network("172.16.0.0/12"),
-            ipaddress.ip_network("192.168.0.0/16"), ipaddress.ip_network("fc00::/7")))
+        return address.is_private or address.is_loopback or address.is_link_local
     except ValueError:
         return "." not in host or host.endswith(".localhost")
 
@@ -514,10 +512,11 @@ def _fetch_ftps_certificate(site, host, timeout, proxy, source_address):
                 raise OSError(f"FTP server rejected {auth_command} while retrieving its certificate: {reply}")
             fileobj.close()
             fileobj = None
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # This credential-free probe retrieves a rejected certificate for explicit user review.
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # NOSONAR
         context.minimum_version = ssl.TLSVersion.TLSv1_2
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        context.check_hostname = False  # NOSONAR
+        context.verify_mode = ssl.CERT_NONE  # NOSONAR
         secure = context.wrap_socket(raw, server_hostname=host)
         try:
             certificate = secure.getpeercert(binary_form=True)

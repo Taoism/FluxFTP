@@ -106,9 +106,11 @@ def scp_server(request, ssh_server):
     def handler(channel, command, root):
         try:
             args = shlex.split(command.decode('utf-8'))
-            assert args[:1] == ['scp'] and args[1] in ('-t', '-f') and args[2] == '--' and len(args) == 4
+            if len(args) != 4 or args[0] != 'scp' or args[1] not in ('-t', '-f') or args[2] != '--':
+                raise ValueError('Unexpected SCP command from SSH client')
             target = (root / args[3].lstrip('/')).resolve()
-            assert target.is_relative_to(root)
+            if not target.is_relative_to(root):
+                raise ValueError('SCP target escaped its temporary root')
             process = subprocess.Popen([executable, args[1], '--', str(target)],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             processes.append(process)

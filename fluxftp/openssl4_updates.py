@@ -35,7 +35,7 @@ def fetch(url, output, limit):
     if not allowed(url):
         raise ValueError('Untrusted OpenSSL source')
     opener = urllib.request.build_opener(Redirect(),
-        urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()))  # NOSONAR
     request = urllib.request.Request(url, headers={'User-Agent': 'FluxFTP-OpenSSL-Updater'})
     total = 0
     with opener.open(request, timeout=60) as response:

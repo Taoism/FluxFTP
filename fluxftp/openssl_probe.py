@@ -39,7 +39,8 @@ def self_test():
             else:
                 raise RuntimeError('TLS hostname verification failed')
             try:
-                handshake(ssl.create_default_context(), server, 'fluxftp-runtime.invalid')
+                # This negative test confirms the default trust store rejects the generated certificate.
+                handshake(ssl.create_default_context(), server, 'fluxftp-runtime.invalid')  # NOSONAR
             except ssl.SSLCertVerificationError:
                 pass
             else:

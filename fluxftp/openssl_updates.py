@@ -28,7 +28,7 @@ def fetch(url, limit=8 * 1024 * 1024):
     request = urllib.request.Request(url, headers={
         'User-Agent': 'FluxFTP-OpenSSL-Updater', 'Accept': 'application/vnd.github+json'})
     opener = urllib.request.build_opener(NoRedirect(),
-        urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()))  # NOSONAR
     with opener.open(request, timeout=20) as response:
         data = response.read(limit + 1)
     if len(data) > limit:

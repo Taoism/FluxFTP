@@ -49,9 +49,9 @@ def _backend_algorithms(connection):
         response = ''
     result = set()
     for line in response.splitlines():
-        match = re.fullmatch(r'\s*HASH\s+(.+?)\s*', line, re.I)
-        if match:
-            result.update(token.strip().rstrip('*').upper() for token in match[1].split(';'))
+        fields = line.split(None, 1)
+        if len(fields) == 2 and fields[0].casefold() == 'hash':
+            result.update(token.strip().rstrip('*').upper() for token in fields[1].split(';'))
     connection._hash_algorithms = result & set(ALGORITHMS)
     return connection._hash_algorithms
 

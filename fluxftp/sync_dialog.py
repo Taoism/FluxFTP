@@ -36,7 +36,7 @@ def show_sync(window):
 
 
 class SyncDialog(QDialog):
-    PAGE = 200
+    PAGE_SIZE = 200
 
     def __init__(self, window, panes, sites):
         super().__init__(window)
@@ -130,8 +130,8 @@ class SyncDialog(QDialog):
         layout.addLayout(resolution)
         buttons = QHBoxLayout()
         self.previous, self.next = QPushButton('Previous'), QPushButton('Next')
-        self.previous.clicked.connect(lambda: self.page(-self.PAGE))
-        self.next.clicked.connect(lambda: self.page(self.PAGE))
+        self.previous.clicked.connect(lambda: self.page(-self.PAGE_SIZE))
+        self.next.clicked.connect(lambda: self.page(self.PAGE_SIZE))
         self.queue_button = QPushButton('Queue planned changes')
         self.queue_button.clicked.connect(self.enqueue)
         self.close_button = QPushButton('Close')
@@ -151,7 +151,7 @@ class SyncDialog(QDialog):
             widget.setEnabled(not self.scanning)
         self.queue_button.setEnabled(not self.scanning and any(row['action'] != 'Skip' for row in self.plan))
         self.previous.setEnabled(not self.scanning and self.offset > 0)
-        self.next.setEnabled(not self.scanning and self.offset + self.PAGE < len(self.plan))
+        self.next.setEnabled(not self.scanning and self.offset + self.PAGE_SIZE < len(self.plan))
         self.close_button.setText('Cancel scan' if self.scanning else 'Close')
         self.mirror.setEnabled(not self.scanning and self.mode.currentText() != 'Two-way')
         self.profile_buttons[-1].setEnabled(not self.scanning and self.listings is not None)
@@ -232,7 +232,7 @@ class SyncDialog(QDialog):
 
     def render(self):
         self.tree.clear()
-        for item in self.plan[self.offset:self.offset + self.PAGE]:
+        for item in self.plan[self.offset:self.offset + self.PAGE_SIZE]:
             sizes = [('Folder' if info['directory'] else str(info['size'])) if info else '—' for info in (item['left'], item['right'])]
             row = QTreeWidgetItem([item['path'], item['reason'], *sizes, '', item.get('change', '')])
             row.setToolTip(0, item['path'])
@@ -255,7 +255,7 @@ class SyncDialog(QDialog):
         count = sum(row['action'] != 'Skip' for row in self.plan)
         unresolved = sum(row['reason'].startswith('Conflict') and row['action'] == 'Skip' for row in self.plan)
         self.status.setText(f'{len(self.plan):,} entries · {count:,} planned changes · {unresolved:,} conflicts skipped. '
-                            f'Showing {self.offset + 1 if self.plan else 0}–{min(len(self.plan), self.offset + self.PAGE)}. '
+                            f'Showing {self.offset + 1 if self.plan else 0}–{min(len(self.plan), self.offset + self.PAGE_SIZE)}. '
                             'Queued changes are held until you choose Transfer Queue.')
         self.controls()
 

@@ -32,7 +32,8 @@ def signature(path):
 
 
 def checksum(path, cancel):
-    value = hashlib.md5()
+    # Google Drive requires MD5 for this content checksum; it is not security use.
+    value = hashlib.md5(usedforsecurity=False)
     with path.open('rb') as stream:
         while block := stream.read(1024 * 1024):
             checked(cancel)

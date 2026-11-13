@@ -234,7 +234,13 @@ class CommandMenu(QObject):
             try:
                 validate_lines(lines)
                 for line in lines:
-                    credential = CREDENTIAL.search(line) or re.match(r'^SITE\s+CHANGE\s+.*?\bPASSWD\b', line, re.I)
+                    credential = CREDENTIAL.search(line)
+                    if credential is None:
+                        words = list(re.finditer(r'\S+', line))
+                        if (len(words) >= 3 and words[0].group().casefold() == 'site' and
+                                words[1].group().casefold() == 'change'):
+                            credential = next((word for word in words[2:]
+                                               if word.group().casefold() == 'passwd'), None)
                     if credential and TOKEN.sub('', line[credential.end():]).strip():
                         raise ValueError('Use prompted arguments for credential commands; do not save literal credentials.')
                 compile_commands(lines, [type('Item', (), {'name': 'file', 'user': 'owner'})()], lambda *_: 'argument')

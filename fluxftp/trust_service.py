@@ -143,11 +143,19 @@ def tls_policy(site, host):
 def tls_context(site, host):
     policy = tls_policy(site, host)
     if policy.pin:
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # NOSONAR
+        # The accepted leaf fingerprint and certificate validity are checked after TLS setup.
+        context.check_hostname = False  # NOSONAR
+        context.verify_mode = ssl.CERT_NONE  # NOSONAR
     else:
-        context = ssl.create_default_context(cafile=site.ca_file or None)
+        # Enable hostname and certificate checks before FTP credentials are sent.
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)  # NOSONAR
+        context.check_hostname = True
+        context.verify_mode = ssl.CERT_REQUIRED
+        if site.ca_file:
+            context.load_verify_locations(cafile=site.ca_file)
+        else:
+            context.load_default_certs(ssl.Purpose.SERVER_AUTH)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     return context, policy.pin
 
