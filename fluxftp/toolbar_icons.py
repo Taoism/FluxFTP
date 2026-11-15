@@ -31,6 +31,25 @@ GLYPHS = {
     'log': 'M4 4h16v16H4ZM7 8h10M7 12h10M7 16h6',
     'queue_window': 'M4 4h16v16H4ZM7 8h2M11 8h6M7 12h2M11 12h6M7 16h2M11 16h6',
     'terminal': 'M3 4h18v16H3ZM6 8l3 3-3 3M11 15h6',
+    'layout': 'M3 4h18v16H3ZM3 9h18M9 9v11M13 13h5M13 16h5',
+    'layout_save': 'M4 3h14l3 3v15H3V3ZM7 3v6h10V3M7 21v-8h10v8',
+    'layout_load': 'M12 3v13m-5-5 5 5 5-5M4 21h16',
+    'layout_default': 'M3 4h18v16H3ZM7 8h10M7 12h6M7 16h10',
+    'popup': 'M3 4h18v13H3ZM8 21h8m-4-4v4M8 9h3m2 0h3M8 12h8',
+    'lock_toolbar': 'M4 8h16v12H4ZM7 8V5a5 5 0 0 1 10 0v3m-5 5v3',
+    'lock_dock': 'M3 4h18v16H3ZM3 9h18M9 9v11M14 13h4m-2-2v4',
+    'tray': 'M3 5h18v14H3ZM3 12h5l2 3h4l2-3h5M8 8h8',
+    'command': 'M4 5h2m4 0h10M4 12h2m4 0h10M4 19h2m4 0h10M7 5v0M7 12v0M7 19v0',
+    'close': 'M5 5l14 14M19 5 5 19',
+    'copy': 'M8 8h12v13H8ZM4 16H3V3h12v2',
+    'paste': 'M8 4h8l1 3h3v14H4V7h3ZM9 4V2h6v2',
+    'edit': 'M4 16l-1 5 5-1L20 8l-4-4ZM14 6l4 4',
+    'view': 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+    'execute': 'M6 3l15 9-15 9ZM3 4v16',
+    'clear': 'M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6m4-6v6',
+    'select': 'M4 4h16v16H4ZM7 12l3 3 7-7',
+    'undo': 'M9 8 4 12l5 4M4 12h10a6 6 0 0 1 6 6',
+    'redo': 'M15 8l5 4-5 4m5-4H10a6 6 0 0 0-6 6',
 }
 
 # Match existing action descriptions; callbacks and shortcut ownership stay intact.
@@ -83,6 +102,25 @@ ACCENT_PAIRS = {
     'log': ('#9db0c4', '#526579'),
     'queue_window': ('#c29bff', '#7042a0'),
     'terminal': ('#77d99a', '#21804b'),
+    'layout': ('#91b9e8', '#3c6293'),
+    'layout_save': ('#77d99a', '#21804b'),
+    'layout_load': ('#bca2ed', '#6d4eaa'),
+    'layout_default': ('#afbdca', '#536879'),
+    'popup': ('#70d2c3', '#167c6f'),
+    'lock_toolbar': ('#ffbe79', '#a65f19'),
+    'lock_dock': ('#ffbe79', '#a65f19'),
+    'tray': ('#c2a0fa', '#69439d'),
+    'command': ('#9db0c4', '#526579'),
+    'close': ('#ff8d91', '#ae353b'),
+    'copy': ('#70baff', '#1769aa'),
+    'paste': ('#ffd166', '#9a6800'),
+    'edit': ('#ffbe79', '#a65f19'),
+    'view': ('#75d5e1', '#167481'),
+    'execute': ('#74df99', '#168447'),
+    'clear': ('#ff8d91', '#ae353b'),
+    'select': ('#77d99a', '#21804b'),
+    'undo': ('#71c9e8', '#147491'),
+    'redo': ('#71c9e8', '#147491'),
 }
 
 # Compact, filled artwork for the full-color Windows toolbar style.
@@ -109,7 +147,26 @@ COLOR_GLYPHS = {
     'refresh_both': '<path d="M20.5 8A9 9 0 0 0 5 5L3 7h5V2L6.4 3.6a11 11 0 0 1 16 3.5z" fill="#38a6e8"/><path d="M3.5 16A9 9 0 0 0 19 19l2-2h-5v5l1.6-1.6a11 11 0 0 1-16-3.5z" fill="#2582c5"/>',
     'log': '<path d="M5 2h10l5 5v14a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2" fill="#f1f5f8"/><path d="M15 2v5h5" fill="#a8cde3"/><path d="M7 10h10v1.5H7zm0 4h10v1.5H7zm0 4h7v1.5H7z" fill="#438fc4"/>',
     'queue_window': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#526e8d"/><rect x="4" y="5" width="16" height="14" rx="1" fill="#eaf1f7"/><circle cx="7" cy="9" r="1.4" fill="#42b66c"/><circle cx="7" cy="12.5" r="1.4" fill="#e7ab37"/><circle cx="7" cy="16" r="1.4" fill="#4ca4db"/><path d="M10 8h7v2h-7zm0 3.5h7v2h-7zm0 3.5h7v2h-7z" fill="#8399ad"/>',
-    'terminal': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#344b62"/><rect x="4" y="5" width="16" height="13" rx="1" fill="#182a3b"/><path d="m7 9 3 2.5L7 14m5 0h5" fill="none" stroke="#59d47d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="19.5" r=".7" fill="#e8ad3b"/><circle cx="8.5" cy="19.5" r=".7" fill="#e8ad3b"/>'
+    'terminal': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#344b62"/><rect x="4" y="5" width="16" height="13" rx="1" fill="#182a3b"/><path d="m7 9 3 2.5L7 14m5 0h5" fill="none" stroke="#59d47d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="19.5" r=".7" fill="#e8ad3b"/><circle cx="8.5" cy="19.5" r=".7" fill="#e8ad3b"/>',
+    'layout': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#526e8d"/><path d="M3 8h18M9 8v12" stroke="#fff" stroke-width="1.5"/><rect x="12" y="11" width="7" height="2" rx="1" fill="#65c993"/><rect x="12" y="15" width="7" height="2" rx="1" fill="#65b7e8"/>',
+    'layout_save': '<path d="M4 2h13l5 5v15H2V2z" fill="#4e87be"/><path d="M7 2v7h10V2M6 22v-9h12v9" fill="#eaf3fa"/><path d="M8 15h8v5H8z" fill="#65c993"/>',
+    'layout_load': '<path d="M4 3h16v18H4z" fill="#eaf3fa" stroke="#5c7892" stroke-width="1.5"/><path d="M12 6v10m-4-4 4 4 4-4M7 19h10" fill="none" stroke="#2584c1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    'layout_default': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#d8e4ef" stroke="#58748f"/><path d="M5 7h14M5 11h9M5 15h14" stroke="#438fc4" stroke-width="2"/><circle cx="18" cy="16" r="4" fill="#58bd78"/><path d="m16 16 1.3 1.3 2.7-3" fill="none" stroke="#fff" stroke-width="1.2"/>',
+    'popup': '<rect x="2" y="3" width="20" height="15" rx="2" fill="#edf4f8" stroke="#5c7892"/><path d="M8 22h8m-4-4v4M5 7h5m3 0h6M5 11h13" stroke="#438fc4" stroke-width="1.5"/><circle cx="19" cy="18" r="4" fill="#f0b340"/>',
+    'lock_toolbar': '<rect x="3" y="8" width="18" height="14" rx="2" fill="#6ba7d4"/><path d="M8 8V5a4 4 0 0 1 8 0v3" fill="none" stroke="#64788b" stroke-width="2.5"/><circle cx="12" cy="14" r="1.5" fill="#fff"/><path d="M12 15v3" stroke="#fff" stroke-width="1.5"/>',
+    'lock_dock': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#dce7f1" stroke="#58748f"/><path d="M3 8h18M9 8v12" stroke="#438fc4" stroke-width="1.5"/><rect x="13" y="12" width="6" height="5" rx="1" fill="#e8a52d"/><path d="M14 12v-1a2 2 0 0 1 4 0v1" fill="none" stroke="#9a6800" stroke-width="1.5"/>',
+    'tray': '<rect x="2" y="4" width="20" height="16" rx="2" fill="#dce7f1" stroke="#58748f"/><path d="M2 11h6l2 4h4l2-4h6" fill="none" stroke="#438fc4" stroke-width="2"/><circle cx="12" cy="8" r="2" fill="#58bd78"/>',
+    'command': '<rect x="3" y="4" width="18" height="16" rx="2" fill="#eaf1f7" stroke="#58748f"/><circle cx="7" cy="8" r="1.3" fill="#42a5dc"/><circle cx="7" cy="12" r="1.3" fill="#55bd78"/><circle cx="7" cy="16" r="1.3" fill="#edaa36"/><path d="M10 8h7m-7 4h7m-7 4h7" stroke="#687f95" stroke-width="1.5"/>',
+    'close': '<circle cx="12" cy="12" r="10" fill="#e95c61"/><path d="m8 8 8 8m0-8-8 8" stroke="#fff" stroke-width="2"/>',
+    'copy': '<rect x="7" y="7" width="14" height="15" rx="2" fill="#eaf3fa" stroke="#4b86b7"/><path d="M4 17H3V3h13v2" fill="none" stroke="#e0a936" stroke-width="2"/>',
+    'paste': '<path d="M7 4h10l1 3h3v15H3V7h3z" fill="#eaf3fa" stroke="#58748f"/><path d="M8 4V2h8v2m-9 7h10m-10 4h10" fill="none" stroke="#438fc4" stroke-width="2"/>',
+    'edit': '<path d="M3 17 16 4a2 2 0 0 1 3 3L6 20 2 22z" fill="#f3b33e"/><path d="m15 5 4 4M3 17l3 3" stroke="#bd6d28" stroke-width="1.5"/>',
+    'view': '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12" fill="#dceaf5" stroke="#438fc4" stroke-width="1.5"/><circle cx="12" cy="12" r="3.2" fill="#58bd78"/><circle cx="12" cy="12" r="1.2" fill="#fff"/>',
+    'execute': '<circle cx="12" cy="12" r="10" fill="#54bb74"/><path d="m9 6 9 6-9 6z" fill="#fff"/>',
+    'clear': '<path d="M4 7h16l-1 15H5z" fill="#e95c61"/><path d="M3 4h18v3H3zm6-2h6l1 2H8z" fill="#bd3942"/><path d="M9 10v8m6-8v8" stroke="#fff" stroke-width="1.5"/>',
+    'select': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#eaf3fa" stroke="#58748f"/><path d="m6 12 4 4 8-8" fill="none" stroke="#42ad64" stroke-width="2.5"/>',
+    'undo': '<path d="M10 7 3 12l7 5v-3h5a5 5 0 0 1 5 5 7 7 0 0 0-7-8h-3z" fill="#49a4d9"/>',
+    'redo': '<path d="m14 7 7 5-7 5v-3H9a5 5 0 0 0-5 5 7 7 0 0 1 7-8h3z" fill="#49a4d9"/>'
 }
 
 
@@ -180,6 +237,66 @@ def apply_mode_icon(pane):
     button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
 
+def popup_action_icon_key(action):
+    label = action.text().split('\t', 1)[0].replace('&', '').strip().casefold()
+    if not label:
+        return 'command'
+    if 'rename' in label:
+        return 'rename'
+    if 'duplicate' in label or 'copy' in label or 'export' in label:
+        return 'copy'
+    if 'paste' in label:
+        return 'paste'
+    if 'folder' in label or 'directory' in label:
+        return 'folder'
+    if 'delete' in label or 'remove' in label:
+        return 'delete'
+    if 'close' in label or 'exit' in label or 'abort' in label:
+        return 'close'
+    if 'clear' in label:
+        return 'clear'
+    if 'refresh' in label or 'reload' in label:
+        return 'refresh'
+    if 'compare' in label:
+        return 'compare'
+    if 'queue' in label and ('transfer' not in label or 'selected queue' in label):
+        return 'queue_window'
+    if 'transfer' in label or 'upload' in label or 'download' in label:
+        return 'right'
+    if 'pause' in label or 'stop' in label:
+        return 'stop'
+    if 'resume' in label or 'start' in label or 'run' in label:
+        return 'start'
+    if 'select' in label or 'mark' in label:
+        return 'select'
+    if 'view' in label or 'find' in label or 'search' in label:
+        return 'view'
+    if 'edit' in label or 'properties' in label:
+        return 'edit'
+    if 'open' in label or 'navigate' in label or 'parent' in label:
+        return 'folder'
+    if 'log' in label or 'timestamp' in label:
+        return 'log'
+    if 'restore' in label or 'default' in label:
+        return 'layout_default'
+    if 'move' in label or 'switch' in label:
+        return 'swap'
+    return 'command'
+
+
+def apply_popup_menu_icons(window, menu):
+    ink, disabled = icon_colors(window)
+    icon_set = toolbar_icon_set(window)
+    def apply(current):
+        for action in current.actions():
+            if action.isSeparator():
+                continue
+            action.setIcon(icon_for(popup_action_icon_key(action), ink, disabled, icon_set))
+            if action.menu():
+                apply(action.menu())
+    apply(menu)
+
+
 def apply_toolbar_icons(window):
     ink, disabled = icon_colors(window)
     bars = [(window.main_toolbar, False)]
@@ -219,4 +336,6 @@ def apply_toolbar_icons(window):
             if isinstance(item, QToolButton):
                 item.setAccessibleName(title)
                 item.setAccessibleDescription(description)
+    if hasattr(window, 'layout_commands'):
+        window.layout_commands.apply_icons()
 

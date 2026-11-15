@@ -134,6 +134,16 @@ together, including `_internal`; the executable alone is not a portable package.
 The build includes the README, user documentation and license notices. No signing,
 uploading or publication occurs. Review dependency notices before redistribution.
 
+For a reusable local test package, pass `--test-build`; each run replaces the
+same `dist/FluxFTP-Test` folder. Add `--cloud` to include the local rclone backend:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/build_development.py --test-build --cloud
+```
+
+Keep that folder together when launching `FluxFTP-Test.exe`. It is a local test
+build and does not update the published installation.
+
 ## Maintained release builder
 
 `build_windows.py` is retained as the release recipe. It intentionally requires

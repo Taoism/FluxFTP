@@ -313,8 +313,7 @@ class DisplayOptions:
     def transfer_display_progress(self, row, percent, rate, done, total):
         from .app import human
         row.setText(1, f'{percent}%')
-        if row.data(1, PROGRESS_ROLE) is not None:
-            row.setData(1, PROGRESS_ROLE, percent)
+        row.setData(1, PROGRESS_ROLE, percent)
         row.setText(2, human(rate * 1024) + '/s')
         row.setData(3, Qt.ItemDataRole.UserRole, [done, total])
         row.setData(5, Qt.ItemDataRole.UserRole, total)

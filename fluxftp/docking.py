@@ -1,8 +1,10 @@
 """Optional native dock layout; existing widgets and transfer workers stay alive."""
+import json
+
 from PySide6.QtCore import QObject, Qt, QTimer, QEvent, QByteArray
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (QMainWindow, QDockWidget, QWidget, QHBoxLayout, QLabel,
-    QToolButton, QMenu, QStyle, QTabBar)
+    QToolButton, QMenu, QStyle, QTabBar, QApplication)
 
 
 class DockTitleBar(QWidget):
@@ -56,6 +58,7 @@ class DockLayout(QObject):
                                  QMainWindow.DockOption.AllowTabbedDocks |
                                  QMainWindow.DockOption.AnimatedDocks)
         self.host.installEventFilter(self)
+        QApplication.instance().installEventFilter(self)
         window.centralWidget().layout().addWidget(self.host, 1)
         self.host.hide()
         self.docks = {}
@@ -70,8 +73,8 @@ class DockLayout(QObject):
         self.rush_layout_action.setToolTip(
             'Put the two-pane workspace above the transfer queue. Drag panels to customize; FluxFTP remembers their positions.')
         self.rush_layout_action.triggered.connect(self.apply_ftp_rush_layout)
-        window.view_commands.menu.addAction(self.rush_layout_action)
-        self.menu = window.view_commands.menu.addMenu('Dock panels')
+        window.layout_commands.menu.addAction(self.rush_layout_action)
+        self.menu = window.layout_commands.menu.addMenu('Dock panels')
         self.move_bottom_menu = self.menu.addMenu('Move to Bottom')
         self.panel_titles = dict(workspace='Workspaces', tools='Tools', queue='Transfer Queue', ftp='FTP Log',
             transfer='Transfer Log', system='System Log', tasks='Tasks')
@@ -140,7 +143,8 @@ class DockLayout(QObject):
                 window.work_area.hide()
                 self.host.show()
                 self.lock(window.preferences.value('Layout/locked', False, type=bool))
-                QTimer.singleShot(0, self.restore_floating_geometries)
+                if window.isVisible():
+                    QTimer.singleShot(350, self.restore_saved_dock_layout)
             else:
                 self.save()
                 self.active = False
@@ -178,12 +182,58 @@ class DockLayout(QObject):
 
     def save(self):
         if self.active and not self.closing and not getattr(self.window, '_configuration_restored', False):
-            self.window.preferences.setValue('Layout/dock_state', bytes(self.host.saveState(1)).hex())
+            state = bytes(self.host.saveState(1)).hex()
+            changed = self.window.preferences.value('Layout/dock_state', '', type=str) != state
+            if changed:
+                self.window.preferences.setValue('Layout/dock_state', state)
             for key, dock in self.docks.items():
                 if dock.isFloating():
-                    self.window.preferences.setValue(f'Layout/dock_geometry/{key}',
-                        bytes(dock.saveGeometry()).hex())
-            self.window.preferences.sync()
+                    geometry = bytes(dock.saveGeometry()).hex()
+                    name = f'Layout/dock_geometry/{key}'
+                    if self.window.preferences.value(name, '', type=str) != geometry:
+                        self.window.preferences.setValue(name, geometry)
+                        changed = True
+            host_width, host_height = self.host.width(), self.host.height()
+            if host_width > 0 and host_height > 0:
+                sizes = {}
+                for key, dock in self.docks.items():
+                    if dock.isFloating() or dock.width() <= 0 or dock.height() <= 0:
+                        continue
+                    sizes[key] = [round(dock.width() * 10000 / host_width),
+                                  round(dock.height() * 10000 / host_height)]
+                encoded_sizes = json.dumps(sizes, sort_keys=True, separators=(',', ':'))
+                if self.window.preferences.value('Layout/dock_sizes', '', type=str) != encoded_sizes:
+                    self.window.preferences.setValue('Layout/dock_sizes', encoded_sizes)
+                    changed = True
+            if changed:
+                self.window.preferences.sync()
+
+    def restore_saved_dock_layout(self):
+        if not self.active or not self.host.isVisible():
+            return
+        self.restore_floating_geometries()
+        host_width, host_height = self.host.width(), self.host.height()
+        if host_width <= 0 or host_height <= 0:
+            return
+        try:
+            sizes = json.loads(self.window.preferences.value('Layout/dock_sizes', '{}', type=str))
+        except (TypeError, ValueError):
+            return
+        if not isinstance(sizes, dict):
+            return
+        docks, widths, heights = [], [], []
+        for key, dock in self.docks.items():
+            value = sizes.get(key)
+            if dock.isFloating() or not isinstance(value, list) or len(value) != 2:
+                continue
+            if any(type(part) is not int or not 0 < part <= 10000 for part in value):
+                continue
+            docks.append(dock)
+            widths.append(max(1, round(host_width * value[0] / 10000)))
+            heights.append(max(1, round(host_height * value[1] / 10000)))
+        if docks:
+            self.host.resizeDocks(docks, heights, Qt.Orientation.Vertical)
+            self.host.resizeDocks(docks, widths, Qt.Orientation.Horizontal)
 
     def restore_floating_geometries(self):
         if not self.active:
@@ -202,6 +252,7 @@ class DockLayout(QObject):
     def shutdown(self):
         self.closing = True
         self.timer.stop()
+        QApplication.instance().removeEventFilter(self)
         for dock in self.docks.values(): dock.hide()
 
     def show_panel(self, key):
@@ -273,10 +324,17 @@ class DockLayout(QObject):
         self.save()
 
     def lock(self, locked):
-        self.action.setEnabled(not locked)
+        toolbar_locked = bool(getattr(getattr(self.window, 'layout_lock', None),
+                                      'toolbar_action', None) and
+                              self.window.layout_lock.toolbar_action.isChecked())
         for dock in self.docks.values():
-            dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures if locked else
-                QDockWidget.DockWidgetFeature.DockWidgetClosable | QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+            if locked or (dock is self.docks.get('tools') and toolbar_locked):
+                features = QDockWidget.DockWidgetFeature.NoDockWidgetFeatures if locked else QDockWidget.DockWidgetFeature.DockWidgetClosable
+            else:
+                features = (QDockWidget.DockWidgetFeature.DockWidgetClosable |
+                            QDockWidget.DockWidgetFeature.DockWidgetMovable |
+                            QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+            dock.setFeatures(features)
             if dock.isFloating():
                 if locked: dock.setFixedSize(dock.size())
                 else:
@@ -285,6 +343,10 @@ class DockLayout(QObject):
 
     def eventFilter(self, obj, event):
         if self.active:
+            if obj is self.window and event.type() == QEvent.Type.Show:
+                QTimer.singleShot(350, self.restore_saved_dock_layout)
+            if event.type() == QEvent.Type.MouseButtonRelease and self.is_inside_host(obj):
+                self.schedule()
             if isinstance(obj, QTabBar) and event.type() == QEvent.Type.ContextMenu:
                 index = obj.tabAt(event.pos())
                 if index >= 0:
@@ -294,8 +356,16 @@ class DockLayout(QObject):
                         self.show_panel_context_menu(key, event.globalPos())
                         event.accept()
                         return True
-            if obj is self.host and self.window.preferences.value('Layout/locked', False, type=bool) and event.type() in (
+            if obj is self.host and self.window.preferences.value('Layout/dock_locked', False, type=bool) and event.type() in (
                     QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick, QEvent.Type.MouseMove):
                 return True  # The host handles separators; child controls remain usable.
             if event.type() in (QEvent.Type.Resize, QEvent.Type.Move): self.schedule()
+        return False
+
+    def is_inside_host(self, obj):
+        current = obj
+        while current is not None:
+            if current is self.host:
+                return True
+            current = current.parent()
         return False

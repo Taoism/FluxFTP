@@ -1,4 +1,5 @@
 """Release progress and concise, plain-text transfer summaries."""
+import re
 import time
 
 from PySide6.QtCore import Qt
@@ -10,6 +11,32 @@ from .queue_buffer import BUFFER_ROLE
 
 def append(window, text):
     window.transfer_log.appendPlainText(redact(text))
+
+
+def _release_title(name):
+    """Return the series title with an SxxExx episode marker removed."""
+    pattern = re.compile(r'(?i)(?:[._ -])S\d{1,2}E\d{1,3}(?=[._ -]|$)')
+    cleaned, count = pattern.subn('', name)
+    cleaned = re.sub(r'([._ -]){2,}', r'\1', cleaned).strip('._ -')
+    return cleaned, count > 0
+
+
+def finish_batch_summaries(window):
+    groups = getattr(window, '_transfer_release_summaries', None)
+    if not groups:
+        return
+    for (side, title), records in groups.items():
+        files = sum(record['files'] for record in records)
+        size = sum(record['bytes'] for record in records)
+        failures = sum(record['failures'] for record in records)
+        elapsed = max(.001, max(record['finished'] for record in records) -
+                      min(record['started'] for record in records))
+        speed = size / elapsed / 1024
+        megabytes = size / 1_000_000
+        append(window, f'[{side}] All [{title}] transferred {files} file(s) at '
+               f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{speed:.2f} KBps')
+        append(window, f'[{side}] {failures} failed/cancelled')
+    window._transfer_release_summaries = {}
 
 
 def update_group(window, row):
@@ -110,4 +137,15 @@ def finish(window, job, worker):
     if meta.get('started'): started = min(started, meta['started'])
     elapsed = max(.001, time.monotonic() - started)
     side = job.get('source_side', 1) if job['route'] != 'Upload' else job.get('destination_side', 2)
-    append(window, f'[{side}] [{parent.text(0)}] transferred {len(successes) + meta.get("completed", 0)} file(s) - Total: {total} bytes in {elapsed:.2f}s ({total / elapsed / 1024:.2f} KBps); {failures} failed/cancelled')
+    files = len(successes) + meta.get('completed', 0)
+    megabytes = total / 1_000_000
+    append(window, f'[{side}] [{parent.text(0)}] transferred {files} file(s) - Total: '
+           f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{total / elapsed / 1024:.2f} KBps')
+    append(window, f'[{side}] {failures} failed/cancelled')
+    title, has_episode = _release_title(parent.text(0))
+    if has_episode:
+        groups = getattr(window, '_transfer_release_summaries', None)
+        if groups is None:
+            groups = window._transfer_release_summaries = {}
+        groups.setdefault((side, title), []).append(dict(files=files, bytes=total,
+            failures=failures, started=started, finished=time.monotonic()))

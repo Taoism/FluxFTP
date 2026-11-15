@@ -174,6 +174,7 @@ class Workspaces:
         close.setEnabled(self.tabs.count() > 1 and not self.workspace_busy(workspace))
         others = menu.addAction('Close Others', lambda: self.close_other_workspaces(workspace))
         others.setEnabled(self.tabs.count() > 1)
+        self.layout_commands.apply_popup_menu(menu, 'window')
         menu.exec(position)
         menu.deleteLater()
 

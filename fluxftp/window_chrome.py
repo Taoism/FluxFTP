@@ -13,6 +13,7 @@ from .mark_menu import MarkMenu
 from .site_dialog import SiteDialog
 from .tools_menu import ToolsMenu
 from .view_menu import ViewMenu
+from .layout_menu import LayoutMenu
 
 
 class WindowChrome:
@@ -78,6 +79,8 @@ class WindowChrome:
 
         self.tools_commands = ToolsMenu(self, menus)
         self.tools_menu = self.tools_commands.menu
+        self.layout_commands = LayoutMenu(self, self.tools_menu)
+        self.layout_menu = self.layout_commands.menu
         # Share the main-window F6 action so Options is reachable from Edit too.
         self.edit_menu.addAction(self.tools_commands.actions['Options…'])
 

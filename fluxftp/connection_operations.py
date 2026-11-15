@@ -44,10 +44,20 @@ class ConnectionOperationsMixin:
         self.trace.event(f"Listing directory: {path}")
         path = remote_path(path)
         if self.sftp:
-            entries = [Entry(x.filename, stat.S_ISDIR(x.st_mode), x.st_size, str(x.st_mtime), stat.S_ISLNK(x.st_mode),
-                             stat.filemode(x.st_mode), str(x.st_uid) if x.st_uid is not None else '',
-                             str(x.st_gid) if x.st_gid is not None else '')
-                       for x in self.sftp.listdir_iter(path, read_aheads=self.sftp_read_aheads) if x.filename not in (".", "..")]
+            entries = []
+            for item in self.sftp.listdir_iter(path, read_aheads=self.sftp_read_aheads):
+                if item.filename in (".", ".."):
+                    continue
+                is_link = stat.S_ISLNK(item.st_mode)
+                is_dir = stat.S_ISDIR(item.st_mode)
+                if is_link:
+                    try:
+                        is_dir = stat.S_ISDIR(self.sftp.stat(posixpath.join(path, item.filename)).st_mode)
+                    except OSError:
+                        pass
+                entries.append(Entry(item.filename, is_dir, item.st_size, str(item.st_mtime), is_link,
+                                     stat.filemode(item.st_mode), str(item.st_uid) if item.st_uid is not None else '',
+                                     str(item.st_gid) if item.st_gid is not None else ''))
         else:
             try:
                 entries = self._list_ftp(path)
@@ -63,7 +73,30 @@ class ConnectionOperationsMixin:
         # Some servers expose directory shortcuts as files or symbolic links.
         # Keep the exact alias for navigation; the server resolves its target.
         entries = [replace(entry, is_dir=True) if entry.name.startswith('+') else entry for entry in entries]
+        if not self.sftp:
+            entries = self._mark_ftp_directory_links(path, entries)
         return self._apply_site_timezone(entries)
+
+    def _mark_ftp_directory_links(self, path, entries):
+        if not any(entry.is_link and not entry.is_dir for entry in entries):
+            return entries
+        original = self.ftp.pwd()
+        result = []
+        for entry in entries:
+            if not entry.is_link or entry.is_dir:
+                result.append(entry)
+                continue
+            target = posixpath.join(path, entry.name)
+            is_dir = False
+            try:
+                self.ftp.cwd(target)
+                is_dir = True
+            except (OSError, ftplib.Error):
+                pass
+            finally:
+                self.ftp.cwd(original)
+            result.append(replace(entry, is_dir=True) if is_dir else entry)
+        return result
 
     def _apply_site_timezone(self, entries):
         zone_name = self.site.timezone
@@ -124,6 +157,8 @@ class ConnectionOperationsMixin:
                         self.trace.event('Server declined essential MLSD facts; using server defaults')
                     self._mlsd_facts_configured = True
                 return [Entry(n, f.get("type") == "dir", int(f.get("size", 0)), f.get("modify", ""),
+                              f.get('type', '').lower().startswith(('os.unix=slink', 'os.unix=symlink')) or
+                              f.get('unix.mode', '').startswith('l'),
                               attributes=f.get('unix.mode', f.get('perm', '')),
                               user=f.get('unix.ownername', f.get('unix.owner', f.get('unix.uid', ''))),
                               group=f.get('unix.groupname', f.get('unix.group', f.get('unix.gid', ''))))

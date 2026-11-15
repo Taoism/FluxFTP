@@ -163,6 +163,7 @@ class MouseActions:
                 self.error(str(error))
             return
         menu = self.default_file_menu(pane)
+        self.layout_commands.apply_popup_menu(menu, pane.mode.lower())
         menu.exec(global_position)
 
     def default_file_menu(self, pane):

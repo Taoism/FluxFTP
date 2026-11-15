@@ -235,6 +235,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.initialize_workspaces()
     from .layout_lock import LayoutLock
     self.layout_lock = LayoutLock(self)
+    self.layout_commands.initialize()
     from .queue_filter import QueueFilter
     self.queue_filter = QueueFilter(self)
     from .toolbar_visibility import ToolbarVisibility

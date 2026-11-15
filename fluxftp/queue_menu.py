@@ -109,6 +109,7 @@ class QueueMenu(QObject):
             row.setSelected(True)
         self._context_delete_rows = selected_rows(tree)
         menu = self.context_menu()
+        self.window.layout_commands.apply_popup_menu(menu, 'queue')
         try:
             menu.exec(tree.viewport().mapToGlobal(position))
         finally:

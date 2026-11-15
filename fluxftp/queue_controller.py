@@ -64,10 +64,12 @@ class QueueController:
             record = w._transfer_record(job)
             record['job'] = job
             row, task, route = record["row"], record["task"], record["route"]
+            from .queue_tree import PROGRESS_ROLE
+            row.setData(1, PROGRESS_ROLE, 0)
             row.setText(8, f"{route} · " + ('Opening folder…' if job.get('streaming_folder') else 'Scanning folder…' if job.get('directory') else 'Transferring'))
             set_queue_state(row, 'connecting', w.preferences)
             if job.get('streaming_folder'):
-                from .queue_tree import PROGRESS_ROLE, STREAM_ROLE
+                from .queue_tree import STREAM_ROLE
                 row.setData(0, STREAM_ROLE, True)
                 row.setData(3, Qt.ItemDataRole.UserRole, [0, 0])
                 row.setText(3, '0 B')
@@ -156,9 +158,8 @@ class QueueController:
                 if isinstance(result, dict) and result.get('planned') is not None:
                     return
                 target.setText(1, "100%")
-                if current.get('streaming_folder'):
-                    from .queue_tree import PROGRESS_ROLE
-                    target.setData(1, PROGRESS_ROLE, 100)
+                from .queue_tree import PROGRESS_ROLE
+                target.setData(1, PROGRESS_ROLE, 100)
                 current['transfer_outcome'] = 'complete'
                 total = target.data(5, Qt.ItemDataRole.UserRole) or 0
                 if not current.get('streaming_folder'):
@@ -245,6 +246,9 @@ class QueueController:
         w.refill_queue_buffers()
         w.schedule_queue_save()
         w.start_next()
+        if not w.active and not w.pending:
+            from .transfer_reporting import finish_batch_summaries
+            finish_batch_summaries(w)
         if not w.active and not w.pending:
             w.conflicts.reset()
             if not w.queue_batch_failed and w.display_value("flash_completed", True):

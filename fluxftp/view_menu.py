@@ -102,7 +102,6 @@ class ViewMenu(QObject):
         self.menu.addSeparator()
         self.add('Current edit files', '', self.show_edit_files)
         self.menu.addSeparator()
-        self.add('Reset layout…', '', window.reset_layout)
 
     def add(self, label, shortcut, callback, icon=None):
         action = QAction(label, self)
