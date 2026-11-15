@@ -189,6 +189,9 @@ def test_real_windows_pair_loads_and_negotiates_verified_tls(tmp_path):
         pytest.skip('Windows runtime')
     if sys.version_info[:2] != (3, 13):
         pytest.skip('Cached OpenSSL runtime targets Python 3.13')
+    cached_runtime = Path(__file__).parents[1] / 'runtime/python-3.13.15/DLLs'
+    if not all((cached_runtime / name).is_file() for name in runtime.DLLS):
+        pytest.skip('Cached OpenSSL runtime DLLs are unavailable')
     directory = make_pair(tmp_path, '3.5.8', real=True)
     runtime.probe(directory)
     # A claimed version that does not match the actual DLLs must be rejected.
