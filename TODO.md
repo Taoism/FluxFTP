@@ -49,6 +49,8 @@ remaining companion requirements are combined here as well.
   downloads/releases, documentation and support links.
 - [x] Create an original Flux Capacitor inspired FluxFTP icon and wordmark;
   wire the icon into the desktop window and Windows packaging.
+- [ ] Verify the installed Windows executable at `D:\Program Files\FluxFTP\fluxftp.exe`
+  displays the official icon and fix the package icon if it does not.
 
 ### Desktop features
 
@@ -68,6 +70,7 @@ remaining companion requirements are combined here as well.
 - [x] Fix opening Options from the F6/Edit menu path; it now shares one action
   across Edit and Tools.
 - [ ] Review and fix rendering of items in the left sidebar.
+- [ ] Remember the positions and arrangement of panels and windows across launches.
 - [ ] Add FluxFTP CLI scripting compatibility for RushApp FTP Transfer
   (`rush_cmdline.exe`, `Script RushApp.FTP.Transfer(...)`), including its path
   placeholders and transfer/directory/logout flags (`RS_UP`, `RS_DIRDES`,
