@@ -116,15 +116,15 @@ jobs:
           python scripts/package_windows_release.py `
             --package dist/FluxFTP-dev `
             --python-license $pythonLicense `
-            --output build/public-release/windows
+            --output build/public-release/windows-dev
           if ($LASTEXITCODE -ne 0) { throw 'Windows release packaging failed.' }
 
       - uses: actions/upload-artifact@v6
         with:
           name: FluxFTP-Windows-${{ github.event.release.tag_name || inputs.release_tag }}
           path: |
-            build/public-release/windows/*.zip
-            build/public-release/windows/SHA256SUMS.txt
+            build/public-release/windows-dev/*.zip
+            build/public-release/windows-dev/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
 
