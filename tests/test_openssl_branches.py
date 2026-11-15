@@ -15,6 +15,7 @@ def test_old_per_executable_selection_migrates_once(tmp_path):
     pair = make_pair(old)
     runtime.write_json(old / 'selected.json', {'directory': pair.name})
     new = tmp_path / 'windows-cp313'
+    assert runtime.branch(new) == 4
     runtime.migrate_legacy(new)
     assert runtime.selected_directory(new).name == pair.name
     assert runtime.selected_directory(old).exists()
@@ -35,10 +36,10 @@ def test_failed_4_runtime_can_receive_newer_update(tmp_path, monkeypatch):
 
 def test_branch_selection_preserves_both_channels_and_requires_adapter(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, 'adapter_directory', lambda: tmp_path / 'absent')
-    assert runtime.branch(tmp_path) == 3
+    assert runtime.branch(tmp_path) == 4
     with pytest.raises(OSError):
         runtime.choose_branch(tmp_path, 4)
-    assert runtime.branch(tmp_path) == 3
+    assert runtime.branch(tmp_path) == 4
     monkeypatch.setattr(runtime, 'available_directory', lambda *args: tmp_path)
     monkeypatch.setattr(runtime, 'validate_pair', lambda *args: {})
     runtime.choose_branch(tmp_path, 4)
@@ -102,7 +103,7 @@ def test_real_official_package_extract_probe_and_select(tmp_path, monkeypatch):
     digest = runtime.sha256(package.read_bytes()).hexdigest()
     result = updates4.stage(tmp_path, '4.1.0', 'https://github.com/openssl/installer/releases/download/publish/4.1.0-1/OpenSSL-x64-VS-4.1.0.msi', digest)
     assert runtime.selected_directory(tmp_path, 4) == result
-    assert runtime.branch(tmp_path) == 3  # Updates must never switch the chosen major.
+    assert runtime.branch(tmp_path) == 4  # Updates must never switch the chosen major.
     runtime.choose_branch(tmp_path, 4)
     runtime.probe(result)
 
@@ -122,7 +123,7 @@ def test_ssl_options_page_and_switch_persistence(tmp_path, monkeypatch):
     add_controls(QFormLayout(widget), window)
     widget.findChild(QRadioButton, 'ssl_branch_4').click()
     assert runtime.branch(tmp_path) == 4
-    assert '4.x' in widget.findChild(QLabel, 'ssl_pending_version').text()
+    assert '4.1.0' in widget.findChild(QLabel, 'ssl_pending_version').text()
     import ssl
     assert ssl.OPENSSL_VERSION in widget.findChild(QLabel, 'ssl_active_version').text()
     widget.findChild(QRadioButton, 'ssl_branch_3').click()

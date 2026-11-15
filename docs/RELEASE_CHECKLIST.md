@@ -22,9 +22,12 @@ Windows-only automation as a complete release.
 - Verify every checksum against its exact artifact.
 - Confirm the release asset list contains all three packages and all checksums.
 
-The automated GitHub workflow builds the Windows ZIP, Ubuntu portable archive,
-and Debian `.deb` from the same release tag, runs the packaged checks, produces
-platform-specific SHA-256 files, and attaches all assets to that GitHub Release.
+The GitHub workflow builds the Ubuntu archive and Debian `.deb` from the same
+release tag, runs their packaged checks, and attaches those packages and their
+checksums. The maintained Windows builder requires separately validated OpenSSL
+4.1 and 3.5.8 runtime files. Build and smoke-check the Windows package locally,
+then attach its ZIP and `SHA256SUMS.txt` to the draft release before publishing.
+The release workflow verifies the attached Windows checksum and package tests.
 
 ## Previous v0.132.0 release
 

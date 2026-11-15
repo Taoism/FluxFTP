@@ -69,7 +69,7 @@ jobs:
 
       - name: Run release smoke checks
         run: |
-          python -m pytest tests/test_tools_menu.py tests/test_deployments.py tests/test_github_artifacts.py tests/test_gitlab_artifacts.py tests/test_cloud.py -q
+          python -m pytest tests/test_tools_menu.py tests/test_layout.py::test_portrait_layout_and_site_local_order tests/test_compare_menu.py::test_pane_filter_toolbar_can_expand tests/test_openssl_branches.py tests/test_openssl_updates.py tests/test_workspaces_tray.py::test_session_restart_names_count_selection_and_splitters tests/test_deployments.py tests/test_github_artifacts.py tests/test_gitlab_artifacts.py tests/test_cloud.py -q
           if ($LASTEXITCODE -ne 0) { throw 'Release-focused test suite failed.' }
           python -m fluxftp --smoke-test
           if ($LASTEXITCODE -ne 0) { throw 'Source startup smoke check failed.' }
@@ -82,6 +82,25 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows smoke check failed.' }
           .\dist\FluxFTP-dev\FluxFTP-dev.exe --credential-vault-smoke-test
           if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows credential vault check failed.' }
+
+      - name: Verify maintained Windows release asset
+        if: github.event_name == 'release' || inputs.publish_assets == true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          $directory = 'build/public-release/windows'
+          New-Item -ItemType Directory -Force -Path $directory | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY `
+            --pattern "FluxFTP-$version-windows-x64.zip" --pattern 'SHA256SUMS.txt' `
+            --dir $directory
+          if ($LASTEXITCODE -ne 0) { throw 'Maintained Windows ZIP and checksum must be attached before publication.' }
+          $archive = Join-Path $directory "FluxFTP-$version-windows-x64.zip"
+          $expected = ((Get-Content (Join-Path $directory 'SHA256SUMS.txt')) -split '\s+')[0]
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'Maintained Windows ZIP checksum mismatch.' }
 
       - name: Prepare ZIP and checksums
         shell: pwsh
@@ -207,11 +226,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v6
         with:
-          name: FluxFTP-Windows-${{ github.event.release.tag_name || inputs.release_tag }}
-          path: build/public-release/windows
-
-      - uses: actions/download-artifact@v6
-        with:
           name: FluxFTP-Ubuntu-${{ github.event.release.tag_name || inputs.release_tag }}
           path: build/public-release/ubuntu
 
@@ -220,14 +234,12 @@ jobs:
           name: FluxFTP-Debian-${{ github.event.release.tag_name || inputs.release_tag }}
           path: build/public-release/debian
 
-      - name: Attach all platform assets to GitHub Release
+      - name: Attach Ubuntu and Debian assets to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
           gh release upload "$RELEASE_TAG" \
-            build/public-release/windows/*.zip \
-            build/public-release/windows/SHA256SUMS.txt \
             build/public-release/ubuntu/*.tar.gz \
             build/public-release/ubuntu/SHA256SUMS-linux-ubuntu24.04.txt \
             build/public-release/debian/*.deb \

@@ -24,6 +24,7 @@ except ImportError:  # Source tooling on Python <= 3.11.
 DLLS = ('libcrypto-3.dll', 'libssl-3.dll')
 DLLS4 = ('libcrypto-4-x64.dll', 'libssl-4-x64.dll')
 BASE_VERSION = (3, 5, 8)
+DEFAULT_MAJOR = 4
 _handles = []
 _ready_file = None
 
@@ -38,14 +39,16 @@ def version(value):
 def adapter_directory():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS) / 'ssl4-adapter'
-    return Path(__file__).resolve().parents[1] / 'runtime' / 'ssl4-adapter'
+    runtime_root = Path(os.environ.get('FLUXFTP_RUNTIME_ROOT',
+                        Path(__file__).resolve().parents[1] / 'runtime'))
+    return runtime_root / 'ssl4-adapter'
 
 
 def branch(location):
     try:
         value = read_json(location / 'branch.json')['major']
     except FileNotFoundError:
-        return 3
+        return DEFAULT_MAJOR
     if type(value) is not int or value not in (3, 4):
         raise ValueError('Invalid OpenSSL branch')
     return value

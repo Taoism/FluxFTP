@@ -313,6 +313,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         splitter.setProperty('auto_workspace_name', True)
         splitter.addWidget(Pane(self, "1", modes[0]))
         splitter.addWidget(Pane(self, "2", modes[1]))
+        self.apply_pane_order(splitter)
         if hasattr(self, 'mouse_filter'):
             for index in range(splitter.count()):
                 self.install_pane_mouse(splitter.widget(index))

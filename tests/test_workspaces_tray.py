@@ -57,6 +57,7 @@ def test_session_restart_names_count_selection_and_splitters(window, monkeypatch
     rename(window, monkeypatch, 0, 'Left work')
     window.add_workspace()
     rename(window, monkeypatch, 1, 'Right work')
+    window.tools_commands.pane_order('Local then Site')
     window.current_panes()[0].change_mode('Local')
     window.tabs.currentWidget().setSizes([300, 800])
     window.tabs.setCurrentIndex(0)

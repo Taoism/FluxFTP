@@ -23,6 +23,11 @@ def main():
         raise SystemExit(f"Expected Python 3.13.15 / OpenSSL 3.5.8; got {sys.version} / {ssl.OPENSSL_VERSION}")
     sys.path.insert(0, str(ROOT))
     from fluxftp import __version__
+    from fluxftp.openssl_runtime import probe, validate_pair
+    adapter = validate_pair(RUNTIME_ROOT / 'ssl4-adapter')
+    if not adapter['version'].startswith('4.1.'):
+        raise SystemExit(f"Expected OpenSSL 4.1.x adapter; got {adapter['version']}")
+    probe(RUNTIME_ROOT / 'ssl4-adapter')
     cloud_provenance = json.loads((RUNTIME_ROOT / 'rclone' / 'provenance.json').read_text('utf-8'))
     cloud_hash = hashlib.sha256((RUNTIME_ROOT / 'rclone' / 'rclone.exe').read_bytes()).hexdigest()
     if cloud_hash != cloud_provenance['executable_sha256']:
@@ -80,7 +85,9 @@ def main():
         raise SystemExit(f"Wrong packaged OpenSSL: {bundled}")
     (staged / "runtime-version.json").write_text(json.dumps({
         "fluxftp": __version__, "python": platform.python_version(),
-        "ftp_ftps_openssl": bundled,
+        "ftp_ftps_openssl": f"OpenSSL {adapter['version']}",
+        "ftp_ftps_openssl_default": f"OpenSSL {adapter['version']}",
+        "ftp_ftps_openssl_legacy": bundled,
         "cloud_backend": cloud_provenance,
         "dll_sha256": {name: hashlib.sha256((staged / "_internal" / name).read_bytes()).hexdigest()
                        for name in ("libssl-3.dll", "libcrypto-3.dll")},

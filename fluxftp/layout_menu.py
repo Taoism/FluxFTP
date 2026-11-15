@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt
+from PySide6.QtGui import QActionGroup
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMenu
 
 
@@ -14,6 +15,16 @@ class LayoutMenu(QObject):
                           if action.menu() and action.text() == 'Layout'), None)
         if self.menu is None:
             self.menu = tools_menu.addMenu('Layout')
+        self.pane_arrangement_menu = self.menu.addMenu('Pane Arrangement')
+        self.pane_arrangement_actions = self.add_choice(
+            self.pane_arrangement_menu,
+            (('Side by side', 'Side by side'), ('Stacked (portrait)', 'Stacked')),
+            'Display/pane_layout', 'Side by side', window.tools_commands.layout)
+        self.pane_order_menu = self.menu.addMenu('Pane Order')
+        self.pane_order_actions = self.add_choice(
+            self.pane_order_menu,
+            (('Site then Local', 'Site then Local'), ('Local then Site', 'Local then Site')),
+            'Display/pane_order', 'Site then Local', window.tools_commands.pane_order)
         self.menu.addSeparator()
         self.menu.addAction('Save Current Layout…', self.save_layout)
         self.load_menu = self.menu.addMenu('Load Layout')
@@ -33,6 +44,32 @@ class LayoutMenu(QObject):
                 ('tray', 'Design Popup Menu of Tray Icon…')):
             self.popup_actions[context] = self.menu.addAction(
                 label, lambda checked=False, context=context, label=label: self.design_popup(context, label))
+
+    def add_choice(self, menu, choices, key, default, callback):
+        group = QActionGroup(menu)
+        group.setExclusive(True)
+        actions = {}
+        selected = self.window.preferences.value(key, default, type=str)
+        for label, value in choices:
+            action = menu.addAction(label)
+            action.setCheckable(True)
+            action.setChecked(selected == value)
+            group.addAction(action)
+            action.triggered.connect(
+                lambda checked=False, value=value: self.select_choice(key, value, callback))
+            actions[value] = action
+        menu.aboutToShow.connect(lambda: self.sync_choices(actions, key, default))
+        return actions
+
+    def sync_choices(self, actions, key, default):
+        selected = self.window.preferences.value(key, default, type=str)
+        for value, action in actions.items():
+            action.setChecked(value == selected)
+
+    def select_choice(self, key, value, callback):
+        self.window.preferences.setValue(key, value)
+        callback(value)
+        self.apply_icons()
 
     def popup_template(self, context):
         window = self.window
@@ -128,6 +165,8 @@ class LayoutMenu(QObject):
             'Save Current Layout…': 'layout_save', 'Load Layout': 'layout_load',
             'Default layout': 'layout_default', 'Get more layouts…': 'layout_load',
             'Side by side': 'compare', 'Stacked': 'workspace',
+            'Pane Arrangement': 'workspace', 'Stacked (portrait)': 'workspace',
+            'Pane Order': 'compare', 'Site then Local': 'remote', 'Local then Site': 'local',
             'Lock Toolbar': 'lock_toolbar', 'Lock Dock': 'lock_dock',
             'FTP Rush layout': 'layout', 'Dock panels': 'lock_dock',
         }
@@ -136,7 +175,8 @@ class LayoutMenu(QObject):
                 'window': 'workspace', 'local': 'local', 'remote': 'remote',
                 'queue': 'queue_window', 'log': 'log', 'compare': 'compare', 'tray': 'tray',
             }[context]
-        actions = [*self.menu.actions(), *self.load_menu.actions()]
+        actions = [*self.menu.actions(), *self.load_menu.actions(),
+                   *self.pane_arrangement_menu.actions(), *self.pane_order_menu.actions()]
         layout_lock = getattr(self.window, 'layout_lock', None)
         if layout_lock:
             actions.extend((layout_lock.toolbar_action, layout_lock.dock_action))

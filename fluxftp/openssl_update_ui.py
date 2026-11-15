@@ -82,7 +82,7 @@ def add_controls(form, window):
     try:
         selected = runtime.branch(location)
     except (OSError, ValueError, KeyError, TypeError):
-        selected = 3
+        selected = runtime.DEFAULT_MAJOR
     status = QLabel()
     status.setObjectName('ssl_pending_version')
     status.setWordWrap(True)
@@ -97,7 +97,7 @@ def add_controls(form, window):
                 text += ' — restart FluxFTP to apply.'
             status.setText(text)
         except (OSError, ValueError, KeyError, TypeError):
-            status.setText('Selected runtime is unavailable. Startup will use the bundled 3.x runtime.')
+            status.setText('Selected runtime is unavailable. Startup will use the bundled OpenSSL 3.5.x legacy runtime.')
     def select(major):
         try:
             runtime.choose_branch(location, major)
@@ -106,8 +106,9 @@ def add_controls(form, window):
                 f'The runtime could not be selected ({type(error).__name__}).')
             group.button(runtime.branch(location)).setChecked(True)
         refresh()
-    for major in (3, 4):
-        radio = QRadioButton(f'OpenSSL {major}.x' + (' (default)' if major == 3 else ''))
+    for major in (4, 3):
+        label = 'OpenSSL 4.1.x (default)' if major == 4 else 'OpenSSL 3.5.x (legacy)'
+        radio = QRadioButton(label)
         radio.setObjectName(f'ssl_branch_{major}')
         group.addButton(radio, major)
         radio.setChecked(selected == major)
@@ -119,7 +120,7 @@ def add_controls(form, window):
     timer = QTimer(status)
     timer.timeout.connect(refresh)
     timer.start(2000)
-    enabled = QCheckBox('Automatically download verified updates for both OpenSSL 3.x and 4.x')
+    enabled = QCheckBox('Automatically download verified OpenSSL 4.x and legacy 3.5.x updates')
     enabled.setChecked(window.preferences.value('Updates/openssl_enabled', True, type=bool))
     enabled.toggled.connect(lambda value: window.preferences.setValue('Updates/openssl_enabled', value))
     form.addRow(enabled)
@@ -128,9 +129,9 @@ def add_controls(form, window):
     enabled.setEnabled(updater is not None)
     button.clicked.connect(lambda: updater.start(force=True))
     form.addRow(button)
-    label = QLabel('Both versions stay available. Updates stay within their major version.\n'
+    label = QLabel('OpenSSL 4.1.x is the default. OpenSSL 3.5.x remains available as a legacy option.\n'
                    'Checks run daily in the background. Verified updates activate on the next launch; '
-                   'active transfers are not interrupted. A failed startup falls back to bundled 3.x.\n'
+                   'active transfers are not interrupted. A failed startup falls back to bundled OpenSSL 3.5.x.\n'
                    'This setting controls FTP/FTPS. SFTP and cloud providers use their own libraries.'
                    if updater else 'OpenSSL updates are available in the packaged Windows application.')
     label.setWordWrap(True)

@@ -42,6 +42,7 @@ class Workspaces:
                 for side, mode in enumerate(modes[:2] if isinstance(modes, list) else []):
                     if mode in ('Local', 'Remote'):
                         split.widget(side).change_mode(mode)
+                self.apply_pane_order(split)
                 state = item.get('splitter', '')
                 if isinstance(state, str) and len(state) < 16384:
                     try:
@@ -91,6 +92,19 @@ class Workspaces:
                               splitter=bytes(getattr(split, '_workspace_saved_state', split.saveState())).hex()))
         self.preferences.setValue('Workspaces/session', json.dumps(dict(items=items, current=self.tabs.currentIndex())))
         self.preferences.sync()
+
+    def apply_pane_order(self, split=None):
+        order = self.preferences.value('Display/pane_order', 'Site then Local', type=str)
+        splitters = [split] if split is not None else [self.tabs.widget(i) for i in range(self.tabs.count())]
+        for workspace in splitters:
+            if workspace is None or workspace.count() != 2:
+                continue
+            first, second = workspace.widget(0), workspace.widget(1)
+            local_first = order == 'Local then Site'
+            should_swap = (local_first and first.mode != 'Local' and second.mode == 'Local'
+                           or not local_first and first.mode == 'Local' and second.mode != 'Local')
+            if should_swap:
+                workspace.insertWidget(0, second)
 
     def refresh_workspace_names(self):
         if hasattr(self, 'workspace_navigation'):
@@ -235,6 +249,7 @@ class Workspaces:
         for key in ('navigate_tabs', 'multiple_lines', 'tabs_bottom', 'limit_tab_width', 'large_icons'):
             self.preferences.setValue('Layout/' + key, DEFAULTS[key])
         self.preferences.setValue('Display/pane_layout', 'Side by side')
+        self.preferences.setValue('Display/pane_order', 'Site then Local')
         self._manual_panel_layout = False
         for index, panel in enumerate((self.workspace_panel, self.log_tabs, self.queue_panel)):
             self.work_area.insertWidget(index, panel)
@@ -246,6 +261,7 @@ class Workspaces:
             if hasattr(split, '_workspace_saved_state'):
                 del split._workspace_saved_state
             split.setOrientation(Qt.Orientation.Horizontal)
+            self.apply_pane_order(split)
             split.setSizes([1, 1])
             trees.extend(split.widget(side).tree for side in range(2))
         self.header_rows.reset()

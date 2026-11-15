@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from PySide6.QtCore import Qt, QMimeData, QSignalBlocker, QByteArray, QTimer
 from PySide6.QtGui import QDrag, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
-    QLineEdit, QMainWindow, QMenu, QMessageBox, QStyle, QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem,
+    QLineEdit, QMainWindow, QMenu, QMessageBox, QSizePolicy, QStyle, QToolBar, QToolButton, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget)
 
 from .browse_session import BrowseSession
@@ -228,7 +228,7 @@ class Pane(QWidget):
         self.filter = QLineEdit()
         self.filter.setAccessibleName(side + ' pane filename filter')
         self.filter.setPlaceholderText("Filter…")
-        self.filter.setMaximumWidth(180)
+        self.filter.setMaximumWidth(420)
         self.filter.setMinimumWidth(60)
         self.filter.textChanged.connect(self.filter_rows)
         self.filter_toolbar = QToolBar(f'Pane {self.number} filter', self.control_host)
@@ -236,6 +236,8 @@ class Pane(QWidget):
         self.filter_toolbar.setMovable(movable_toolbars)
         self.filter_toolbar.setFloatable(movable_toolbars)
         self.filter_toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
+        self.filter_toolbar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.filter.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.filter_toolbar.addWidget(self.filter)
         self.control_host.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
         self.control_host.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.address_toolbar)
@@ -502,6 +504,9 @@ class Pane(QWidget):
         self.generation += 1
         self.window.view_commands.options.apply()
         self.refresh()
+        if not getattr(self.window, '_restoring_workspaces', False):
+            self.window.apply_pane_order(self.parentWidget())
+            self.window.save_workspaces()
 
     def go_local(self):
         if not self.busy:

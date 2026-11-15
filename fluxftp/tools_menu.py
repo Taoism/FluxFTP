@@ -69,7 +69,7 @@ class ToolsMenu(QObject):
         english.setChecked(True)
         english.setEnabled(False)
         self.menu.addSeparator()
-        self.choice('Layout', 'Display/pane_layout', ('Side by side', 'Stacked'), 'Side by side', self.layout)
+        self.menu.addMenu('Layout')
         self.menu.addSeparator()
         self.add('Hotkey Manager…')
         from .tray_menu import manual_download
@@ -126,6 +126,7 @@ class ToolsMenu(QObject):
         menu.aboutToShow.connect(self.update)
 
     def layout(self, value):
+        self.window.preferences.setValue('Display/pane_layout', value)
         orientation = Qt.Orientation.Horizontal if value == 'Side by side' else Qt.Orientation.Vertical
         for index in range(self.window.tabs.count()):
             split = self.window.tabs.widget(index)
@@ -133,6 +134,11 @@ class ToolsMenu(QObject):
                 del split._workspace_saved_state
             split.setOrientation(orientation)
             self.window.initialize_pane_positions(split)
+        self.window.save_workspaces()
+
+    def pane_order(self, value):
+        self.window.preferences.setValue('Display/pane_order', value)
+        self.window.apply_pane_order()
         self.window.save_workspaces()
 
     def copy_current_path(self):

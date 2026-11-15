@@ -1070,6 +1070,8 @@ class PreferencesDialog(QDialog):
             self.toolbar_icon_size.valueChanged.connect(self.window.set_toolbar_icon_size)
             large_icons.toggled.connect(lambda value: self.toolbar_icon_size.setValue(32 if value else 16))
             self._combo(rows, 'Display/pane_layout', 'Pane arrangement', ['Side by side', 'Stacked'], 'Side by side', self._apply_layout)
+            self._combo(rows, 'Display/pane_order', 'Portrait pane order',
+                ['Site then Local', 'Local then Site'], 'Site then Local', self._apply_pane_order)
             rows = group('Performance')
             check(rows, 'disable_toolbar_updates', 'Disable Update Main FTP Toolbar')
             check(rows, 'double_buffer', 'Enable Double Buffer painting for Dock panel')
@@ -1815,6 +1817,10 @@ class PreferencesDialog(QDialog):
             self.window.tabs.widget(i).setOrientation(orientation)
             if getattr(self.window, '_panel_positions_ready', False):
                 self.window.initialize_pane_positions(self.window.tabs.widget(i))
+
+    def _apply_pane_order(self, _value):
+        self.window.apply_pane_order()
+        self.window.save_workspaces()
 
 
 

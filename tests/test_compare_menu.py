@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QSizePolicy
 from fluxftp.core import Entry
 from test_queue import window
 
@@ -18,6 +19,13 @@ def rows(pane):
     return {pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole).name: pane.tree.topLevelItem(i)
             for i in range(pane.tree.topLevelItemCount())
             if pane.tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) is not None}
+
+
+def test_pane_filter_toolbar_can_expand(window):
+    left, _ = window.current_panes()
+    assert left.filter.maximumWidth() >= 400
+    assert left.filter.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    assert left.filter_toolbar.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
 
 
 def test_compare_options_and_selection(window):

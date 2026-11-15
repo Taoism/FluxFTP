@@ -19,6 +19,23 @@ def test_defaults_and_persistence(window):
     dialog.close()
 
 
+def test_portrait_layout_and_site_local_order(window):
+    split = window.tabs.currentWidget()
+    window.current_panes()[0].change_mode('Local')
+    assert [pane.mode for pane in window.current_panes()] == ['Remote', 'Local']
+
+    window.layout_commands.pane_order_actions['Local then Site'].trigger()
+    assert [pane.mode for pane in window.current_panes()] == ['Local', 'Remote']
+    window.layout_commands.pane_arrangement_actions['Stacked'].trigger()
+    assert split.orientation() == Qt.Orientation.Vertical
+    assert window.preferences.value('Display/pane_order') == 'Local then Site'
+
+    window.add_workspace()
+    new_split = window.tabs.currentWidget()
+    assert new_split.orientation() == Qt.Orientation.Vertical
+    assert [pane.mode for pane in window.current_panes()] == ['Local', 'Remote']
+
+
 def test_wrapping_selection_closing_width_and_bottom(window):
     window.preferences.setValue('Layout/limit_tab_width', True)
     window.preferences.setValue('Layout/tab_width', 100)

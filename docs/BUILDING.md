@@ -61,9 +61,9 @@ smoke check and bundled rclone version check before reporting success.
 ## Source environment
 
 Use Windows x64 and Python 3.13 for the primary development path. The project
-declares Python 3.11 or newer; the maintained release was validated with a custom
-Python 3.13.15 / OpenSSL 3.5.8 runtime. That custom runtime is not downloaded or
-installed by this repository.
+declares Python 3.11 or newer; the maintained Windows release uses OpenSSL 4.1.x
+by default and retains OpenSSL 3.5.x as its bundled legacy fallback. The custom
+runtime and OpenSSL 4 adapter are not downloaded or installed by this repository.
 
 ```powershell
 py -3.13 -m venv .venv
@@ -147,8 +147,10 @@ build and does not update the published installation.
 ## Maintained release builder
 
 `build_windows.py` is retained as the release recipe. It intentionally requires
-Python 3.13.15 / OpenSSL 3.5.8, a verified patched rclone backend and a validated
-CPython/OpenSSL 4 adapter under `runtime/ssl4-adapter`. Those binary inputs are not
+Python 3.13.15 / OpenSSL 3.5.8 as its build interpreter, a verified patched rclone
+backend and a validated CPython/OpenSSL 4.1 adapter under `runtime/ssl4-adapter`.
+The application selects OpenSSL 4.1.x by default and retains OpenSSL 3.5.x as its
+legacy fallback. Those binary inputs are not
 present in this repository, so it is not the fresh-checkout build command.
 `release_tools.py` contains separate native packaging/signing helpers. Signing
 identities, certificates and private keys are never stored in this repository.
@@ -156,28 +158,30 @@ identities, certificates and private keys are never stored in this repository.
 Before a public binary release, complete package smoke tests, dependency/license
 review, artifact checksums and release notes. GitHub publishing is a separate step.
 
-## Automated public Windows releases
+## Automated public multi-platform releases
 
-Publishing a GitHub Release starts `.github/workflows/public-windows-release.yml`.
+Publishing a GitHub Release starts `.github/workflows/public-release.yml`.
 The tag must match the version in `pyproject.toml` (for example, `v0.133.0`).
-The workflow builds the pinned, patched rclone backend, runs the release-focused
-tests and source smoke check, builds and smoke-checks the Windows application,
-then prepares the public ZIP with license notices, a dependency inventory, a
-source-commit manifest and `SHA256SUMS.txt`. It uploads the ZIP and checksum file
-to the published GitHub Release. The workflow can replace those two assets when
-rerun; it does not replace the release notes or tag.
+The workflow builds the pinned, patched rclone backend, runs release-focused
+tests and source smoke checks, and builds the Ubuntu and Debian packages. The
+maintained Windows builder requires the separately validated OpenSSL 4.1 adapter
+and OpenSSL 3.5.8 base runtime. Build and smoke-check that package locally with
+`build_windows.py`, then prepare its ZIP with `scripts/package_windows_release.py`.
+Attach the Windows ZIP and its `SHA256SUMS.txt` to the draft release before
+publishing. The workflow validates that asset and attaches the Ubuntu and Debian
+packages and checksums.
 
-Before a public release, use **Actions → Public Windows release → Run workflow**
-with the candidate tag and leave **publish_assets** disabled. This produces a
-30-day workflow artifact without changing a GitHub Release. Review the package,
-manifest and smoke results first. The published-release trigger attaches assets
-automatically; a deliberate manual run can also attach them to an existing
-release by enabling **publish_assets**.
+Before a public release, push the candidate tag and use **Actions → Public
+multi-platform release → Run workflow** with `publish_assets` disabled. This
+produces 30-day Ubuntu and Debian artifacts and runs release checks without
+changing a GitHub Release. Prepare and attach the maintained Windows ZIP and
+checksum to a draft release, then publish it. A manual run can attach Ubuntu and
+Debian assets to an existing release by enabling `publish_assets`.
 
-The workflow currently produces an unsigned Windows package with the pinned
-dependency set and the hosted Python 3.13.15 TLS runtime. It does not use the
-separately maintained custom OpenSSL 3.5.8 / OpenSSL 4 adapter package path, and
-should not replace a validated package until that runtime difference is reviewed.
+The workflow's Windows job runs release checks but its hosted development
+package is not the published Windows artifact. Publish the Windows ZIP from the
+maintained builder so it includes the OpenSSL 4.1 default and OpenSSL 3.5.8
+legacy runtime.
 It does not claim to sign or notarize Windows, macOS or Linux releases.
 Code-signing identities and the required non-Windows build hosts remain separate
 prerequisites.

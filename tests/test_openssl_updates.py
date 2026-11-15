@@ -155,6 +155,7 @@ def test_rejected_runtime_cannot_be_reactivated(tmp_path, monkeypatch):
 def prepare_bootstrap(tmp_path, monkeypatch):
     directory = make_pair(tmp_path)
     runtime.write_json(tmp_path / 'selected.json', {'directory': directory.name})
+    runtime.write_json(tmp_path / 'branch.json', {'major': 3})
     monkeypatch.setattr(runtime, 'root', lambda: tmp_path)
     monkeypatch.setattr(runtime, 'probe', lambda _: None)
     monkeypatch.setattr(sys, 'frozen', True, raising=False)

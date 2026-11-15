@@ -37,11 +37,12 @@ def test_tools_reference_and_shortcuts(window, monkeypatch):
 
 def test_tools_shared_preferences_and_layout(window):
     commands = window.tools_commands
-    for key, value in [('Transfer/mode', 'ASCII'), ('Transfer/completed', 'Disconnect'),
-                       ('Display/pane_layout', 'Stacked')]:
+    for key, value in [('Transfer/mode', 'ASCII'), ('Transfer/completed', 'Disconnect')]:
         action = next(a for a, k, v, _ in commands.choices if k == key and v == value)
         action.trigger()
         assert window.preferences.value(key) == value
+    window.layout_commands.pane_arrangement_actions['Stacked'].trigger()
+    assert window.preferences.value('Display/pane_layout') == 'Stacked'
     assert window.tabs.currentWidget().orientation() == Qt.Orientation.Vertical
     window.preferences.setValue('Transfer/mode', 'Auto')
     commands.update()
