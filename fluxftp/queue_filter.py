@@ -155,7 +155,7 @@ class QueueFilter(QObject):
         jobs = {id(job['row']): job for job in self.window.queue_jobs}
         all_rows = list(rows(self.window.queue))
         for row in reversed(all_rows):
-            item = jobs.get(id(row), dict(name=row.text(0), src=row.text(5), dst=row.text(6),
+            item = jobs.get(id(row), dict(name=row.text(0), src=row.text(6), dst=row.text(7),
                                         state=row.data(0, STATE_ROLE) or 'queued'))
             visible = matches(item, query, state) or any(not row.child(i).isHidden() for i in range(row.childCount()))
             row.setHidden(not visible)

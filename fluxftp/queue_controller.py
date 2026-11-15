@@ -30,15 +30,15 @@ class QueueController:
     def on_event(self, event):
         job = event.job
         if event.kind == 'retry':
-            job['row'].setText(7, f"{job['route']} · Retry {job['retries']}/{event.detail} queued")
+            job['row'].setText(8, f"{job['route']} · Retry {job['retries']}/{event.detail} queued")
             set_queue_state(job['row'], 'idle', self.window.preferences)
         elif event.kind == 'reset':
-            job['row'].setText(7, f"{job['route']} · Queued")
+            job['row'].setText(8, f"{job['route']} · Queued")
             set_queue_state(job['row'], 'idle', self.window.preferences)
         elif event.kind == 'cancelled':
             job['row'].setData(0, STATE_ROLE, 'cancelled')
             update_group(self.window, job['row'])
-            job['row'].setText(7, f"{job['route']} · Cancelled")
+            job['row'].setText(8, f"{job['route']} · Cancelled")
             set_queue_state(job['row'], 'idle', self.window.preferences)
 
     def start_next(self):
@@ -57,33 +57,41 @@ class QueueController:
             if job.get('needs_credentials'):
                 w.pending.insert(job_index, job)
                 w.paused = True
-                w.statusBar().showMessage('Restored queue needs credentials. Press Play to continue.')
+                w.statusBar().showMessage('Restored queue needs credentials. Use Start Queue to continue.')
                 return
             w.queue_engine.begin(job)
             job['row'].setData(0, STATE_ROLE, 'active')
             record = w._transfer_record(job)
             record['job'] = job
             row, task, route = record["row"], record["task"], record["route"]
-            row.setText(7, f"{route} · " + ('Opening folder…' if job.get('streaming_folder') else 'Scanning folder…' if job.get('directory') else 'Transferring'))
+            row.setText(8, f"{route} · " + ('Opening folder…' if job.get('streaming_folder') else 'Scanning folder…' if job.get('directory') else 'Transferring'))
             set_queue_state(row, 'connecting', w.preferences)
             if job.get('streaming_folder'):
                 from .queue_tree import PROGRESS_ROLE, STREAM_ROLE
                 row.setData(0, STREAM_ROLE, True)
                 row.setData(3, Qt.ItemDataRole.UserRole, [0, 0])
                 row.setText(3, '0 B')
-                row.setText(4, '—')
+                row.setText(5, '—')
                 row.setToolTip(3, 'Cumulative bytes uploaded across files in this folder during this attempt.')
-                row.setToolTip(4, 'Folder size is not pre-scanned.')
+                row.setToolTip(5, 'Folder size is not pre-scanned.')
+                row.setText(4, '0/—')
                 row.setData(1, PROGRESS_ROLE, 0)
                 row.setToolTip(1, 'Current file progress; the full folder size is not calculated before uploading.')
-            row.setToolTip(7, '')
+            row.setToolTip(8, '')
             if w.preferences.value('Queue/show_paths', False, type=bool):
-                w.log.appendPlainText(f"{route}: {row.text(5)} -> {row.text(6)}")
+                w.log.appendPlainText(f"{route}: {row.text(6)} -> {row.text(7)}")
             def done(result, target=row, transfer_route=route, current=job):
+                def finish_streamed_file():
+                    if current.get('streaming_file_active'):
+                        completed = current.get('streaming_files_done', 0) + 1
+                        current['streaming_files_done'] = completed
+                        current['streaming_file_active'] = False
+                        target.setText(4, f'{completed}/{completed}')
+                finish_streamed_file()
                 if isinstance(result, dict) and result.get('paused'):
                     from .queue_tree import PROGRESS_ROLE
                     current['state'] = 'queued'
-                    target.setText(7, f'{transfer_route} · Paused before next file')
+                    target.setText(8, f'{transfer_route} · Paused before next file')
                     set_queue_state(target, 'idle', w.preferences)
                     target.setData(1, PROGRESS_ROLE, None)
                     target.setText(1, 'Paused')
@@ -93,7 +101,7 @@ class QueueController:
                     close = getattr(result['planned'], 'close', None)
                     if close: close()
                     current['state'] = 'cancelled'
-                    target.setText(7, f'{transfer_route} · Cancelled')
+                    target.setText(8, f'{transfer_route} · Cancelled')
                     set_queue_state(target, 'idle', w.preferences)
                     return
                 current['state'] = 'complete'
@@ -105,29 +113,29 @@ class QueueController:
                         else:
                             w.expand_queue_files(current, result['planned'])
                     for message in result.get('messages', []): w.log.appendPlainText(message)
-                    if result.get('messages'): target.setToolTip(7, '\n'.join(result['messages']))
+                    if result.get('messages'): target.setToolTip(8, '\n'.join(result['messages']))
                     if result.get('crc_errors'):
                         current['transfer_outcome'] = 'failed'
                         w.register_crc_failures(current, result['crc_errors'])
                         if not current.get('crc_job'):
-                            target.setText(7, f'{transfer_route} · Finished with CRC failures')
+                            target.setText(8, f'{transfer_route} · Finished with CRC failures')
                         set_queue_state(target, 'error', w.preferences)
                         return
                 for old, new in result.get("renamed", []) if isinstance(result, dict) else []:
                     w.log.appendPlainText(f"Auto Rename: {old} -> {new}")
-                    if target.text(6) == old:
+                    if target.text(7) == old:
                         current['actual_dst'] = new
-                        target.setText(6, new)
+                        target.setText(7, new)
                 skipped_items = result.get("skipped", []) if isinstance(result, dict) else []
                 skipped_directories = result.get('skipped_directories', set()) if isinstance(result, dict) else set()
                 skipped_root = isinstance(result, dict) and result.get("transferred") is False
                 color = QBrush(QColor(w.preferences.value("Transfer/skip_color", "#ff0000", type=str)))
                 if skipped_root:
                     current['transfer_outcome'] = 'skipped'
-                    target.setText(7, f"{transfer_route} · Skipped")
+                    target.setText(8, f"{transfer_route} · Skipped")
                     set_queue_state(target, 'connected', w.preferences)
                     target.setText(1, "—")
-                    target.setToolTip(7, skipped_items[0][1] if skipped_items else "Skip List")
+                    target.setToolTip(8, skipped_items[0][1] if skipped_items else "Skip List")
                     for column in range(target.columnCount()):
                         target.setForeground(column, color)
                 for path, reason in skipped_items:
@@ -137,8 +145,8 @@ class QueueController:
                     if current.get('directory'):
                         append_transfer_log(w, f"[{current.get('source_side', 1)}] Skip [{path}] {reason}")
                     if not skipped_root and path not in skipped_directories:
-                        skipped_row = QTreeWidgetItem([Path(path).name, "—", "—", "—", "—", path, "", f"{transfer_route} · Skipped"])
-                        skipped_row.setToolTip(7, reason)
+                        skipped_row = QTreeWidgetItem([Path(path).name, "—", "—", "—", "—", "—", path, "", f"{transfer_route} · Skipped"])
+                        skipped_row.setToolTip(8, reason)
                         set_queue_state(skipped_row, 'connected', w.preferences)
                         for column in range(skipped_row.columnCount()):
                             skipped_row.setForeground(column, color)
@@ -152,21 +160,21 @@ class QueueController:
                     from .queue_tree import PROGRESS_ROLE
                     target.setData(1, PROGRESS_ROLE, 100)
                 current['transfer_outcome'] = 'complete'
-                total = target.data(4, Qt.ItemDataRole.UserRole) or 0
+                total = target.data(5, Qt.ItemDataRole.UserRole) or 0
                 if not current.get('streaming_folder'):
                     target.setData(3, Qt.ItemDataRole.UserRole, [total, total])
                 else:
                     target.setText(2, '0 B/s')
-                target.setText(7, f"{transfer_route} · Complete")
+                target.setText(8, f"{transfer_route} · Complete")
                 set_queue_state(target, 'connected', w.preferences)
                 w.log.appendPlainText(f"Complete: {target.text(0)} ({transfer_route})")
             def failed(message, target=row, transfer_route=route, current=job):
                 w.queue_batch_failed = True
                 current['state'] = 'cancelled' if 'Cancelled:' in message else 'failed'
                 current['transfer_outcome'] = current['state']
-                target.setText(7, f"{transfer_route} · " + ("Cancelled" if "Cancelled:" in message else "Failed"))
+                target.setText(8, f"{transfer_route} · " + ("Cancelled" if "Cancelled:" in message else "Failed"))
                 set_queue_state(target, 'idle' if 'Cancelled:' in message else 'error', w.preferences)
-                target.setToolTip(7, message)
+                target.setToolTip(8, message)
                 w.log.appendPlainText(f"{target.text(0)}: {message}")
             transfer_id = uuid.uuid4().hex
             def queue_error(error, current=job, current_record=record, fail=failed, job_id=transfer_id):
@@ -187,11 +195,16 @@ class QueueController:
                     if current_record.get('finish_deferred'):
                         QTimer.singleShot(0, lambda: w.transfer_finished(job_id))
             worker = w.run(task, done, queue_error, raw_failure=True, autostart=False)
-            def current_file(src, dst, target=row, transfer_route=route):
+            def current_file(src, dst, target=row, transfer_route=route, current=job):
+                if current.get('streaming_file_active'):
+                    completed = current.get('streaming_files_done', 0) + 1
+                    current['streaming_files_done'] = completed
+                    target.setText(4, f'{completed}/—')
+                current['streaming_file_active'] = True
                 from .queue_tree import PROGRESS_ROLE
-                target.setText(7, f'{transfer_route} · {Path(src).name}')
+                target.setText(8, f'{transfer_route} · {Path(src).name}')
                 set_queue_state(target, transfer_state(transfer_route), w.preferences)
-                target.setToolTip(7, f'{src}\n→ {dst}\nProgress is for the current file; folder total is not pre-scanned.')
+                target.setToolTip(8, f'{src}\n→ {dst}\nProgress is for the current file; folder total is not pre-scanned.')
                 target.setText(1, '0%')
                 target.setData(1, PROGRESS_ROLE, 0)
             def pause_changed(paused, target=row, current=job, transfer_route=route):
@@ -201,7 +214,7 @@ class QueueController:
                     from .queue_tree import RATE_ROLE
                     target.setData(0, RATE_ROLE, 0)
                     update_group(w, target)
-                target.setText(7, f"{transfer_route} · " + ('Paused' if paused else 'Transferring'))
+                target.setText(8, f"{transfer_route} · " + ('Paused' if paused else 'Transferring'))
                 set_queue_state(target, 'idle' if paused else transfer_state(transfer_route), w.preferences)
             worker.pause_changed.connect(pause_changed)
             worker.file_started.connect(current_file)
@@ -307,7 +320,7 @@ class QueueController:
         w.transfer_history.cancelled(w.pending)
         for record in w.queue_engine.cancel():
             record['worker'].cancel.set()
-            record['row'].setText(7, f"{record['route']} · Cancelling…")
+            record['row'].setText(8, f"{record['route']} · Cancelling…")
         w.statusBar().showMessage('Stopping active transfers and clearing the queue' if w.active else 'Transfer queue stopped')
         w.save_queue_state()
 
@@ -322,5 +335,5 @@ class QueueController:
         w.transfer_history.cancelled(job for job in w.pending if job['row'] in rows)
         for record in w.queue_engine.cancel(jobs):
             record['worker'].cancel.set()
-            record['row'].setText(7, f"{record['route']} · Cancelling…")
+            record['row'].setText(8, f"{record['route']} · Cancelling…")
         w.save_queue_state()

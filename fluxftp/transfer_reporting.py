@@ -19,7 +19,7 @@ def update_group(window, row):
     unique = {}
     for i in range(parent.childCount()):
         child = parent.child(i)
-        key = child.text(5), child.text(6)
+        key = child.text(6), child.text(7)
         if key not in unique or child.data(0, RETRY_ROLE):
             unique[key] = child
     meta = parent.data(0, BUFFER_ROLE) or {}
@@ -32,7 +32,7 @@ def update_group(window, row):
         state = child.data(0, STATE_ROLE) or 'queued'
         states.append(state)
         progress = child.data(3, Qt.ItemDataRole.UserRole) or [0, 0]
-        size = max(0, child.data(4, Qt.ItemDataRole.UserRole) or progress[1])
+        size = max(0, child.data(5, Qt.ItemDataRole.UserRole) or progress[1])
         received = min(size, max(0, progress[0]))
         total += size
         done += received
@@ -45,7 +45,7 @@ def update_group(window, row):
     parent.setText(1, f'{percent}%')
     parent.setData(1, PROGRESS_ROLE, percent)
     parent.setData(3, Qt.ItemDataRole.UserRole, [done, total])
-    parent.setData(4, Qt.ItemDataRole.UserRole, total)
+    parent.setData(5, Qt.ItemDataRole.UserRole, total)
     from .queue_tree import JOB_ID_ROLE
     model_job = getattr(window, 'job_views', {}).get(parent.data(0, JOB_ID_ROLE))
     if model_job is not None: model_job.model.set('size', total)
@@ -62,27 +62,28 @@ def update_group(window, row):
     parent.setToolTip(2, 'Combined transfer speed for this folder (rolling 5-second average).')
     parent.setToolTip(1, 'Overall progress, including completed and skipped files.')
     parent.setText(3, f'{window.file_size(done)} / {window.file_size(total)}')
-    parent.setText(4, window.file_size(total))
-    parent.setText(7, f'{complete}/{count} files' + (f" · {meta['remaining']} buffered" if meta.get('remaining') else '') + (' · Failed' if 'failed' in states else
-                   ' · Cancelled' if 'cancelled' in states else ' · Complete' if count and complete == count else ''))
+    parent.setText(4, f'{complete}/{count}')
+    parent.setText(5, window.file_size(total))
+    parent.setText(8, (f"{meta['remaining']} buffered" if meta.get('remaining') else '') + ('Failed' if 'failed' in states else
+                   'Cancelled' if 'cancelled' in states else 'Complete' if count and complete == count else ''))
 
 
 def finish(window, job, worker):
     row = job['row']
     state = job.get('transfer_outcome') or job.get('state', 'failed')
     if job.get('directory') and state in ('failed', 'cancelled'):
-        append(window, f"[{job.get('source_side', 1)}] {state.upper()} [{row.text(0)}] {row.toolTip(7)}")
+        append(window, f"[{job.get('source_side', 1)}] {state.upper()} [{row.text(0)}] {row.toolTip(8)}")
     if not job.get('directory'):
         side = job.get('source_side', 1) if job['route'] != 'Upload' else job.get('destination_side', 2)
-        size = row.data(4, Qt.ItemDataRole.UserRole) or 0
+        size = row.data(5, Qt.ItemDataRole.UserRole) or 0
         elapsed = max(.001, time.monotonic() - worker.started_at)
         name = job.get('name', row.text(0))
         if state == 'complete':
             append(window, f'[{side}] {name} {size} bytes/{elapsed:.2f}s/{size / elapsed / 1024:.2f} KBps')
         elif state == 'skipped':
-            append(window, f'[{side}] Skip [{name}] {row.toolTip(7)}')
+            append(window, f'[{side}] Skip [{name}] {row.toolTip(8)}')
         else:
-            append(window, f'[{side}] {state.upper()} [{name}] {row.toolTip(7)}')
+            append(window, f'[{side}] {state.upper()} [{name}] {row.toolTip(8)}')
     row.setData(0, STATE_ROLE, job.get('state') if job.get('state') in ('queued', 'active') else state)
     row.setData(0, RATE_ROLE, 0)
     update_group(window, row)
@@ -104,7 +105,7 @@ def finish(window, job, worker):
         if key not in latest or member.get('crc_job'): latest[key] = member
     successes = [j for j in latest.values() if j.get('state') == 'complete' and j.get('transfer_outcome', 'complete') == 'complete']
     failures = sum(j.get('state') in ('failed', 'cancelled') for j in latest.values())
-    total = sum(j['row'].data(4, Qt.ItemDataRole.UserRole) or 0 for j in successes) + meta.get('bytes', 0)
+    total = sum(j['row'].data(5, Qt.ItemDataRole.UserRole) or 0 for j in successes) + meta.get('bytes', 0)
     started = min(j.get('transfer_started', time.monotonic()) for j in members)
     if meta.get('started'): started = min(started, meta['started'])
     elapsed = max(.001, time.monotonic() - started)

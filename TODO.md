@@ -6,6 +6,16 @@ remaining companion requirements are combined here as well.
 
 ## Open work
 
+### Security and vulnerability review
+
+- [ ] Audit FluxFTP and its shipped dependencies for known CVEs and other
+  security vulnerabilities; fix confirmed issues and keep the dependency
+  versions and review results current. Prioritize the Windows self-updater:
+  its elevated PowerShell helper and configuration are written to predictable,
+  user-writable temporary paths, creating a potential local privilege
+  escalation. Use securely created, access-controlled temporary files and
+  validate the update package before installing it.
+
 ### Platform builds and release
 
 - [x] Build an x86_64 Ubuntu/Debian Linux package as a portable `.tar.gz`.
@@ -37,8 +47,8 @@ remaining companion requirements are combined here as well.
   validation.
 - [ ] Build a FluxFTP website with product overview, screenshots,
   downloads/releases, documentation and support links.
-- [ ] Create a Flux capacitor inspired FluxFTP application icon and logo,
-  reflecting the name's Back to the Future reference.
+- [x] Create an original Flux Capacitor inspired FluxFTP icon and wordmark;
+  wire the icon into the desktop window and Windows packaging.
 
 ### Desktop features
 
@@ -46,8 +56,9 @@ remaining companion requirements are combined here as well.
   keep workspace tabs beneath the Workspaces heading and mark duplicated tab
   pairs, and start Quick Connect with blank fields.
 - [x] Put workspace tabs and a new-workspace button beside the single
-  Workspaces heading, keep generic workspace names, and show a close button on
-  the active tab only when multiple workspaces are open.
+  Workspaces heading, name tabs after connected sites (both site names for
+  FXP), and show a close button on the active tab only when multiple workspaces are open.
+- [x] Add a Files progress column to the transfer queue for folder transfers.
 - [x] Add right-click Hide panel actions and saved-site Edit site actions to
   the Workspaces site menus.
 

@@ -181,10 +181,10 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.queue = QueueTree()
     self.queue.setAccessibleName('Transfer queue')
     self.queue.setAlternatingRowColors(True)
-    self.queue.setHeaderLabels(["Name", "Progress", "Speed", "Transferred", "Size", "Source path", "Target path", "Remark"])
+    self.queue.setHeaderLabels(["Name", "Progress", "Speed", "Transferred", "Files", "Size", "Source path", "Target path", "Remark"])
     self.queue.setIconSize(QSize(32, 32))
     self.queue.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-    for col in (5, 6):
+    for col in (6, 7):
         self.queue.header().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
     self.queue.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
     self.queue_commands.install()

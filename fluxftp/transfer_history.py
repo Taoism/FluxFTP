@@ -93,7 +93,7 @@ def descriptor(window, job):
     item = {key: job[key] for key in ('src', 'dst', 'directory')}
     item.update(name=job.get('name') or Path(job['src']).name, resume=job.get('resume', False),
                 state='queued', retries=0, workspace=max(0, window.tabs.indexOf(job['workspace'])),
-                size=job['row'].data(4, Qt.ItemDataRole.UserRole),
+                size=job['row'].data(5, Qt.ItemDataRole.UserRole),
                 source_side=job.get('source_side', 1), destination_side=job.get('destination_side', 2))
     if job.get('job_id'): item['job_id'] = job['job_id']
     from .queue_job import QueueJob
@@ -142,7 +142,7 @@ class TransferHistory(QObject):
         secrets = (job.get('source_password', ''), job.get('destination_password', ''))
         self.write([dict(finished=time.time(), outcome=outcome, route=job['route'], src=item['src'], dst=item['dst'],
             size=item['size'], elapsed=max(0, elapsed),
-            detail=redact(detail if detail is not None else job['row'].toolTip(7), secrets)[:4096], descriptor=item,
+            detail=redact(detail if detail is not None else job['row'].toolTip(8), secrets)[:4096], descriptor=item,
             verification=job.get('verification', {}))])
 
     def cancelled(self, jobs):
@@ -202,7 +202,7 @@ class TransferHistory(QObject):
                 job.update(state='queued', held=True, scheduled_at=None, suppress_retry=False, retries=0, crc_attempt=0)
                 if job not in w.pending:
                     w.pending.append(job)
-                job['row'].setText(7, 'Queued from history · Held')
+                job['row'].setText(8, 'Queued from history · Held')
             else:
                 item.update(state='queued', held=True, workspace=w.tabs.currentIndex(), retries=0, scheduled_at=None)
                 was_paused = w.paused

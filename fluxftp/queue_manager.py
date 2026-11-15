@@ -100,11 +100,11 @@ class QueueManager(BufferedQueue):
             from .protocol_adapter import transfer_route
             route = transfer_route(source, destination)
             state = 'failed' if item['state'] == 'failed' else 'queued'
-            row = QTreeWidgetItem([item['name'], '0%', '—', '—', '—', item['src'], item['dst'], f'{route} · Restored {state}'])
+            row = QTreeWidgetItem([item['name'], '0%', '—', '—', '—', '—', item['src'], item['dst'], f'{route} · Restored {state}'])
             self.queue.addTopLevelItem(row)
             if item.get('size') is not None:
-                row.setData(4, Qt.ItemDataRole.UserRole, item['size'])
-                row.setText(4, self.file_size(item['size']))
+                row.setData(5, Qt.ItemDataRole.UserRole, item['size'])
+                row.setText(5, self.file_size(item['size']))
             job = dict(deepcopy(item), row=row, source_site=source, destination_site=destination,
                        workspace=self.tabs.widget(item['workspace']), route=route, state=state,
                        needs_credentials=True, options=transfer_settings(self.preferences, source, destination))
@@ -122,7 +122,7 @@ class QueueManager(BufferedQueue):
         if saved:
             self.paused = True
             self.queue_batch_failed = any(j['state'] == 'failed' for j in self.queue_jobs)
-            self.log.appendPlainText(f'Restored {len(saved)} unfinished queue item(s), paused. Press Play to continue.')
+            self.log.appendPlainText(f'Restored {len(saved)} unfinished queue item(s), paused. Use Start Queue to continue.')
 
     def prepare_job_identities(self, saved):
         """Keep recovery IDs; assign new IDs when importing duplicate live work."""
@@ -321,9 +321,9 @@ class QueueManager(BufferedQueue):
         parent['row'].setData(0, GROUP_ROLE, group['id'])
         for src, dst, size in files:
             name = posixpath.basename(src) if parent['source_site'] else Path(src).name
-            row = QTreeWidgetItem([name, '0%', '—', '—', self.file_size(size) if size is not None else '—',
+            row = QTreeWidgetItem([name, '0%', '—', '—', '—', self.file_size(size) if size is not None else '—',
                                   src, dst, parent['route'] + ' · Queued'])
-            if size is not None: row.setData(4, Qt.ItemDataRole.UserRole, size)
+            if size is not None: row.setData(5, Qt.ItemDataRole.UserRole, size)
             parent['row'].addChild(row)
             job = dict(parent, row=row, src=src, dst=dst, directory=False, automatic=True,
                        name=name, state='queued', retries=0, batch_active=True,
@@ -334,9 +334,9 @@ class QueueManager(BufferedQueue):
             job['task'] = self.make_queue_task(job)
             self.queue_jobs.append(job)
             self.pending.append(job)
-        parent['row'].setText(7, f"{parent['route']} · Expanded: {len(files)} files")
+        parent['row'].setText(8, f"{parent['route']} · Expanded: {len(files)} files")
         if isinstance(files, DiskBuffer): files.close()
-        parent['row'].setExpanded(True)
+        parent['row'].setExpanded(False)
         update_group(self, parent['row'])
         self.show_transfer_queue()
         self.save_queue_state()
@@ -362,13 +362,13 @@ class QueueManager(BufferedQueue):
                 row.addChildren(parent.takeChildren())
                 detach(self.queue, parent)
             self.queue.addTopLevelItem(row)
-            row.setExpanded(True)
+            row.setExpanded(False)
             return
         if parent is None:
-            parent = QTreeWidgetItem([group['name'], '', '', '', '', group['src'], group['dst'], 'Folder'])
+            parent = QTreeWidgetItem([group['name'], '', '', '', '0/0', '', group['src'], group['dst'], 'Folder'])
             parent.setData(0, GROUP_ROLE, group['id'])
             self.queue.addTopLevelItem(parent)
-            parent.setExpanded(True)
+            parent.setExpanded(False)
         parent.addChild(row)
         update_group(self, parent)
 
@@ -438,28 +438,28 @@ class QueueManager(BufferedQueue):
             if parent.get('crc_job'):
                 job = parent
             else:
-                row = QTreeWidgetItem([posixpath.basename(error['src']), '—', '—', '—', '—', error['src'], error['dst'], 'Download · CRC failed'])
+                row = QTreeWidgetItem([posixpath.basename(error['src']), '—', '—', '—', '—', '—', error['src'], error['dst'], 'Download · CRC failed'])
                 job = dict(parent, row=row, src=error['src'], dst=error['dst'], directory=False,
                            name=posixpath.basename(error['src']), resume=False, crc_job=True, crc_attempt=0,
                            crc_root=parent.get('crc_root') or (parent['src'] if parent['directory'] else posixpath.dirname(parent['src']) or '/'),
                            options=replace(parent['options'], exists_enabled=False, skip_enabled=False))
                 job = self.new_queue_job(job, fresh=True)
                 self.attach_queue_row(job)
-                row.setData(4, Qt.ItemDataRole.UserRole, parent['row'].data(4, Qt.ItemDataRole.UserRole))
+                row.setData(5, Qt.ItemDataRole.UserRole, parent['row'].data(5, Qt.ItemDataRole.UserRole))
                 row.setData(0, RETRY_ROLE, True)
                 job['task'] = self.make_queue_task(job)
                 self.queue_jobs.append(job)
             job['state'] = 'failed'
             job['row'].setData(0, STATE_ROLE, 'failed')
-            job['row'].setText(7, 'Download · CRC failed')
+            job['row'].setText(8, 'Download · CRC failed')
             from .connection_state_icons import set_queue_state
             set_queue_state(job['row'], 'error', self.preferences)
-            job['row'].setToolTip(7, error['message'])
+            job['row'].setToolTip(8, error['message'])
             if not job.get('suppress_retry') and job.get('crc_attempt', 0) < job['options'].crc_retries:
                 job['crc_attempt'] = job.get('crc_attempt', 0) + 1
                 job['state'] = 'queued'
                 job['row'].setData(0, STATE_ROLE, 'queued')
-                job['row'].setText(7, f"Download · CRC retry {job['crc_attempt']} queued")
+                job['row'].setText(8, f"Download · CRC retry {job['crc_attempt']} queued")
                 from .connection_state_icons import set_queue_state
                 set_queue_state(job['row'], 'idle', self.preferences)
                 self.pending.append(job)
@@ -513,7 +513,7 @@ class QueueManager(BufferedQueue):
             if job.get('state') in ('queued', 'failed'):
                 if job.get('state') == 'queued': self.transfer_history.cancelled([job])
                 job['state'] = 'cancelled'
-                job['row'].setText(7, f"{job['route']} · Cleared")
+                job['row'].setText(8, f"{job['route']} · Cleared")
                 from .connection_state_icons import set_queue_state
                 set_queue_state(job['row'], 'idle', self.preferences)
                 if job in self.pending: self.pending.remove(job)

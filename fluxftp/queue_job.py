@@ -29,7 +29,7 @@ class JobView(QObject):
         if event.field == 'state':
             self.row.setData(0, STATE_ROLE, event.value.value)
         elif event.field == 'size':
-            self.row.setData(4, Qt.ItemDataRole.UserRole, event.value)
+            self.row.setData(5, Qt.ItemDataRole.UserRole, event.value)
         elif event.field == 'progress':
             self.window.transfer_display_progress(self.row, *event.value)
 
@@ -45,7 +45,7 @@ class QueueJob(MutableMapping):
         row, workspace = values.pop('row'), values.pop('workspace')
         values.setdefault('name', row.text(0))
         self.runtime = {key: values.pop(key) for key in RUNTIME_FIELDS if key in values}
-        values.setdefault('size', row.data(4, Qt.ItemDataRole.UserRole))
+        values.setdefault('size', row.data(5, Qt.ItemDataRole.UserRole))
         self.model = JobModel(identity=values.pop('job_id', None), state=values.pop('state', 'queued'), **values)
         self.view = JobView(window, self.model, row, workspace)
 
@@ -82,5 +82,5 @@ def snapshot(window, job):
     # Compatibility for older extensions/tests that still create plain dictionaries.
     from .job_model import job_id
     job.setdefault('job_id', job_id())
-    values = dict(job, size=job['row'].data(4, Qt.ItemDataRole.UserRole))
+    values = dict(job, size=job['row'].data(5, Qt.ItemDataRole.UserRole))
     return queue_descriptor(values, max(0, window.tabs.indexOf(job['workspace'])))

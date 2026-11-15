@@ -204,7 +204,7 @@ class QueueMenu(QObject):
             w.release_queue_buffer(job, unschedule=True)
             if job not in w.pending:
                 w.pending.append(job)
-            job['row'].setText(7, f"{job['route']} · Queued")
+            job['row'].setText(8, f"{job['route']} · Queued")
             from .connection_state_icons import set_queue_state
             set_queue_state(job['row'], 'idle', w.preferences)
         self.release(jobs)
@@ -497,7 +497,7 @@ class QueueMenu(QObject):
             job.update(state='queued', retries=0, crc_attempt=0, suppress_retry=False, batch_active=True, scheduled_at=None)
             if job not in w.pending:
                 w.pending.append(job)
-            job['row'].setText(7, f"{job['route']} · Queued")
+            job['row'].setText(8, f"{job['route']} · Queued")
             from .connection_state_icons import set_queue_state
             set_queue_state(job['row'], 'idle', w.preferences)
         self.release(jobs)
@@ -537,7 +537,7 @@ class QueueMenu(QObject):
         self.release(jobs)
         for job in jobs:
             job['scheduled_at'] = timestamp
-            job['row'].setText(7, f"Scheduled {when.text()}")
+            job['row'].setText(8, f"Scheduled {when.text()}")
         w.tasks_log.appendPlainText(f'Scheduled {len(jobs)} queue item(s) for {when.text()} (local time).')
         w.save_queue_state()
         self.update()

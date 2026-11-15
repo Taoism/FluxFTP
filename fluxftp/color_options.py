@@ -3,6 +3,9 @@ from PySide6.QtGui import QColor, QSyntaxHighlighter, QTextCharFormat, QBrush
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QColorDialog, QInputDialog
 from PySide6.QtCore import Qt, Signal
 import json
+import textwrap
+
+FTP_LOG_LINE_WIDTH = 85
 
 LIST_DEFAULTS = {
     'remote': dict(selection='#3399ff', even='#ffffff', odd='#ffffff'),
@@ -243,10 +246,17 @@ class ColorOptions:
 
     def append_ftp_message(self, message, side):
         reply = message.startswith('FTP < ')
-        lines = message.split('\n')
-        self.ftp_log.appendPlainText('\n'.join(
-            f'[{side}] ' + ('FTP < ' if reply and index else '') + line
-            for index, line in enumerate(lines)))
+        command = message.startswith('FTP > ')
+        direction = 'FTP < ' if reply else 'FTP > ' if command else ''
+        output = []
+        for index, line in enumerate(message.splitlines() or ['']):
+            prefix = f'[{side}] ' + (direction if index else '')
+            continuation = f'[{side}] ' + direction
+            wrapped = textwrap.wrap(line, width=FTP_LOG_LINE_WIDTH,
+                initial_indent=prefix, subsequent_indent=continuation,
+                break_long_words=True, break_on_hyphens=False)
+            output.extend(wrapped or [prefix])
+        self.ftp_log.appendPlainText('\n'.join(output))
 
     def apply_colors(self):
         from .themes import apply_icons
@@ -268,6 +278,9 @@ class ColorOptions:
                             row.setBackground(column, brush)
                 if pane.site: self._log_site_sides[self._transfer_site_key(pane.site)] = side
         self.queue.setStyleSheet(list_style(self.preferences, 'queue'))
+        self.queue.setProperty('progressGradient', self.preferences.value(
+            'Colors/progress_gradient', True, type=bool))
+        self.queue.viewport().update()
         self.ftp_log.setStyleSheet(f"QPlainTextEdit {{ color:{color_value(self.preferences, 'log', 'command')}; background-color:{color_value(self.preferences, 'log', 'background')}; }}")
         if hasattr(self, 'ftp_command_input'):
             from .themes import palette_for, readable_text

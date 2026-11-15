@@ -95,8 +95,8 @@ class TransferQueue:
             resume = self.resume.isChecked()
             from .protocol_adapter import transfer_route
             route = transfer_route(src_site, dst_site)
-            row = QTreeWidgetItem([entry.name, "0%", "—", "—", self.file_size(entry.size), src, dst, f"{route} · Queued"])
-            row.setData(4, Qt.ItemDataRole.UserRole, entry.size)
+            row = QTreeWidgetItem([entry.name, "0%", "—", "—", "—", self.file_size(entry.size), src, dst, f"{route} · Queued"])
+            row.setData(5, Qt.ItemDataRole.UserRole, entry.size)
             if selection_buffer is None or entry.is_dir:
                 self.queue.addTopLevelItem(row)
             job = {
@@ -117,8 +117,8 @@ class TransferQueue:
                     buffer_parent = self.new_queue_job(job)
                     buffer_parent.update(name='Selected files', src=source.path, dst=dest.path)
                     row.setText(0, 'Selected files')
-                    row.setText(5, source.path)
-                    row.setText(6, dest.path)
+                    row.setText(6, source.path)
+                    row.setText(7, dest.path)
                     self.queue.addTopLevelItem(row)
                     self.queue_jobs.append(buffer_parent)
                     created_jobs.append(buffer_parent)
@@ -129,7 +129,7 @@ class TransferQueue:
             self.pending.append(job)
             created_jobs.append(job)
             if start is False:
-                row.setText(7, f'{route} · Held — press Play')
+                row.setText(8, f'{route} · Held — Start Queue')
         if buffer_parent is not None:
             self.install_queue_buffer(buffer_parent, selection_buffer)
         elif selection_buffer is not None:

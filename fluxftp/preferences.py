@@ -997,6 +997,12 @@ class PreferencesDialog(QDialog):
                 theme.currentTextChanged.connect(lambda value, scope=scope: self._set_color_theme(scope, value))
                 theme.textActivated.connect(lambda value, scope=scope: self._set_color_theme(scope, value))
                 form.addRow(box)
+            gradient = QCheckBox('Use dark-to-light gradient progress bars')
+            gradient.setChecked(self._value('Colors/progress_gradient', True, bool))
+            gradient.toggled.connect(lambda enabled: (
+                self.settings.setValue('Colors/progress_gradient', enabled), self.window.apply_colors()))
+            form.addRow('Queue progress:', gradient)
+            self.progress_gradient = gradient
             box = QGroupBox('FTP Log')
             grid = QGridLayout(box)
             for index, (role, label) in enumerate((('background', 'Background Color'), ('error', 'Error Message'),

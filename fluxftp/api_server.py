@@ -171,7 +171,7 @@ class ControlAPI(QObject):
             w.transfer_history.cancelled(job for job in w.pending if job['row'] in rows)
             for record in w.queue_engine.cancel(chosen):
                 record['worker'].cancel.set()
-                record['row'].setText(7, f"{record['route']} · Cancelling…")
+                record['row'].setText(8, f"{record['route']} · Cancelling…")
             w.save_queue_state()
             return 200, {'ok': True, 'cancelled': ids}
         if method == 'POST' and path == '/v1/transfers':
@@ -242,7 +242,7 @@ class ControlAPI(QObject):
             'progress': job.get('row').text(1) if job.get('row') else '',
             'transferred': job.get('row').text(3) if job.get('row') else '',
             'speed': job.get('row').text(2) if job.get('row') else '',
-            'status': job.get('row').text(7) if job.get('row') else ''}
+            'status': job.get('row').text(8) if job.get('row') else ''}
 
 
 def show_access_dialog(window):

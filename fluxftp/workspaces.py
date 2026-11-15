@@ -34,6 +34,7 @@ class Workspaces:
                     if parts and all(part in saved_site_names for part in parts):
                         name = f'Workspace {index + 1}'
                     self.tabs.setTabText(index, name)
+                split.setProperty('auto_workspace_name', bool(item.get('auto_name', name == f'Workspace {index + 1}')))
                 group = item.get('duplicate_group')
                 if isinstance(group, str) and group:
                     split.setProperty('duplicate_group', group[:80])
@@ -84,7 +85,7 @@ class Workspaces:
         items = []
         for index in range(self.tabs.count()):
             split = self.tabs.widget(index)
-            items.append(dict(name=self.tabs.tabText(index),
+            items.append(dict(name=self.tabs.tabText(index), auto_name=bool(split.property('auto_workspace_name')),
                               duplicate_group=split.property('duplicate_group'),
                               modes=[split.widget(side).mode for side in range(2)],
                               splitter=bytes(getattr(split, '_workspace_saved_state', split.saveState())).hex()))
@@ -108,9 +109,27 @@ class Workspaces:
         return f'{base} {index}'
 
     def update_connected_workspace_name(self, pane):
-        # Site connections must not rename workspaces; users can rename them
-        # explicitly through the tab or Workspaces list context menu.
-        return
+        workspace = next((self.tabs.widget(i) for i in range(self.tabs.count())
+                          if any(self.tabs.widget(i).widget(side) is pane for side in range(2))), None)
+        if workspace is None or not workspace.property('auto_workspace_name'):
+            return
+        index = self.tabs.indexOf(workspace)
+        connected = []
+        for side in range(2):
+            side_pane = workspace.widget(side)
+            site = getattr(side_pane, '_workspace_connected_site', None)
+            if site is not None:
+                connected.append(site.name.strip() or site.host.strip())
+        if connected:
+            name = ' | '.join(connected)
+            if len(name) > 80:
+                name = name[:77].rstrip() + '…'
+        else:
+            name = f'Workspace {index + 1}'
+        if self.tabs.tabText(index) != name:
+            self.tabs.setTabText(index, name)
+            self.refresh_workspace_names()
+            self.save_workspaces()
 
     def rename_workspace(self, index=None):
         index = self.tabs.currentIndex() if index is None else index
@@ -132,6 +151,7 @@ class Workspaces:
             self.error('Another workspace already uses that name.')
             return
         self.tabs.setTabText(index, name)
+        workspace.setProperty('auto_workspace_name', False)
         self.refresh_workspace_names()
         self.save_workspaces()
 

@@ -310,6 +310,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
             modes = ['Remote', 'Remote']
         orientation = Qt.Orientation.Horizontal if self.preferences.value("Display/pane_layout", "Side by side", type=str) == "Side by side" else Qt.Orientation.Vertical
         splitter = WorkspaceSplitter(orientation)
+        splitter.setProperty('auto_workspace_name', True)
         splitter.addWidget(Pane(self, "1", modes[0]))
         splitter.addWidget(Pane(self, "2", modes[1]))
         if hasattr(self, 'mouse_filter'):
@@ -362,6 +363,9 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         # The title-bar close button is an unconditional exit. Persist the queue
         # first, then ask all background work to stop; confirmation prompts and
         # active-transfer guards must not trap the user in the window.
+        # Save the visible main-window placement before shutdown changes panel
+        # geometry or stops the window-position observer.
+        self.window_positions.save(self)
         self.save_queue_state()
         for record in list(getattr(self, 'active', {}).values()):
             job = record.get('job')

@@ -297,9 +297,9 @@ class DisplayOptions:
             separator = ' - ' if self.display_value('hyphen_separator', False) else ' ↔ '
             self.tabs.setTabToolTip(index, separator.join(labels))
         for row in queue_rows(self.queue):
-            size = row.data(4, Qt.ItemDataRole.UserRole)
+            size = row.data(5, Qt.ItemDataRole.UserRole)
             streaming = row.data(0, STREAM_ROLE)
-            if size is not None: row.setText(4, '—' if streaming else self.file_size(size))
+            if size is not None: row.setText(5, '—' if streaming else self.file_size(size))
             progress = row.data(3, Qt.ItemDataRole.UserRole)
             if progress: row.setText(3, self.file_size(progress[0]) if streaming else f'{self.file_size(progress[0])} / {self.file_size(progress[1])}')
         self.apply_layout_settings()
@@ -317,10 +317,10 @@ class DisplayOptions:
             row.setData(1, PROGRESS_ROLE, percent)
         row.setText(2, human(rate * 1024) + '/s')
         row.setData(3, Qt.ItemDataRole.UserRole, [done, total])
-        row.setData(4, Qt.ItemDataRole.UserRole, total)
+        row.setData(5, Qt.ItemDataRole.UserRole, total)
         streaming = row.data(0, STREAM_ROLE)
         row.setText(3, self.file_size(done) if streaming else f'{self.file_size(done)} / {self.file_size(total)}')
-        row.setText(4, '—' if streaming else self.file_size(total))
+        row.setText(5, '—' if streaming else self.file_size(total))
         row.setData(0, RATE_ROLE, rate)
         update_group(self, row)
 

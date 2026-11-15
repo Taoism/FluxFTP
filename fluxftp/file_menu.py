@@ -33,6 +33,7 @@ class FileMenu:
         if duplicate_group:
             self.tabs.currentWidget().setProperty('duplicate_group', duplicate_group)
         self.tabs.setTabText(self.tabs.currentIndex(), title)
+        self.tabs.currentWidget().setProperty('auto_workspace_name', False)
         self.tabs.currentWidget().restoreState(splitter_state)
         for pane, state in zip(self.current_panes(), states):
             pane.local_path = state['local_path']

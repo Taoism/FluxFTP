@@ -465,7 +465,7 @@ class Pane(QWidget):
         self.generation += 1
         self.window.apply_display_settings()
 
-        if was_connected and site is None:
+        if was_connected:
             self.window.update_connected_workspace_name(self)
 
     def _set_mode_button(self, mode):

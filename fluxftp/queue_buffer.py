@@ -30,9 +30,9 @@ class BufferedQueue:
         parent.update(queue_group=group, queue_group_parent=True, buffer=descriptors,
                       directory=True, state='queued', buffered=True)
         parent['row'].setData(0, GROUP_ROLE, group['id'])
-        parent['row'].setExpanded(True)
+        parent['row'].setExpanded(False)
         parent['row'].setData(0, BUFFER_ROLE, dict(completed=0, bytes=0, remaining=len(descriptors), remaining_bytes=descriptors.bytes))
-        parent['row'].setToolTip(7, 'Pending files are buffered on disk. Select this folder to control the whole queue. Completed files are summarized here.')
+        parent['row'].setToolTip(8, 'Pending files are buffered on disk. Select this folder to control the whole queue. Completed files are summarized here.')
         if parent not in self.pending:
             self.pending.append(parent)
         self.refill_queue_buffers()
@@ -79,9 +79,9 @@ class BufferedQueue:
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QTreeWidgetItem
         from .queue_tree import STATE_ROLE
-        row = QTreeWidgetItem([item['name'], '0%', '—', '—', self.file_size(item['size']) if item.get('size') is not None else '—',
+        row = QTreeWidgetItem([item['name'], '0%', '—', '—', '—', self.file_size(item['size']) if item.get('size') is not None else '—',
                               item['src'], item['dst'], parent['route'] + ' · Queued'])
-        row.setData(4, Qt.ItemDataRole.UserRole, item.get('size'))
+        row.setData(5, Qt.ItemDataRole.UserRole, item.get('size'))
         job = dict(parent)
         job.pop('job_id', None)
         for key in ('buffer', 'buffered', 'task', 'transfer_started', 'suppress_retry', 'transfer_outcome', 'sync'):
@@ -124,7 +124,7 @@ class BufferedQueue:
         if not meta.get('started'):
             meta['started'] = job.get('transfer_started')
         meta['completed'] += 1
-        meta['bytes'] += row.data(4, Qt.ItemDataRole.UserRole) or 0
+        meta['bytes'] += row.data(5, Qt.ItemDataRole.UserRole) or 0
         parent.setData(0, BUFFER_ROLE, meta)
         # Drop the task closure too: it otherwise retains the removed job/Qt row.
         job.pop('task', None)

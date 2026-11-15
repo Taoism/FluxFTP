@@ -35,10 +35,10 @@ def pause_jobs(window, jobs):
         record = next((r for r in window.active.values() if r.get('job') is job), None)
         if record:
             record['worker'].transfer_control.requested.set()
-            job['row'].setText(7, f"{job['route']} · Pause requested; waiting for payload checkpoint")
+            job['row'].setText(8, f"{job['route']} · Pause requested; waiting for payload checkpoint")
             set_queue_state(job['row'], 'connected', window.preferences)
         else:
-            job['row'].setText(7, f"{job['route']} · Held")
+            job['row'].setText(8, f"{job['route']} · Held")
             set_queue_state(job['row'], 'idle', window.preferences)
     window.save_queue_state()
 
@@ -51,5 +51,5 @@ def resume_active(window, jobs):
         if job and id(job) in chosen:
             job['held'] = False
             record['worker'].transfer_control.requested.clear()
-            job['row'].setText(7, f"{job['route']} · Resuming")
+            job['row'].setText(8, f"{job['route']} · Resuming")
             set_queue_state(job['row'], transfer_state(job['route']), window.preferences)

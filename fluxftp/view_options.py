@@ -161,7 +161,7 @@ class ViewOptions:
                 header.setSectionResizeMode(column, QHeaderView.ResizeMode.Interactive)
                 if old_signature is None or old_signature[0] != group:
                     key = f'Display/column_width/{group}/{column}'
-                    defaults = ((200, 80, 90, 110, 90, 240, 240, 220) if group == 'queue' else
+                    defaults = ((200, 80, 90, 110, 70, 90, 240, 240, 220) if group == 'queue' else
                                 (280, 90, 160, 90, 90, 90))
                     width = self.settings.value(key, defaults[column], type=int)
                     header.resizeSection(column, max(30, min(4000, width)))
