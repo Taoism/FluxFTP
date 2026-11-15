@@ -78,14 +78,16 @@ jobs:
         run: |
           python scripts/build_development.py --cloud
           if ($LASTEXITCODE -ne 0) { throw 'Windows application build failed.' }
-          .\dist\FluxFTP-dev\FluxFTP.exe --smoke-test
+          .\dist\FluxFTP-dev\FluxFTP-dev.exe --smoke-test
           if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows smoke check failed.' }
-          .\dist\FluxFTP-dev\FluxFTP.exe --credential-vault-smoke-test
+          .\dist\FluxFTP-dev\FluxFTP-dev.exe --credential-vault-smoke-test
           if ($LASTEXITCODE -ne 0) { throw 'Packaged Windows credential vault check failed.' }
 
       - name: Prepare ZIP and checksums
         shell: pwsh
         run: |
+          Move-Item -LiteralPath 'dist/FluxFTP-dev/FluxFTP-dev.exe' `
+            -Destination 'dist/FluxFTP-dev/FluxFTP.exe'
           $pythonRoot = python -c "import sys; print(sys.base_prefix)"
           if ($LASTEXITCODE -ne 0) { throw 'Could not locate the Python installation.' }
           $pythonLicense = Join-Path $pythonRoot 'LICENSE.txt'
