@@ -105,7 +105,7 @@ def test_stale_preview_fails_without_overwriting(window, tmp_path, changed):
     assert window.queue_jobs[0]['state'] == 'failed'
     assert window.queue_jobs[0].get('retries', 0) == 0
     assert (target / 'file').is_dir() if changed == 'type' else (target / 'file').read_bytes() == (b'changed destination' if changed == 'destination' else b'old data')
-    assert 'changed since' in window.queue_jobs[0]['row'].toolTip(7)
+    assert 'changed since' in window.queue_jobs[0]['row'].toolTip(8)
 
 
 def test_two_way_conflicts_are_explicit_and_recovery_keeps_guard(window, tmp_path):
