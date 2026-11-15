@@ -79,7 +79,7 @@ class QueueMenu(QObject):
         self.delete_action = QAction('Delete', self)
         self.delete_action.setShortcut('Del')
         self.delete_action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
-        self.delete_action.triggered.connect(self.window.remove_queue_items)
+        self.delete_action.triggered.connect(lambda checked=False: self.delete_context_selection())
         self.window.queue.addAction(self.delete_action)
         self.window.queue.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.window.queue.customContextMenuRequested.connect(self.show_context_menu)
@@ -107,9 +107,16 @@ class QueueMenu(QObject):
             tree.clearSelection()
             tree.setCurrentItem(row)
             row.setSelected(True)
+        self._context_delete_rows = selected_rows(tree)
         menu = self.context_menu()
-        menu.exec(tree.viewport().mapToGlobal(position))
-        menu.deleteLater()
+        try:
+            menu.exec(tree.viewport().mapToGlobal(position))
+        finally:
+            self._context_delete_rows = None
+            menu.deleteLater()
+
+    def delete_context_selection(self):
+        self.window.remove_queue_items(getattr(self, '_context_delete_rows', None))
 
     def context_menu(self):
         self.update()
@@ -198,6 +205,8 @@ class QueueMenu(QObject):
             if job not in w.pending:
                 w.pending.append(job)
             job['row'].setText(7, f"{job['route']} · Queued")
+            from .connection_state_icons import set_queue_state
+            set_queue_state(job['row'], 'idle', w.preferences)
         self.release(jobs)
         w.save_queue_state()
         w.start_next()
@@ -489,6 +498,8 @@ class QueueMenu(QObject):
             if job not in w.pending:
                 w.pending.append(job)
             job['row'].setText(7, f"{job['route']} · Queued")
+            from .connection_state_icons import set_queue_state
+            set_queue_state(job['row'], 'idle', w.preferences)
         self.release(jobs)
         w.save_queue_state()
         w.start_next()

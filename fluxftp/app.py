@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal, QStandardPaths, QTimer, QSettings
-from PySide6.QtGui import QBrush, QColor, QGuiApplication
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QComboBox, QSpinBox, QCheckBox, QSplitter,
     QHeaderView, QAbstractItemView, QTabWidget, QPlainTextEdit, QMessageBox,
@@ -420,6 +420,7 @@ def main():
     app = QApplication([sys.argv[0], *qt_args])
     app.setApplicationName("FluxFTP")
     app.setOrganizationName("FluxFTP")
+    app.setWindowIcon(QIcon(str(Path(__file__).parent / 'assets' / 'fluxftp-icon.svg')))
     if args.automation_once:
         from .background_scheduler import run_once
         from .openssl_runtime import ready

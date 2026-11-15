@@ -85,6 +85,33 @@ ACCENT_PAIRS = {
     'terminal': ('#77d99a', '#21804b'),
 }
 
+# Compact, filled artwork for the full-color Windows toolbar style.
+COLOR_GLYPHS = {
+    'local': '<rect x="2" y="3" width="20" height="14" rx="2" fill="#42647f"/><rect x="4" y="5" width="16" height="10" rx="1" fill="#70c9f4"/><path d="M10 17h4v3h4v2H6v-2h4z" fill="#71879a"/><circle cx="18" cy="4.5" r=".8" fill="#c6f4ff"/>',
+    'remote': '<rect x="3" y="2" width="18" height="9" rx="2" fill="#477fc1"/><rect x="3" y="13" width="18" height="9" rx="2" fill="#315c96"/><path d="M5 5h2v2H5zm0 11h2v2H5z" fill="#7ff0a7"/><path d="M9 5h9v2H9zm0 11h9v2H9z" fill="#d9efff"/>',
+    'sites': '<path d="M2 6a2 2 0 0 1 2-2h6l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#e5a82d"/><path d="M3 9h18l-2 9H4z" fill="#ffd45c"/><circle cx="16" cy="14" r="3" fill="#55aee7"/><path d="M13 14h6m-3-3a5 5 0 0 0 0 6m0-6a5 5 0 0 1 0 6" fill="none" stroke="#e9f8ff" stroke-width=".8"/>',
+    'options': '<path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z" fill="#879bad"/><circle cx="8" cy="6" r="2.5" fill="#36a6e8" stroke="#fff" stroke-width="1"/><circle cx="16" cy="12" r="2.5" fill="#f2b83f" stroke="#fff" stroke-width="1"/><circle cx="10" cy="18" r="2.5" fill="#52bd77" stroke="#fff" stroke-width="1"/>',
+    'workspace': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#4f6d8a"/><rect x="4" y="5" width="16" height="3" rx="1" fill="#9bc6e8"/><path d="M12 9v10M5 9h6v10H5z" fill="#55b5ef"/><path d="M13 9h6v10h-6z" fill="#65c993"/><circle cx="6" cy="6.5" r=".6" fill="#fff"/><circle cx="8" cy="6.5" r=".6" fill="#fff"/>',
+    'verify': '<path d="M5 2h10l5 5v14a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2" fill="#edf4f8"/><path d="M15 2v5h5" fill="#b9d6e8"/><path d="M6 11h7v1.5H6zm0 3h5v1.5H6z" fill="#8ca7ba"/><circle cx="15.5" cy="16" r="4.5" fill="#48b86a"/><path d="m13.2 16 1.6 1.6 3-3.3" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+    'disconnect': '<path d="M8 2h3v6H8zm5 0h3v6h-3z" fill="#758a9e"/><path d="M6 6h12v4a6 6 0 0 1-5 5.9V20h-3v-4.1A6 6 0 0 1 6 10z" fill="#f2a83a"/><path d="M16 15 22 21m0-6-6 6" stroke="#e34c51" stroke-width="2.4" stroke-linecap="round"/>',
+    'swap': '<path d="M3 7h15l-3-3 2-2 6 6-6 6-2-2 3-3H3z" fill="#39a7e8"/><path d="M21 17H6l3 3-2 2-6-6 6-6 2 2-3 3h15z" fill="#edaa36"/>',
+    'parent': '<path d="M2 8a2 2 0 0 1 2-2h6l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#efbd48"/><path d="M12 18V9m-4 4 4-4 4 4" fill="none" stroke="#2877b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    'bookmark': '<path d="M6 3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v19l-6-4-6 4z" fill="#e8a52d"/><path d="M8 4h8v13l-4-2.5L8 17z" fill="#ffd66a"/><path d="M10 7h4v2h-4z" fill="#fff0b2"/>',
+    'start': '<circle cx="12" cy="12" r="10" fill="#43ae66"/><circle cx="12" cy="12" r="7.5" fill="#66ce7d"/><path d="M10 7.5 17 12l-7 4.5z" fill="#fff"/>',
+    'stop': '<circle cx="12" cy="12" r="10" fill="#d84a4f"/><circle cx="12" cy="12" r="7.5" fill="#f26769"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" fill="#fff"/>',
+    'refresh': '<path d="M20.5 8A9 9 0 0 0 5 5L3 7h5V2L6.4 3.6a11 11 0 0 1 16 3.5z" fill="#38a6e8"/><path d="M3.5 16A9 9 0 0 0 19 19l2-2h-5v5l1.6-1.6a11 11 0 0 1-16-3.5z" fill="#2582c5"/>',
+    'compare': '<rect x="2" y="3" width="9" height="18" rx="1.5" fill="#438cc9"/><rect x="13" y="3" width="9" height="18" rx="1.5" fill="#657fba"/><path d="M4 7h5v1.5H4zm0 4h5v1.5H4zm0 4h5v1.5H4z" fill="#d9efff"/><path d="M15 7h5v1.5h-5zm0 4h5v1.5h-5zm0 4h5v1.5h-5z" fill="#e9e1ff"/>',
+    'right': '<path d="M2 5a2 2 0 0 1 2-2h6l2 2h7a2 2 0 0 1 2 2v3H4a2 2 0 0 0-2 2z" fill="#eeb83e"/><path d="M2 12a2 2 0 0 1 2-2h18l-2 10H4a2 2 0 0 1-2-2z" fill="#ffd465"/><path d="M5 15h10m-4-4 4 4-4 4" fill="none" stroke="#267cb8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    'left': '<path d="M22 5a2 2 0 0 0-2-2h-6l-2 2H5a2 2 0 0 0-2 2v3h17a2 2 0 0 1 2 2z" fill="#eeb83e"/><path d="M22 12a2 2 0 0 0-2-2H2l2 10h16a2 2 0 0 0 2-2z" fill="#ffd465"/><path d="M19 15H9m4-4-4 4 4 4" fill="none" stroke="#267cb8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    'folder': '<path d="M2 6a2 2 0 0 1 2-2h6l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#e5a52d"/><path d="M3 9h18l-2 9H4z" fill="#ffd465"/><path d="M12 11v5m-2.5-2.5h5" stroke="#3183bd" stroke-width="1.8" stroke-linecap="round"/>',
+    'rename': '<path d="M3 17.5 16.5 4a2.1 2.1 0 0 1 3 3L6 20.5 2 22z" fill="#f3b33e"/><path d="m15 5.5 3.5 3.5M3 17.5 6.5 21" stroke="#bd6d28" stroke-width="1.4"/><path d="m2 22 1-4.5L6.5 21z" fill="#65829a"/>',
+    'delete': '<path d="M4 6h16l-1 15H5z" fill="#e95c61"/><path d="M3 4h18v2H3zm6-3h6l1 3H8z" fill="#bd3942"/><path d="M8 9h1.5v9H8zm3.3 0h1.5v9h-1.5zm3.3 0h1.5v9h-1.5z" fill="#ffe7e7"/>',
+    'refresh_both': '<path d="M20.5 8A9 9 0 0 0 5 5L3 7h5V2L6.4 3.6a11 11 0 0 1 16 3.5z" fill="#38a6e8"/><path d="M3.5 16A9 9 0 0 0 19 19l2-2h-5v5l1.6-1.6a11 11 0 0 1-16-3.5z" fill="#2582c5"/>',
+    'log': '<path d="M5 2h10l5 5v14a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2" fill="#f1f5f8"/><path d="M15 2v5h5" fill="#a8cde3"/><path d="M7 10h10v1.5H7zm0 4h10v1.5H7zm0 4h7v1.5H7z" fill="#438fc4"/>',
+    'queue_window': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#526e8d"/><rect x="4" y="5" width="16" height="14" rx="1" fill="#eaf1f7"/><circle cx="7" cy="9" r="1.4" fill="#42b66c"/><circle cx="7" cy="12.5" r="1.4" fill="#e7ab37"/><circle cx="7" cy="16" r="1.4" fill="#4ca4db"/><path d="M10 8h7v2h-7zm0 3.5h7v2h-7zm0 3.5h7v2h-7z" fill="#8399ad"/>',
+    'terminal': '<rect x="2" y="3" width="20" height="18" rx="2" fill="#344b62"/><rect x="4" y="5" width="16" height="13" rx="1" fill="#182a3b"/><path d="m7 9 3 2.5L7 14m5 0h5" fill="none" stroke="#59d47d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="19.5" r=".7" fill="#e8ad3b"/><circle cx="8.5" cy="19.5" r=".7" fill="#e8ad3b"/>'
+}
+
 
 @lru_cache(maxsize=256)
 def icon_for(key, ink, disabled, icon_set='Theme matched'):
@@ -92,15 +119,20 @@ def icon_for(key, ink, disabled, icon_set='Theme matched'):
     width = '2.8' if icon_set == 'Bold' else '2'
     dark_background = QColor(ink).lightness() >= 128
     for mode, color in ((QIcon.Mode.Normal, ink), (QIcon.Mode.Disabled, disabled)):
+        windows = icon_set in ('Windows', 'Classic color') and mode == QIcon.Mode.Normal
         if icon_set == 'Light (for dark theme)':
             color = '#e2e5e9' if mode == QIcon.Mode.Normal else '#8b9199'
         elif icon_set == 'Dark (for light theme)':
             color = '#343a40' if mode == QIcon.Mode.Normal else '#a0a5ab'
         elif icon_set == 'Color accents' and mode == QIcon.Mode.Normal:
             color = ACCENT_PAIRS.get(key, ('#70baff', '#1769aa'))[0 if dark_background else 1]
-        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-               f'<path d="{GLYPHS[key]}" fill="none" stroke="{color}" stroke-width="{width}" '
-               'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+        if windows:
+            svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+                   f'{COLOR_GLYPHS.get(key, "")}</svg>')
+        else:
+            svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+                   f'<path d="{GLYPHS[key]}" fill="none" stroke="{color}" stroke-width="{width}" '
+                   'stroke-linecap="round" stroke-linejoin="round"/></svg>')
         renderer = QSvgRenderer(QByteArray(svg.encode()))
         for size in (16, 20, 24, 32, 40, 48, 64, 96):
             pixmap = QPixmap(size, size)
@@ -130,7 +162,7 @@ def toolbar_button_style(window):
 
 
 def toolbar_icon_set(window):
-    return window.preferences.value('Display/icon_set', 'Theme matched', type=str)
+    return window.preferences.value('Display/icon_set', 'Windows', type=str)
 
 
 def apply_mode_icon(pane):

@@ -168,8 +168,8 @@ class DisplayOptions:
         self.initialize_colors()
         self.tray = QSystemTrayIcon(self)
         from .tray_menu import tray_icons, install_tray_menu
-        from .themes import os_dark
-        self.tray_normal, self.tray_transfer = tray_icons(os_dark(system=True))
+        from .themes import dark_theme
+        self.tray_normal, self.tray_transfer = tray_icons(dark_theme(self.preferences))
         self.tray.setIcon(self.tray_normal)
         self.tray.setToolTip('FluxFTP')
         install_tray_menu(self)
@@ -211,7 +211,21 @@ class DisplayOptions:
         self.tray.setVisible(visible)
         flashing = bool(self.active) and self.display_value('flash_tray', True)
         self._tray_phase = not self._tray_phase if flashing else False
-        self.tray.setIcon(self.tray_transfer if self._tray_phase else self.tray_normal)
+        if self._tray_phase:
+            routes = {str(record.get('route', '')).casefold() for record in self.active.values()}
+            if routes and routes <= {'download', 'copy'}:
+                state = 'downloading'
+            elif routes and routes <= {'relay', 'fxp'}:
+                state = 'fxp'
+            elif routes and routes <= {'upload'}:
+                state = 'uploading'
+            else:
+                state = 'fxp' if routes & {'relay', 'fxp'} else 'uploading'
+            from .connection_state_icons import connection_state_icon
+            from .themes import dark_theme
+            self.tray.setIcon(connection_state_icon(state, dark_theme(self.preferences)))
+        else:
+            self.tray.setIcon(self.tray_normal)
         self.tray.setToolTip(f'FluxFTP — {len(self.active)} active transfer(s)' if self.active else 'FluxFTP')
 
     def apply_fonts(self):

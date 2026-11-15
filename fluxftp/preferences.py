@@ -1074,7 +1074,7 @@ class PreferencesDialog(QDialog):
                 ['Icons only', 'Text beside icons', 'Text below icons'], 'Icons only',
                 lambda _value: self.window.apply_layout_settings())
             self._combo(form, 'Display/icon_set', 'Toolbar icon set',
-                ['Theme matched', 'Light (for dark theme)', 'Dark (for light theme)', 'Bold', 'Color accents'], 'Theme matched',
+                ['Windows', 'Theme matched', 'Light (for dark theme)', 'Dark (for light theme)', 'Bold', 'Color accents'], 'Windows',
                 lambda _value: self.window.apply_layout_settings())
             self._combo(form, 'Display/folder_icon_set', 'Folder icon set',
                 ['Soft grayscale', 'Black & white', 'Outline', 'Windows tan'], 'Soft grayscale',

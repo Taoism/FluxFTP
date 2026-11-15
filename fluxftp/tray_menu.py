@@ -2,8 +2,7 @@
 import posixpath
 from pathlib import Path
 from types import SimpleNamespace
-from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QMenu, QDialog, QFormLayout, QComboBox, QLineEdit,
     QDialogButtonBox, QFileDialog, QPushButton, QHBoxLayout, QMessageBox, QInputDialog)
 from shiboken6 import isValid
@@ -11,31 +10,8 @@ from .core import PROTOCOLS, safe_name, Cancelled
 
 
 def tray_icons(dark):
-    icons = []
-    for active in (False, True):
-        icon = QIcon()
-        for size in (16, 24, 32, 48):
-            image = QPixmap(size, size)
-            image.fill(Qt.GlobalColor.transparent)
-            painter = QPainter(image)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.scale(size / 32, size / 32)
-            painter.setPen(QPen(QColor('#e4eef9' if dark else '#244c78'), 2.5))
-            painter.drawRoundedRect(QRectF(3, 4, 26, 20), 3, 3)
-            painter.drawLine(11, 28, 21, 28)
-            painter.drawLine(16, 24, 16, 28)
-            painter.setPen(QPen(QColor('#62d6a4' if dark else '#087d50') if active else
-                                QColor('#e4eef9' if dark else '#244c78'), 2.5))
-            painter.drawLine(8, 11, 23, 11)
-            painter.drawLine(19, 7, 23, 11)
-            painter.drawLine(19, 15, 23, 11)
-            painter.drawLine(24, 18, 9, 18)
-            painter.drawLine(13, 14, 9, 18)
-            painter.drawLine(13, 22, 9, 18)
-            painter.end()
-            icon.addPixmap(image)
-        icons.append(icon)
-    return icons
+    from .connection_state_icons import connection_state_icon
+    return [connection_state_icon('idle', dark), connection_state_icon('uploading', dark)]
 
 
 def install_tray_menu(window):

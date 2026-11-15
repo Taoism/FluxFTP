@@ -38,6 +38,11 @@ class QueueManager(BufferedQueue):
             values.pop('job_id', None)
         job = QueueJob(self, values)
         self.job_views[job.model.job_id] = job
+        row = values.get('row')
+        if row is not None:
+            from .connection_state_icons import set_queue_state
+            initial = {'failed': 'error', 'active': 'connecting'}.get(values.get('state'), 'idle')
+            set_queue_state(row, initial, self.preferences)
         return job
 
     def job_progress(self, job, percent, rate, done, total):
@@ -447,12 +452,16 @@ class QueueManager(BufferedQueue):
             job['state'] = 'failed'
             job['row'].setData(0, STATE_ROLE, 'failed')
             job['row'].setText(7, 'Download · CRC failed')
+            from .connection_state_icons import set_queue_state
+            set_queue_state(job['row'], 'error', self.preferences)
             job['row'].setToolTip(7, error['message'])
             if not job.get('suppress_retry') and job.get('crc_attempt', 0) < job['options'].crc_retries:
                 job['crc_attempt'] = job.get('crc_attempt', 0) + 1
                 job['state'] = 'queued'
                 job['row'].setData(0, STATE_ROLE, 'queued')
                 job['row'].setText(7, f"Download · CRC retry {job['crc_attempt']} queued")
+                from .connection_state_icons import set_queue_state
+                set_queue_state(job['row'], 'idle', self.preferences)
                 self.pending.append(job)
 
     def prepare_restored_jobs(self, jobs=None):
@@ -505,6 +514,8 @@ class QueueManager(BufferedQueue):
                 if job.get('state') == 'queued': self.transfer_history.cancelled([job])
                 job['state'] = 'cancelled'
                 job['row'].setText(7, f"{job['route']} · Cleared")
+                from .connection_state_icons import set_queue_state
+                set_queue_state(job['row'], 'idle', self.preferences)
                 if job in self.pending: self.pending.remove(job)
         self.save_queue_state()
 

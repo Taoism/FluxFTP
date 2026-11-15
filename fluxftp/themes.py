@@ -2,6 +2,7 @@
 from PySide6.QtCore import QObject, QTimer, Qt
 from PySide6.QtGui import QColor, QPalette, QIcon, QPixmap, QAction, QGuiApplication
 from PySide6.QtWidgets import QAbstractButton
+from pathlib import Path
 
 PALETTES = {
     'Classic': dict(surface='#f2f3f5', base='#ffffff', alternate='#edf3fa', text='#172b43',
@@ -33,6 +34,11 @@ def theme_name(settings):
     if name == 'Follow OS':
         return 'Midnight' if os_dark() else 'Light'
     return 'Midnight' if name == 'Dark' else name
+
+
+def dark_theme(settings):
+    name = theme_name(settings)
+    return name in ('Black', 'Dark Grey', 'Midnight') or (name == 'System' and os_dark(system=True))
 
 
 def os_dark(system=False):
@@ -67,7 +73,7 @@ class SystemAppearance(QObject):
             return
         window = self.window
         follow = window.preferences.value('Display/style', '', type=str) == 'Follow OS'
-        signature = (follow, os_dark() if follow else None, os_dark(system=True))
+        signature = (follow, os_dark() if follow else None, theme_name(window.preferences), os_dark(system=True))
         if signature == self.signature:
             return
         self.signature = signature
@@ -78,7 +84,9 @@ class SystemAppearance(QObject):
             for dialog in window.findChildren(PreferencesDialog):
                 dialog._refresh_theme_controls()
         from .tray_menu import tray_icons
-        window.tray_normal, window.tray_transfer = tray_icons(signature[2])
+        window.tray_normal, window.tray_transfer = tray_icons(dark_theme(window.preferences))
+        from .connection_state_icons import refresh_queue_state_icons
+        refresh_queue_state_icons(window, dark_theme(window.preferences))
         window.update_tray()
 
     def close(self):
@@ -195,6 +203,9 @@ QScrollBar::handle:hover { background:#626b75; }
 
 def apply_application(app, settings, classic):
     migrate_theme(settings)
+    dark = theme_name(settings) in ('Black', 'Dark Grey', 'Midnight')
+    icon_name = 'fluxftp-icon-dark.svg' if dark else 'fluxftp-icon.svg'
+    app.setWindowIcon(QIcon(str(Path(__file__).parent / 'assets' / icon_name)))
     if not hasattr(app, '_fluxftp_original_palette'):
         app._fluxftp_original_palette = QPalette(app.palette())
         app._fluxftp_original_style = app.style().objectName()

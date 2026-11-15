@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="steel" x1="23" y1="8" x2="227" y2="247" gradientUnits="userSpaceOnUse"><stop stop-color="#f1f0e9"/><stop offset=".2" stop-color="#8b9397"/><stop offset=".48" stop-color="#d9d8d0"/><stop offset=".76" stop-color="#707a80"/><stop offset="1" stop-color="#ebe9df"/></linearGradient>
+    <linearGradient id="glass" x1="44" y1="42" x2="216" y2="192" gradientUnits="userSpaceOnUse"><stop stop-color="#34405d"/><stop offset=".48" stop-color="#131a2b"/><stop offset="1" stop-color="#334260"/></linearGradient>
+    <linearGradient id="beam" x1="70" y1="75" x2="188" y2="176" gradientUnits="userSpaceOnUse"><stop stop-color="#f1ffff"/><stop offset=".5" stop-color="#75ebf2"/><stop offset="1" stop-color="#c1ccff"/></linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffd37a"/><stop offset="1" stop-color="#ed6f27"/></linearGradient>
+    <radialGradient id="spark"><stop stop-color="#fff"/><stop offset=".2" stop-color="#e9ffff"/><stop offset=".5" stop-color="#8af8ff"/><stop offset="1" stop-color="#76c9ff" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="48" y="48" width="160" height="145" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <rect x="5" y="5" width="246" height="246" rx="37" fill="#10171c"/>
+  <rect x="9" y="8" width="238" height="240" rx="35" fill="url(#steel)" stroke="#f8f7ef" stroke-width="2"/>
+  <path d="M23 35h210M23 239h210" stroke="#4f5960" stroke-width="2" opacity=".7"/>
+  <circle cx="20" cy="19" r="3" fill="#5d666a"/><circle cx="236" cy="19" r="3" fill="#5d666a"/><circle cx="20" cy="237" r="3" fill="#5d666a"/><circle cx="236" cy="237" r="3" fill="#5d666a"/>
+  <rect x="55" y="13" width="146" height="19" rx="3" fill="#9e3430" stroke="#57221f"/>
+  <text x="128" y="21" text-anchor="middle" fill="#ffe5c6" font-family="monospace" font-size="5.5" font-weight="700" letter-spacing=".8">FLUX CORE · HIGH VOLTAGE</text>
+  <text x="128" y="28" text-anchor="middle" fill="#fff3db" font-family="monospace" font-size="4.5" letter-spacing=".5">DISCHARGE BEFORE SERVICE</text>
+  <rect x="27" y="37" width="202" height="151" rx="47" fill="#080b10" stroke="#4b5055" stroke-width="4"/>
+  <rect x="36" y="43" width="184" height="139" rx="39" fill="url(#glass)" stroke="#9aa7af" stroke-opacity=".48" stroke-width="2"/>
+  <path d="M47 59Q128 29 209 59" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="4"/>
+  <path d="M75 76 128 123 181 76M128 123v41" fill="none" stroke="#83f3ff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" opacity=".44" filter="url(#glow)"/>
+  <path d="M75 76 128 123 181 76M128 123v41" fill="none" stroke="url(#beam)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="128" cy="123" r="26" fill="url(#spark)"/>
+  <circle cx="75" cy="76" r="11" fill="#ca5350" stroke="#ffc0a2" stroke-width="3"/><circle cx="181" cy="76" r="11" fill="#ca5350" stroke="#ffc0a2" stroke-width="3"/><circle cx="128" cy="164" r="9" fill="#ca5350" stroke="#ffc0a2" stroke-width="3"/>
+  <circle cx="75" cy="76" r="3" fill="#ffd6bd"/><circle cx="181" cy="76" r="3" fill="#ffd6bd"/>
+  <path d="M64 88v35q0 10 10 10h4M192 88v35q0 10-10 10h-4M128 174v9" fill="none" stroke="#e4bd57" stroke-width="4" stroke-linecap="round"/>
+  <rect x="77" y="137" width="102" height="11" rx="2" fill="#a83330" stroke="#e26d53" stroke-width=".7"/>
+  <text x="128" y="145" text-anchor="middle" fill="#fff1cd" font-family="monospace" font-size="5.4" font-weight="700" letter-spacing=".6">SHIELD CORE FROM LIGHT</text>
+  <rect x="23" y="194" width="210" height="45" rx="6" fill="#1b2023" stroke="#657077" stroke-width="2"/>
+  <rect x="30" y="201" width="61" height="29" rx="3" fill="#080c0e" stroke="#495157"/>
+  <g fill="url(#amber)"><path d="M35 205h18v3H38v6h12v3H38v6h15v3H35z"/><path d="M56 205h18v3H59v6h12v3H59v6h15v3H56z"/><path d="M77 205h9v3h-6v6h5v3h-5v6h6v3h-9z"/></g>
+  <text x="60" y="237" text-anchor="middle" fill="#b7c0bd" font-family="monospace" font-size="4.5" letter-spacing=".5">CORE LOAD</text>
+  <rect x="99" y="200" width="43" height="31" rx="4" fill="#aab0a7" stroke="#e5e2d4"/>
+  <circle cx="120" cy="213" r="9" fill="#262d2e" stroke="#596364" stroke-width="1.5"/>
+  <path d="M120 207v12m-5-9 10 6m0-6-10 6" stroke="#68d8d8" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="120" cy="213" r="2" fill="#f1d36a"/>
+  <text x="120" y="227" text-anchor="middle" fill="#283033" font-family="monospace" font-size="4.7" font-weight="700">RESET</text>
+  <rect x="149" y="200" width="77" height="31" rx="4" fill="#070b0d" stroke="#586168"/>
+  <path d="M156 218a29 19 0 0 1 58 0" fill="#263032" stroke="#aeb6a9" stroke-width="1.4"/>
+  <path d="m185 216 12-11" stroke="#e2634a" stroke-width="2" stroke-linecap="round"/><circle cx="185" cy="216" r="2.5" fill="#e2cf9c"/>
+  <path d="M160 216v-3m9-8 2 3m14-5v4m14-3-1 3m9 4-2 2" stroke="#f0d59b" stroke-width="1"/>
+  <text x="187" y="226" text-anchor="middle" fill="#c6c9b9" font-family="monospace" font-size="4.7" letter-spacing=".5">STABILITY</text>
+</svg>

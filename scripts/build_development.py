@@ -30,6 +30,11 @@ def main():
         '--add-data', f'{ROOT / "docs"}{os.pathsep}docs',
         '--add-data', f'{ROOT / "licenses"}{os.pathsep}licenses',
         '--add-data', f'{ROOT / "fluxftp" / "assets" / "cloud-providers"}{os.pathsep}fluxftp/assets/cloud-providers']
+    command.extend(['--add-data', f'{ROOT / "fluxftp" / "assets" / "fluxftp-icon.svg"}{os.pathsep}fluxftp/assets'])
+    command.extend(['--add-data', f'{ROOT / "fluxftp" / "assets" / "fluxftp-icon-dark.svg"}{os.pathsep}fluxftp/assets'])
+    command.extend(['--add-data', f'{ROOT / "fluxftp" / "assets" / "connection-states"}{os.pathsep}fluxftp/assets/connection-states'])
+    if sys.platform == 'win32':
+        command.extend(['--icon', str(ROOT / 'fluxftp' / 'assets' / 'fluxftp.ico')])
     if args.cloud:
         backend = ROOT / 'runtime/rclone' / ('rclone.exe' if sys.platform == 'win32' else 'rclone')
         if not backend.is_file(): parser.error('Build the cloud backend first; see docs/BUILDING.md.')

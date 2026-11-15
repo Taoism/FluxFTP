@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 270">
+  <defs>
+    <linearGradient id="plate" x1="280" y1="8" x2="890" y2="260" gradientUnits="userSpaceOnUse"><stop stop-color="#ecebe2"/><stop offset=".22" stop-color="#929b9e"/><stop offset=".5" stop-color="#d5d5cc"/><stop offset=".78" stop-color="#7a8488"/><stop offset="1" stop-color="#e5e3d9"/></linearGradient>
+  </defs>
+  <image href="fluxftp-icon.svg" x="0" y="4" width="258" height="258"/>
+  <rect x="277" y="17" width="626" height="236" rx="17" fill="url(#plate)" stroke="#f3f1e8" stroke-width="3"/>
+  <rect x="294" y="34" width="592" height="202" rx="9" fill="#1c2429" stroke="#545e63" stroke-width="2"/>
+  <path d="M307 44h566M307 226h566" stroke="#7e898b" stroke-width="1" opacity=".65"/>
+  <rect x="324" y="56" width="88" height="20" rx="3" fill="#a63b35" stroke="#e47760"/>
+  <text x="368" y="70" text-anchor="middle" fill="#fff0d1" font-family="monospace" font-size="10" font-weight="700" letter-spacing="1.1">FLUX SYSTEMS</text>
+  <text x="322" y="151" fill="#f1eee2" font-family="Segoe UI,Arial,sans-serif" font-size="82" font-weight="800" letter-spacing="-4">FLUX<tspan fill="#6bd9dc">FTP</tspan></text>
+  <path d="M326 169h532" stroke="#788589" stroke-width="2"/>
+  <circle cx="337" cy="195" r="7" fill="#d16a45" stroke="#f1b87a" stroke-width="2"/>
+  <text x="357" y="202" fill="#d6d5c8" font-family="Consolas,monospace" font-size="20" font-weight="700" letter-spacing="3">PRECISION TRANSFER SYSTEM</text>
+  <text x="326" y="225" fill="#8fa1a3" font-family="Consolas,monospace" font-size="11" letter-spacing="2.3">NETWORK DIVISION · FIELD EQUIPMENT · EST. 1985</text>
+</svg>

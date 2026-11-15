@@ -9,6 +9,7 @@ from .core import Cancelled, CertificateTrustRequired
 from .queue_engine import QueuePolicy
 from .queue_tree import STATE_ROLE, selected_rows
 from .transfer_reporting import finish as report_transfer, update_group, append as append_transfer_log
+from .connection_state_icons import set_queue_state, transfer_state
 
 
 class QueueController:
@@ -30,12 +31,15 @@ class QueueController:
         job = event.job
         if event.kind == 'retry':
             job['row'].setText(7, f"{job['route']} · Retry {job['retries']}/{event.detail} queued")
+            set_queue_state(job['row'], 'idle', self.window.preferences)
         elif event.kind == 'reset':
             job['row'].setText(7, f"{job['route']} · Queued")
+            set_queue_state(job['row'], 'idle', self.window.preferences)
         elif event.kind == 'cancelled':
             job['row'].setData(0, STATE_ROLE, 'cancelled')
             update_group(self.window, job['row'])
             job['row'].setText(7, f"{job['route']} · Cancelled")
+            set_queue_state(job['row'], 'idle', self.window.preferences)
 
     def start_next(self):
         w = self.window
@@ -61,6 +65,7 @@ class QueueController:
             record['job'] = job
             row, task, route = record["row"], record["task"], record["route"]
             row.setText(7, f"{route} · " + ('Opening folder…' if job.get('streaming_folder') else 'Scanning folder…' if job.get('directory') else 'Transferring'))
+            set_queue_state(row, 'connecting', w.preferences)
             if job.get('streaming_folder'):
                 from .queue_tree import PROGRESS_ROLE, STREAM_ROLE
                 row.setData(0, STREAM_ROLE, True)
@@ -79,6 +84,7 @@ class QueueController:
                     from .queue_tree import PROGRESS_ROLE
                     current['state'] = 'queued'
                     target.setText(7, f'{transfer_route} · Paused before next file')
+                    set_queue_state(target, 'idle', w.preferences)
                     target.setData(1, PROGRESS_ROLE, None)
                     target.setText(1, 'Paused')
                     target.setText(2, '0 B/s')
@@ -88,6 +94,7 @@ class QueueController:
                     if close: close()
                     current['state'] = 'cancelled'
                     target.setText(7, f'{transfer_route} · Cancelled')
+                    set_queue_state(target, 'idle', w.preferences)
                     return
                 current['state'] = 'complete'
                 if isinstance(result, dict):
@@ -104,6 +111,7 @@ class QueueController:
                         w.register_crc_failures(current, result['crc_errors'])
                         if not current.get('crc_job'):
                             target.setText(7, f'{transfer_route} · Finished with CRC failures')
+                        set_queue_state(target, 'error', w.preferences)
                         return
                 for old, new in result.get("renamed", []) if isinstance(result, dict) else []:
                     w.log.appendPlainText(f"Auto Rename: {old} -> {new}")
@@ -117,6 +125,7 @@ class QueueController:
                 if skipped_root:
                     current['transfer_outcome'] = 'skipped'
                     target.setText(7, f"{transfer_route} · Skipped")
+                    set_queue_state(target, 'connected', w.preferences)
                     target.setText(1, "—")
                     target.setToolTip(7, skipped_items[0][1] if skipped_items else "Skip List")
                     for column in range(target.columnCount()):
@@ -130,6 +139,7 @@ class QueueController:
                     if not skipped_root and path not in skipped_directories:
                         skipped_row = QTreeWidgetItem([Path(path).name, "—", "—", "—", "—", path, "", f"{transfer_route} · Skipped"])
                         skipped_row.setToolTip(7, reason)
+                        set_queue_state(skipped_row, 'connected', w.preferences)
                         for column in range(skipped_row.columnCount()):
                             skipped_row.setForeground(column, color)
                         w.add_skipped_queue_row(current, skipped_row)
@@ -148,12 +158,14 @@ class QueueController:
                 else:
                     target.setText(2, '0 B/s')
                 target.setText(7, f"{transfer_route} · Complete")
+                set_queue_state(target, 'connected', w.preferences)
                 w.log.appendPlainText(f"Complete: {target.text(0)} ({transfer_route})")
             def failed(message, target=row, transfer_route=route, current=job):
                 w.queue_batch_failed = True
                 current['state'] = 'cancelled' if 'Cancelled:' in message else 'failed'
                 current['transfer_outcome'] = current['state']
                 target.setText(7, f"{transfer_route} · " + ("Cancelled" if "Cancelled:" in message else "Failed"))
+                set_queue_state(target, 'idle' if 'Cancelled:' in message else 'error', w.preferences)
                 target.setToolTip(7, message)
                 w.log.appendPlainText(f"{target.text(0)}: {message}")
             transfer_id = uuid.uuid4().hex
@@ -178,6 +190,7 @@ class QueueController:
             def current_file(src, dst, target=row, transfer_route=route):
                 from .queue_tree import PROGRESS_ROLE
                 target.setText(7, f'{transfer_route} · {Path(src).name}')
+                set_queue_state(target, transfer_state(transfer_route), w.preferences)
                 target.setToolTip(7, f'{src}\n→ {dst}\nProgress is for the current file; folder total is not pre-scanned.')
                 target.setText(1, '0%')
                 target.setData(1, PROGRESS_ROLE, 0)
@@ -189,6 +202,7 @@ class QueueController:
                     target.setData(0, RATE_ROLE, 0)
                     update_group(w, target)
                 target.setText(7, f"{transfer_route} · " + ('Paused' if paused else 'Transferring'))
+                set_queue_state(target, 'idle' if paused else transfer_state(transfer_route), w.preferences)
             worker.pause_changed.connect(pause_changed)
             worker.file_started.connect(current_file)
             record["worker"] = worker

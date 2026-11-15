@@ -2,6 +2,7 @@
 import json
 import os
 import posixpath
+import shutil
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -801,7 +802,7 @@ class Pane(QWidget):
                 self.window.error('Symbolic links cannot be deleted through this action.')
                 return
         else:
-            message += " Only empty folders can be deleted."
+            message += " Selected folders and all their contents will be permanently deleted."
         if self.mode == 'Local':
             if not self.window.confirm_action('delete_local', 'Delete local files', message):
                 return
@@ -809,7 +810,15 @@ class Pane(QWidget):
             return
         paths = [(self.join(e.name), e.is_dir) for e in selected]
         from .core import remove_remote_items
+        def delete_local(path, is_dir):
+            target = Path(path)
+            if target.is_symlink():
+                target.unlink()
+            elif is_dir:
+                shutil.rmtree(target)
+            else:
+                target.unlink()
         self.mutate(lambda c: remove_remote_items(c, paths),
-                    lambda: [Path(p).rmdir() if d else Path(p).unlink() for p, d in paths])
+                    lambda: [delete_local(path, is_dir) for path, is_dir in paths])
 
 

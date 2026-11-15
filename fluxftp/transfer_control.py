@@ -27,6 +27,7 @@ def can_pause(job):
 
 
 def pause_jobs(window, jobs):
+    from .connection_state_icons import set_queue_state
     for job in jobs:
         if not can_pause(job):
             continue
@@ -35,12 +36,15 @@ def pause_jobs(window, jobs):
         if record:
             record['worker'].transfer_control.requested.set()
             job['row'].setText(7, f"{job['route']} · Pause requested; waiting for payload checkpoint")
+            set_queue_state(job['row'], 'connected', window.preferences)
         else:
             job['row'].setText(7, f"{job['route']} · Held")
+            set_queue_state(job['row'], 'idle', window.preferences)
     window.save_queue_state()
 
 
 def resume_active(window, jobs):
+    from .connection_state_icons import set_queue_state, transfer_state
     chosen = {id(j) for j in jobs}
     for record in window.active.values():
         job = record.get('job')
@@ -48,3 +52,4 @@ def resume_active(window, jobs):
             job['held'] = False
             record['worker'].transfer_control.requested.clear()
             job['row'].setText(7, f"{job['route']} · Resuming")
+            set_queue_state(job['row'], transfer_state(job['route']), window.preferences)

@@ -47,11 +47,16 @@ def package_native(backend, expected_hash, identity=None, build_id=None):
     ]
     arguments = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--windowed', '--name', 'FluxFTP', '--distpath', pyinstaller_dist,
+        '--add-data', f'{ROOT / "fluxftp" / "assets" / "fluxftp-icon.svg"}:fluxftp/assets',
+        '--add-data', f'{ROOT / "fluxftp" / "assets" / "fluxftp-icon-dark.svg"}:fluxftp/assets',
+        '--add-data', f'{ROOT / "fluxftp" / "assets" / "connection-states"}:fluxftp/assets/connection-states',
         '--workpath', pyinstaller_work, '--specpath', pyinstaller_work, *data]
     if sys.platform == 'darwin':
         arguments.extend(['--osx-bundle-identifier', 'com.fluxftp.desktop'])
         if identity:
             arguments.extend(['--codesign-identity', identity])
+    elif sys.platform == 'win32':
+        arguments.extend(['--icon', ROOT / 'fluxftp' / 'assets' / 'fluxftp.ico'])
     elif identity:
         raise ValueError('A packaging signing identity is only supported on macOS.')
     run(*arguments, ROOT / 'launch.py')

@@ -53,8 +53,8 @@ class ConfirmOptions:
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
 
-    def remove_queue_items(self):
-        rows = selected_rows(self.queue)
+    def remove_queue_items(self, selected=None):
+        rows = list(selected) if selected is not None else selected_rows(self.queue)
         if not rows:
             return
         jobs = [job for job in self.queue_jobs if job['row'] in rows]

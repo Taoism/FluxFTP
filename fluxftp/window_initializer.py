@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QSettings
+from PySide6.QtCore import Qt, QTimer, QSettings, QSize
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QCheckBox, QPlainTextEdit, QHeaderView, QAbstractItemView, QTabWidget, QSplitter,
     QToolBar, QStyle)
@@ -182,6 +182,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.queue.setAccessibleName('Transfer queue')
     self.queue.setAlternatingRowColors(True)
     self.queue.setHeaderLabels(["Name", "Progress", "Speed", "Transferred", "Size", "Source path", "Target path", "Remark"])
+    self.queue.setIconSize(QSize(32, 32))
     self.queue.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
     for col in (5, 6):
         self.queue.header().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
