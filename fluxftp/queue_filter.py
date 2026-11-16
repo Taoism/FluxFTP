@@ -24,7 +24,8 @@ def search_page(items, buffers, query, state, offset, cancel, limit=200):
             from contextlib import nullcontext
             context = nullcontext(path.db) if hasattr(path, 'db') else closing(sqlite3.connect(Path(path).as_uri() + '?mode=ro', uri=True))
             with context as db:
-                for payload, in db.execute('SELECT payload FROM items ORDER BY priority,position,id'):
+                from .queue_storage import ORDER_BY_RANK
+                for payload, in db.execute(f'SELECT payload FROM items ORDER BY {ORDER_BY_RANK}'):
                     item = json.loads(payload)
                     item.update(overrides)
                     yield item
@@ -81,7 +82,10 @@ class QueueSearch(QDialog):
         self.offset = offset
         window = self.owner.window
         items, buffers = [], []
+        workspace = window.tabs.currentWidget()
         for job in window.queue_jobs:
+            if job.get('workspace') is not workspace:
+                continue
             if job.get('buffered') and job.get('state') == 'queued':
                 overrides = {}
                 if job.get('held'): overrides['held'] = True
@@ -143,17 +147,37 @@ class QueueFilter(QObject):
         self.timer.timeout.connect(self.apply)
         self.query.textChanged.connect(self.schedule)
         self.status.currentTextChanged.connect(self.schedule)
-        window.queue.model().dataChanged.connect(self.schedule)
-        window.queue.model().rowsInserted.connect(self.schedule)
+        self.bound_queue = None
+        self.bind_queue(window.queue)
         self.dialogs = []
+
+    def bind_queue(self, tree):
+        if self.bound_queue is tree:
+            return
+        if self.bound_queue is not None:
+            model = self.bound_queue.model()
+            for signal in (model.dataChanged, model.rowsInserted):
+                try:
+                    signal.disconnect(self.schedule)
+                except (RuntimeError, TypeError):
+                    pass
+        self.bound_queue = tree
+        model = tree.model()
+        model.dataChanged.connect(self.schedule)
+        model.rowsInserted.connect(self.schedule)
 
     def schedule(self, *_):
         if not self.timer.isActive(): self.timer.start()
 
     def apply(self):
+        self.apply_to(self.bound_queue)
+
+    def apply_to(self, tree):
+        if tree is None:
+            return
         query, state = self.query.text(), self.status.currentText()
         jobs = {id(job['row']): job for job in self.window.queue_jobs}
-        all_rows = list(rows(self.window.queue))
+        all_rows = list(rows(tree))
         for row in reversed(all_rows):
             item = jobs.get(id(row), dict(name=row.text(0), src=row.text(6), dst=row.text(7),
                                         state=row.data(0, STATE_ROLE) or 'queued'))

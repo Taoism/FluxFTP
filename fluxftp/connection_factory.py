@@ -11,7 +11,7 @@ class ConnectionFactory:
     def __init__(self, window):
         self.window = window
 
-    def create(self, site, password, direction=None):
+    def create(self, site, password, direction=None, workspace=None, side=None):
         from .site_connections import transfer_account, custom_proxy
         window = self.window
         if direction:
@@ -25,7 +25,7 @@ class ConnectionFactory:
                 if preferences.value('Transfer/limit_' + route, False, type=bool) else 0
                 for route in ('upload', 'download'))
             connection = CloudConnection(site, window.cloud_service, transfer_options, rates)
-            self._attach_trace(connection, site)
+            self._attach_trace(connection, site, workspace, side)
             return connection
 
         window.upload_limiter.configure(preferences.value("Transfer/upload_kib", 10, type=int) * 1024
@@ -86,7 +86,7 @@ class ConnectionFactory:
             mlsd_essential=preferences.value('Connection/mlsd_essential', False, type=bool),
             ident=window.ident,
         )
-        self._attach_trace(connection, site)
+        self._attach_trace(connection, site, workspace, side)
         connection.bandwidth_manager = getattr(window, 'bandwidth_manager', None)
         return connection
 
@@ -110,10 +110,21 @@ class ConnectionFactory:
             preferences.value("Connection/proxy_bypass_local", False, type=bool),
             preferences.value("Connection/proxy_exceptions", "", type=str))
 
-    def _attach_trace(self, connection, site):
+    def _attach_trace(self, connection, site, workspace=None, side=None):
         window = self.window
-        side = getattr(window, '_log_site_sides', {}).get(window._transfer_site_key(site), 1)
+        location = getattr(window, '_log_site_sides', {}).get(window._transfer_site_key(site), (1, None))
+        if isinstance(location, tuple):
+            default_side, default_workspace = location
+        else:
+            default_side, default_workspace = location, None
+        if workspace is not None and side is None:
+            identity = window._transfer_site_key(site)
+            side = next((pane_index + 1 for pane_index in range(workspace.count())
+                         if getattr(workspace.widget(pane_index), 'site', None) is not None
+                         and window._transfer_site_key(workspace.widget(pane_index).site) == identity), None)
         trace = connection.trace
-        trace.display_side = side
+        trace.display_side = side or default_side
+        trace.display_workspace = workspace if workspace is not None else default_workspace
         trace.listener = lambda message, level: window.ftp_message.emit(
-            ('ERROR: ' if level >= 40 else '') + message, trace.display_side)
+            ('ERROR: ' if level >= 40 else '') + message, trace.display_side,
+            trace.display_workspace)

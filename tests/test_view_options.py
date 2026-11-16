@@ -42,8 +42,8 @@ def test_reference_defaults_and_live_column_visibility(window):
     assert all(pane.tree.isColumnHidden(i) for i in (3, 4, 5))
     options.actions['local_columns/date'].trigger()
     window.add_workspace()
-    local = window.current_panes()[0]
-    assert local.mode == 'Local' and local.tree.isColumnHidden(2)
+    local = next(pane for pane in window.current_panes() if pane.mode == 'Local')
+    assert local.tree.isColumnHidden(2)
 
 
 def test_auto_size_manual_width_and_mode_restoration(window):

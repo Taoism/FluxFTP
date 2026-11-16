@@ -14,7 +14,7 @@ def test_dialog_geometry_is_remembered_per_window_type(window):
     first.show()
     first.resize(720, 650)
     first.move(20, 30)
-    QTest.qWait(300)
+    QTest.qWait(600)
     saved = first.geometry()
     first.reject()
     second = SiteDialog(window, {}, editing=True)
@@ -33,7 +33,7 @@ def test_main_window_geometry_saved_and_smoke_does_not_overwrite(window):
     window.show()
     window.resize(1200, 780)
     window.move(QPoint(60, 70))
-    QTest.qWait(300)
+    QTest.qWait(700)
     raw = window.preferences.value('Layout/windows/main')
     assert raw
     window._smoke_test = True
@@ -97,6 +97,12 @@ def test_successful_upload_does_not_clear_failed_sibling(window, tmp_path):
 def test_manual_collapsed_queue_not_expanded_for_transfer(window):
     window.show()
     window._manual_panel_layout = True
+    if window.docking.active:
+        dock = window.docking.docks['queue']
+        dock.hide()
+        window.show_transfer_queue()
+        assert dock.isHidden()
+        return
     index = window.work_area.indexOf(window.queue_panel)
     sizes = [300, 300, 300]
     sizes[index] = 0

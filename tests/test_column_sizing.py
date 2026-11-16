@@ -38,9 +38,11 @@ def test_fit_and_manual_width_survive_refresh_and_window_resize(window):
     QTest.qWait(50)
     tree = window.queue
     header = tree.header()
-    assert abs(sum(header.sectionSize(i) for i in range(8)) - tree.viewport().width()) <= 1
+    visible = [i for i in range(tree.columnCount()) if not tree.isColumnHidden(i)]
+    assert abs(sum(header.sectionSize(i) for i in visible) - tree.viewport().width()) <= 1
     # A drag wins over the default auto-fit policy.
     header.resizeSection(5, 321)
+    window.view_commands.options.save_width(tree, 5, 321, manual=True)
     assert not window.view_commands.options.actions['auto_size/queue'].isChecked()
     window.view_commands.options.apply()
     window.resize(window.width() + 100, window.height())
@@ -57,11 +59,11 @@ def test_fit_and_manual_width_survive_refresh_and_window_resize(window):
     QTimer.singleShot(30, choose_fit)
     tree._column_sizing.menu(QPoint(20, header.height() // 2))
     assert chosen == ['Fit columns to window']
-    assert sum(header.sectionSize(i) for i in range(8)) == tree.viewport().width()
+    assert sum(header.sectionSize(i) for i in visible) == tree.viewport().width()
     window.view_commands.options.actions['auto_size/queue'].trigger()
     window.resize(window.width() + 120, window.height())
     QTest.qWait(30)
-    assert sum(header.sectionSize(i) for i in range(8)) == tree.viewport().width()
+    assert sum(header.sectionSize(i) for i in visible) == tree.viewport().width()
 
 
 def test_double_clicking_a_column_divider_fits_that_column(window):

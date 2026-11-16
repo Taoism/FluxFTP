@@ -141,7 +141,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
     def queue_batch_failed(self, value):
         self.queue_engine.batch_failed = value
 
-    ftp_message = Signal(str, int)
+    ftp_message = Signal(str, int, object)
     def __init__(self, *, smoke=False):
         super().__init__()
         from .window_initializer import initialize_window
@@ -211,8 +211,10 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
                         row.setForeground(column, QBrush(QColor(foreground)) if foreground else QBrush())
                     row.setToolTip(0, f"Skip List: {reason}" if reason else "")
 
-    def new_connection(self, site, password, direction=None):
-        return self.connection_factory.create(site, password, direction)
+    def new_connection(self, site, password, direction=None, workspace=None, side=None):
+        if workspace is None:
+            workspace = self.tabs.currentWidget()
+        return self.connection_factory.create(site, password, direction, workspace, side)
 
     def _configured_local_port_range(self):
         return self.connection_factory.configured_local_port_range()
@@ -259,10 +261,12 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         if enabled:
             self.log.appendPlainText("Activity log to disk enabled")
 
-    def _write_activity_log(self):
-        current = self.log.toPlainText()
-        previous = getattr(self, "_activity_log_snapshot", "")
-        self._activity_log_snapshot = current
+    def _write_activity_log(self, log_widget=None):
+        if log_widget is None:
+            log_widget = self.log
+        current = log_widget.toPlainText()
+        previous = getattr(log_widget, "_activity_log_snapshot", "")
+        log_widget._activity_log_snapshot = current
         if not getattr(self, "_activity_logging", False):
             return
         previous_lines = previous.splitlines()
@@ -301,6 +305,12 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
     def open_preferences(self):
         PreferencesDialog(self).exec()
 
+    def queue_for_workspace(self, workspace=None):
+        return self.panel_manager.queue_for_workspace(workspace)
+
+    def log_for_workspace(self, workspace=None, kind='system'):
+        return self.panel_manager.log_for_workspace(workspace, kind)
+
     def add_workspace(self):
         if self.tabs.count() >= 100:
             self.statusBar().showMessage('Close a workspace before opening another (100-workspace limit).', 5000)
@@ -317,6 +327,11 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         if hasattr(self, 'mouse_filter'):
             for index in range(splitter.count()):
                 self.install_pane_mouse(splitter.widget(index))
+        if not hasattr(self, 'panel_manager'):
+            from .workspace_panels import WorkspacePanelManager, create_panel_set
+            self.panel_manager = WorkspacePanelManager(self, splitter, create_panel_set(self))
+        else:
+            self.panel_manager.add(splitter)
         self.tabs.setCurrentIndex(self.tabs.addTab(splitter, self.workspace_name()))
         if getattr(self, '_panel_positions_ready', False):
             self.initialize_pane_positions(splitter)
@@ -346,6 +361,7 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         for i in range(2):
             pane.widget(i).browse_session.close()
         self.tabs.removeTab(index)
+        self.panel_manager.remove(pane)
         pane.deleteLater()
         self.save_queue_state()
         self.apply_layout_settings()

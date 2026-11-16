@@ -98,8 +98,46 @@ class QueueEngine:
 
     def next_index(self, policy):
         if self.paused or any(r.get('job', {}).get('deployment') for r in self.active.values()): return None
-        return min((i for i, job in enumerate(self.pending) if self.can_start(job, policy) and not (job.get('deployment') and self.active)),
-            key=lambda i: schedule_key(self.pending[i], getattr(self.pending[i].get('options'), 'priority_rules', policy.priority_rules)), default=None)
+        eligible = [i for i, job in enumerate(self.pending)
+                    if self.can_start(job, policy) and not (job.get('deployment') and self.active)]
+        if not eligible: return None
+        best = min(eligible, key=lambda i: schedule_key(self.pending[i],
+            getattr(self.pending[i].get('options'), 'priority_rules', policy.priority_rules)))
+        route = self.pending[best].get('route')
+        if route not in ('Upload', 'Download'): return best
+        transfers = [i for i in eligible if self.pending[i].get('route') == route]
+        return min(transfers, key=lambda i: self.ordered_queue_key(self.pending[i], policy.priority_rules))
+
+    def ordered_queue_key(self, job, rules=DEFAULT_RULES):
+        """Keep each queued folder together; order its files by size and path."""
+        group_id = (job.get('queue_group') or {}).get('id')
+        root = next((item for item in self.jobs if group_id and item.get('queue_group_parent')
+                    and (item.get('queue_group') or {}).get('id') == group_id), job)
+        try:
+            position = self.jobs.index(root)
+        except ValueError:
+            position = len(self.jobs)
+        manual = root.get('manual_order')
+        if root is not job and job.get('manual_order') is not None:
+            manual = job['manual_order']
+        root_rules = getattr(root.get('options'), 'priority_rules', rules)
+        queue_position = ((0, manual, position) if manual is not None else
+                          (1, priority_rank(root.get('name', ''), root_rules), position))
+        if root is job or not group_id:
+            return (*queue_position, 0)
+        if job.get('source_site'):
+            relative = posixpath.relpath(job.get('src', ''), root.get('src', ''))
+            directory, filename = posixpath.dirname(relative), posixpath.basename(relative)
+        else:
+            from pathlib import Path
+            try:
+                relative = Path(job.get('src', '')).relative_to(Path(root.get('src', '')))
+            except (ValueError, OSError):
+                relative = Path(Path(job.get('src', '')).name)
+            directory = '' if relative.parent == Path('.') else relative.parent.as_posix()
+            filename = relative.name
+        return (*queue_position, 1, job.get('size') is None, job.get('size') or 0,
+                directory.casefold(), directory, filename.casefold(), filename)
 
     def begin(self, job):
         if job not in self.jobs: self.jobs.append(job)

@@ -10,11 +10,10 @@ remaining companion requirements are combined here as well.
 
 - [ ] Audit FluxFTP and its shipped dependencies for known CVEs and other
   security vulnerabilities; fix confirmed issues and keep the dependency
-  versions and review results current. Prioritize the Windows self-updater:
-  its elevated PowerShell helper and configuration are written to predictable,
-  user-writable temporary paths, creating a potential local privilege
-  escalation. Use securely created, access-controlled temporary files and
-  validate the update package before installing it.
+  versions and review results current. The 0.146.0 updater hardens Windows
+  staging with a random access-controlled directory and repeats the package
+  digest check before installation; Debian staging also uses a private directory
+  and digest checks. Continue the broader dependency and application audit.
 
 ### Platform builds and release
 
@@ -186,20 +185,18 @@ remaining companion requirements are combined here as well.
 
 ## Test backlog
 
-- [ ] Complete one clean full desktop regression invocation after the
-  modularization fixes. `pytest --collect-only` reports 1,115 tests; all test
-  ranges have now been exercised in chunks. Fixed missing imports in cloud and
-  recursive transfer paths, headless scheduler wiring, resume fallback and
-  local conflict fingerprints, worker compatibility, Qt row selection, and
-  queue submission. Updated stale test hooks/expectations for extracted modules,
-  the SSL preferences page, and completed-upload cleanup. All 1,115 collected
-  cases ran in named chunks: 1,111 passed, three skipped, and the 100,001-item
-  queue responsiveness check exceeded its 0.75-second UI-gap threshold once
-  (1.813 seconds); isolated reruns passed. A clean single-invocation full run is
-  still pending. The cached OpenSSL 4.x
-  integration assets target Python 3.13, so their two incompatible-runtime
-  checks skip under the Python 3.11 test venv; `tzdata` was installed in that
-  venv for Windows DST coverage. Rerun the suite, then close modularization.
+- [ ] Map queue capacity with incremental stress runs: start at 10,000 files,
+  then add 10,000 files per run while recording the largest passing queue and
+  first failing size. After two failures, tighten the increment to 5,000; after
+  three failures, tighten it to 2,500 to locate the failure threshold. Keep the
+  100,000-file stress run separate until this progression identifies the limit.
+- [ ] Run a clean full desktop regression only at a major version transition or
+  a language rewrite. For ordinary releases, reconcile `tests.md` with prior
+  batch history, then run changed and never-run tests in manageable batches.
+  Earlier batched runs exercised the modularization fixes; the archived
+  `nodeids.txt` contains 1,120 IDs while the older aggregate summary reports
+  1,115, so `tests.md` records per-ID evidence and the discrepancy. Keep the
+  incremental queue stress plan above separate from a full-suite run.
 - [x] Add focused tests for the extracted startup composition in
   `window_initializer.py`, covering smoke-mode settings isolation, service
   initialization, and widget wiring.

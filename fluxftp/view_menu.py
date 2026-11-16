@@ -139,7 +139,7 @@ class ViewMenu(QObject):
             panel, focus = window.queue_panel, window.queue
         else:
             panel = window.log_tabs
-            log_panel = window.log_panels[key]
+            log_panel = window.log_stacks[key]
             panel.setCurrentWidget(log_panel)
             focus = {'system': window.log, 'transfer': window.transfer_log,
                      'ftp': window.ftp_log, 'tasks': window.tasks_log}[key]

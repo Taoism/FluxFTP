@@ -58,6 +58,10 @@ class ToolbarVisibility(QObject):
 
     def apply(self):
         window = self.window
+        tabs_visible = self.visible('tabs')
+        window.tabs.tabBar().setVisible(tabs_visible)
+        window.workspace_panel.add_button.setVisible(tabs_visible)
+        window.workspace_navigation.setVisible(tabs_visible)
         for key, action in self.actions.items():
             with QSignalBlocker(action):
                 action.setChecked(self.visible(key))

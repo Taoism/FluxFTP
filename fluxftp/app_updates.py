@@ -1,11 +1,13 @@
 """Find and download verified, platform-specific FluxFTP releases."""
 from dataclasses import dataclass
+import csv
 import hashlib
 import json
 import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import sys
 import tempfile
 from urllib.error import URLError
@@ -27,6 +29,12 @@ class UpdateOffer:
     checksum_url: str
     release_url: str
     notes: str
+
+
+@dataclass(frozen=True)
+class DownloadedUpdate:
+    path: Path
+    sha256: str
 
 
 def version_key(value):
@@ -141,6 +149,14 @@ def _download(url, destination, limit):
     return digest.hexdigest()
 
 
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def download_update(offer):
     directory = Path(tempfile.gettempdir()) / 'FluxFTP-updates'
     directory.mkdir(parents=True, exist_ok=True)
@@ -160,26 +176,62 @@ def download_update(offer):
         if actual != expected:
             asset.unlink(missing_ok=True)
             raise ValueError('The downloaded update failed its SHA-256 verification.')
-        return asset
+        return DownloadedUpdate(asset, actual)
     finally:
         checksum_file.unlink(missing_ok=True)
 
 
-def start_windows_installer(archive, offer, install_root, process_id):
+def _secure_windows_update_directory(directory):
+    """Restrict updater files to the current user and trusted elevated identities."""
+    import subprocess
+    system32 = Path(os.environ['WINDIR']) / 'System32'
+    identity = subprocess.run([str(system32 / 'whoami.exe'), '/user', '/fo', 'csv', '/nh'],
+        check=True, capture_output=True, text=True).stdout.strip()
+    records = list(csv.reader(identity.splitlines()))
+    if len(records) != 1 or len(records[0]) < 2 or not re.fullmatch(r'S-1-(?:\d+-)+\d+', records[0][1]):
+        raise OSError('Could not determine the Windows account SID for the update helper.')
+    icacls = system32 / 'icacls.exe'
+    subprocess.run([str(icacls), str(directory), '/inheritance:r', '/grant:r',
+        f'*{records[0][1]}:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F'],
+        check=True, capture_output=True, text=True)
+    subprocess.run([str(icacls), str(directory), '/setintegritylevel', '(OI)(CI)M'],
+        check=True, capture_output=True, text=True)
+
+
+def start_windows_installer(archive, offer, install_root, process_id, expected_sha256):
     import ctypes
-    config_path = Path(tempfile.gettempdir()) / f'fluxftp-update-{offer.version}.json'
-    script_path = Path(tempfile.gettempdir()) / f'fluxftp-update-{offer.version}.ps1'
-    config_path.write_text(json.dumps({
-        'archive': str(archive), 'target': str(install_root), 'pid': int(process_id),
-        'version': offer.version,
-    }), encoding='utf-8')
-    script_path.write_text(r'''
+    import subprocess
+    if not re.fullmatch(r'[a-fA-F0-9]{64}', expected_sha256):
+        raise ValueError('The verified update SHA-256 is invalid.')
+    archive = Path(archive)
+    if _sha256_file(archive) != expected_sha256.lower():
+        raise ValueError('The downloaded update changed after checksum verification.')
+    directory = Path(tempfile.mkdtemp(prefix='FluxFTP-update-'))
+    try:
+        _secure_windows_update_directory(directory)
+        private_archive = directory / Path(offer.asset_name).name
+        shutil.copyfile(archive, private_archive)
+        if _sha256_file(private_archive) != expected_sha256.lower():
+            raise ValueError('The downloaded update changed while preparing the installer.')
+        config_path = directory / 'update.json'
+        script_path = directory / 'install.ps1'
+        config_path.write_text(json.dumps({
+            'archive': str(private_archive), 'target': str(install_root), 'pid': int(process_id),
+            'version': offer.version, 'sha256': expected_sha256.lower(),
+        }), encoding='utf-8')
+        script_path.write_text(r'''
 $ErrorActionPreference = 'Stop'
 $config = Get-Content -LiteralPath $args[0] -Raw | ConvertFrom-Json
+if ($config.version -notmatch '^\d+(\.\d+){1,2}$') { throw 'The update version is invalid.' }
+if (-not (Test-Path -LiteralPath (Join-Path $config.target 'FluxFTP.exe'))) { throw 'The target is not a FluxFTP installation.' }
 try { Wait-Process -Id $config.pid -ErrorAction SilentlyContinue } catch {}
+$archiveHash = (Get-FileHash -LiteralPath $config.archive -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($archiveHash -ne $config.sha256) { throw 'The update archive failed SHA-256 verification.' }
 $parent = Split-Path -Parent $config.target
-$work = Join-Path $env:TEMP ('fluxftp-update-' + [guid]::NewGuid().ToString('N'))
+$privateRoot = $PSScriptRoot
+$work = Join-Path $privateRoot ('extracted-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work | Out-Null
+try {
 Expand-Archive -LiteralPath $config.archive -DestinationPath $work
 $source = Get-ChildItem -LiteralPath $work -Directory | Select-Object -First 1
 $manifest = Get-Content -LiteralPath (Join-Path $source.FullName 'release-manifest.json') -Raw | ConvertFrom-Json
@@ -192,11 +244,19 @@ Move-Item -LiteralPath $config.target -Destination $backup
 try { Move-Item -LiteralPath $staging -Destination $config.target }
 catch { if (-not (Test-Path -LiteralPath $config.target)) { Move-Item -LiteralPath $backup -Destination $config.target }; throw }
 Start-Process -FilePath (Join-Path $config.target 'FluxFTP.exe') -WorkingDirectory $config.target
+} finally {
+if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Milliseconds 250
+Remove-Item -LiteralPath $privateRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
 '''.strip() + '\n', encoding='utf-8')
-    arguments = f'-NoProfile -ExecutionPolicy Bypass -File "{script_path}" "{config_path}"'
-    result = ctypes.windll.shell32.ShellExecuteW(None, 'runas', 'powershell.exe', arguments, None, 0)
-    if result <= 32:
-        raise OSError('Windows declined the elevated update helper.')
+        arguments = f'-NoProfile -ExecutionPolicy Bypass -File "{script_path}" "{config_path}"'
+        result = ctypes.windll.shell32.ShellExecuteW(None, 'runas', 'powershell.exe', arguments, None, 0)
+        if result <= 32:
+            raise OSError('Windows declined the elevated update helper.')
+    except Exception:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise
 
 
 def start_ubuntu_installer(archive, offer, install_root, process_id):
@@ -225,16 +285,31 @@ nohup {q_launcher} >/dev/null 2>&1 &
     subprocess.Popen(['sh', str(script)], close_fds=True, start_new_session=True)
 
 
-def start_debian_installer(package, offer, process_id):
+def start_debian_installer(package, offer, process_id, expected_sha256):
     import shutil
     import subprocess
     if not shutil.which('pkexec') or not shutil.which('apt-get'):
         raise OSError('pkexec and apt-get are needed to install Debian updates interactively.')
+    if not re.fullmatch(r'[a-fA-F0-9]{64}', expected_sha256):
+        raise ValueError('The verified update SHA-256 is invalid.')
+    package = Path(package)
+    if _sha256_file(package) != expected_sha256.lower():
+        raise ValueError('The downloaded update changed after checksum verification.')
+    private_directory = Path(tempfile.mkdtemp(prefix='fluxftp-deb-update-'))
+    private_directory.chmod(0o700)
+    private_package = private_directory / Path(offer.asset_name).name
+    try:
+        shutil.copyfile(package, private_package)
+        private_package.chmod(0o600)
+        if _sha256_file(private_package) != expected_sha256.lower():
+            raise ValueError('The downloaded update changed while preparing the installer.')
+        result = subprocess.run(['pkexec', 'apt-get', 'install', '-y', str(private_package)],
+            timeout=900, check=False)
+        if result.returncode:
+            raise OSError('The package manager did not complete the FluxFTP update.')
+    finally:
+        shutil.rmtree(private_directory, ignore_errors=True)
     script = Path(tempfile.gettempdir()) / f'fluxftp-restart-{offer.version}.sh'
-    result = subprocess.run(['pkexec', 'apt-get', 'install', '-y', str(package)],
-        timeout=900, check=False)
-    if result.returncode:
-        raise OSError('The package manager did not complete the FluxFTP update.')
     script.write_text(f'''#!/bin/sh
 while kill -0 {int(process_id)} 2>/dev/null; do sleep 1; done
 exec /usr/bin/fluxftp

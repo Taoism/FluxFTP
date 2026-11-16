@@ -38,6 +38,8 @@ def apply_popup_layout(window, menu, context):
         order = menu._fluxftp_default_action_order
     by_key = dict(zip(keys, actions))
     wanted = [key for key in order if key in by_key]
+    wanted.extend(key for key in keys if key.startswith('Select All:') and key not in wanted)
+    wanted.extend(key for key in keys if key not in wanted)
     for key, action in by_key.items():
         action.setVisible(key in wanted)
     for key in wanted:
@@ -73,7 +75,9 @@ class PopupMenuDesigner(QDialog):
             item.setIcon(action.icon())
             item.setData(Qt.ItemDataRole.UserRole, key)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsDragEnabled)
-            item.setCheckState(Qt.CheckState.Unchecked if current and key not in order else Qt.CheckState.Checked)
+            newly_added_select_all = key.startswith('Select All:') and key not in order
+            item.setCheckState(Qt.CheckState.Unchecked if current and key not in order and
+                               not newly_added_select_all else Qt.CheckState.Checked)
             item.setToolTip(action.statusTip() or action.toolTip())
             self.commands.addItem(item)
         rows.addWidget(self.commands, 1)

@@ -80,16 +80,26 @@ class QueueMenu(QObject):
         self.delete_action.setShortcut('Del')
         self.delete_action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
         self.delete_action.triggered.connect(lambda checked=False: self.delete_context_selection())
-        self.window.queue.addAction(self.delete_action)
-        self.window.queue.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.window.queue.customContextMenuRequested.connect(self.show_context_menu)
-        for action in self.move_menu.actions():
-            self.window.queue.addAction(action)
-        self.window.queue.itemSelectionChanged.connect(self.update)
+        self._attached_trees = set()
+        self.attach_tree(self.window.queue)
         self.timer = QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
+
+    def attach_tree(self, tree):
+        if tree in self._attached_trees:
+            return
+        self._attached_trees.add(tree)
+        tree.addAction(self.delete_action)
+        tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        tree.customContextMenuRequested.connect(self.show_context_menu)
+        for action in self.move_menu.actions():
+            tree.addAction(action)
+        tree.itemSelectionChanged.connect(self.update)
+
+    def detach_tree(self, tree):
+        self._attached_trees.discard(tree)
 
     def selected(self):
         chosen = {id(row) for row in selected_rows(self.window.queue)}
@@ -239,7 +249,8 @@ class QueueMenu(QObject):
                 job.get('state') != 'active' and not job.get('editing') for job in jobs)
                 and not any(id(record['row']) in row_ids for record in w.active.values()))
         movable = selected and all(job.get('state') == 'queued' and not job.get('editing') for job in selected)
-        waiting = [job for job in w.queue_jobs if job.get('state') == 'queued' and not job.get('editing')]
+        waiting = [job for job in w.queue_jobs if job.get('workspace') is w.tabs.currentWidget()
+                   and job.get('state') == 'queued' and not job.get('editing')]
         selected_ids = {id(job) for job in selected}
         indices = [index for index, job in enumerate(waiting) if id(job) in selected_ids]
         up = bool(movable) and indices != list(range(len(indices)))
@@ -291,9 +302,10 @@ class QueueMenu(QObject):
         if getattr(self.window, '_queue_operation_depth', 0) or getattr(self.window, '_queue_commit', False): return
         from .queue_tree import SPEED_ROLE
         from .transfer_reporting import update_group
-        for index in range(self.window.queue.topLevelItemCount()):
-            row = self.window.queue.topLevelItem(index)
-            if row.data(0, SPEED_ROLE) is not None: update_group(self.window, row)
+        for tree in self.window.panel_manager.queue_trees():
+            for index in range(tree.topLevelItemCount()):
+                row = tree.topLevelItem(index)
+                if row.data(0, SPEED_ROLE) is not None: update_group(self.window, row)
         self.update()
         w = self.window
         if not w.paused and any((job.get('buffered') or (job.get('scheduled_at') and job['scheduled_at'] <= time.time()))
@@ -351,10 +363,12 @@ class QueueMenu(QObject):
 
     def move(self, direction):
         w = self.window
+        workspace = w.tabs.currentWidget()
         selected = self.selected()
         if not selected or any(job.get('state') != 'queued' or job.get('editing') for job in selected):
             return
-        movable = [job for job in w.queue_jobs if job.get('state') == 'queued' and not job.get('editing')]
+        movable = [job for job in w.queue_jobs if job.get('workspace') is workspace
+                   and job.get('state') == 'queued' and not job.get('editing')]
         chosen = {id(job) for job in selected}
         if direction in ('top', 'bottom'):
             picked = [job for job in movable if id(job) in chosen]
@@ -377,15 +391,17 @@ class QueueMenu(QObject):
             job['manual_order'] = index
         positions = {id(job): index for index, job in enumerate(w.queue_jobs)}
         w.pending.sort(key=lambda job: positions.get(id(job), len(positions)))
-        scroll = w.queue.verticalScrollBar().value()
-        with QSignalBlocker(w.queue):
-            expansion = {id(w.queue.topLevelItem(i)): w.queue.topLevelItem(i).isExpanded()
-                         for i in range(w.queue.topLevelItemCount())}
-            rows = [w.queue.takeTopLevelItem(0) for _ in range(w.queue.topLevelItemCount())]
-            rank = {id(job['row']): index for index, job in enumerate(w.queue_jobs)}
+        tree = w.queue_for_workspace(workspace)
+        scroll = tree.verticalScrollBar().value()
+        with QSignalBlocker(tree):
+            expansion = {id(tree.topLevelItem(i)): tree.topLevelItem(i).isExpanded()
+                         for i in range(tree.topLevelItemCount())}
+            rows = [tree.takeTopLevelItem(0) for _ in range(tree.topLevelItemCount())]
+            rank = {id(job['row']): index for index, job in enumerate(w.queue_jobs)
+                    if job.get('workspace') is workspace}
             selected_rows = {id(job['row']) for job in selected}
             for row in sorted(rows, key=lambda row: rank.get(id(row), len(rank))):
-                w.queue.addTopLevelItem(row)
+                tree.addTopLevelItem(row)
                 row.setSelected(id(row) in selected_rows)
                 expanded = expansion[id(row)]
                 children = row.takeChildren()
@@ -393,7 +409,7 @@ class QueueMenu(QObject):
                     row.addChild(child)
                     child.setSelected(id(child) in selected_rows)
                 row.setExpanded(expanded)
-        w.queue.verticalScrollBar().setValue(scroll)
+        tree.verticalScrollBar().setValue(scroll)
         w.save_queue_state()
         self.update()
 
@@ -439,7 +455,8 @@ class QueueMenu(QObject):
             if job.get('queue_group'):
                 w.attach_queue_row(job)
             else:
-                w.queue.insertTopLevelItem(min(index, w.queue.topLevelItemCount()), job['row'])
+                tree = w.queue_for_workspace(job['workspace'])
+                tree.insertTopLevelItem(min(index, tree.topLevelItemCount()), job['row'])
             if job.get('state') == 'queued':
                 w.pending.append(job)
         self.cleared = []
@@ -539,7 +556,8 @@ class QueueMenu(QObject):
         for job in jobs:
             job['scheduled_at'] = timestamp
             job['row'].setText(8, f"Scheduled {when.text()}")
-        w.tasks_log.appendPlainText(f'Scheduled {len(jobs)} queue item(s) for {when.text()} (local time).')
+        w.log_for_workspace(jobs[0]['workspace'], 'tasks').appendPlainText(
+            f'Scheduled {len(jobs)} queue item(s) for {when.text()} (local time).')
         w.save_queue_state()
         self.update()
 
@@ -564,9 +582,10 @@ class QueueMenu(QObject):
     def information(self):
         from .queue_buffer import BUFFER_ROLE
         w = self.window
+        workspace = w.tabs.currentWidget()
         counts = Counter()
         buffered = held = scheduled = 0
-        for job in w.queue_jobs:
+        for job in (job for job in w.queue_jobs if job.get('workspace') is workspace):
             state = job.get('state', 'unknown')
             if job.get('buffered'):
                 spool = job['buffer']

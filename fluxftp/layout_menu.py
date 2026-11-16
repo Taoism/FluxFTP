@@ -300,8 +300,11 @@ class LayoutMenu(QObject):
             self.window.initialize_pane_positions(split)
         self.window._manual_panel_layout = self.window.preferences.value(
             'Layout/manual_panel_positions', False, type=bool)
-        self.window.log_tabs.setCurrentWidget(self.window.log_panels.get(
-            self.window.preferences.value('Layout/active_log', 'ftp', type=str), self.window.log_panels['ftp']))
+        active_log = self.window.preferences.value('Layout/active_log', 'ftp', type=str)
+        if active_log not in self.window.log_stacks:
+            active_log = 'ftp'
+        self.window.panel_manager.sets[self.window.tabs.currentWidget()]['active_log'] = active_log
+        self.window.log_tabs.setCurrentWidget(self.window.log_stacks[active_log])
         self.window.header_rows.rebuild()
         self.window.restore_workspace_layout()
         if self.window.docking.active:

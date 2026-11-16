@@ -29,7 +29,7 @@ def window(tmp_path, monkeypatch):
 
 
 def job_for(window, task, route='Download', name='item'):
-    row = QTreeWidgetItem([name, '', '', '', '', '/source/' + name, '/target/' + name, 'Queued'])
+    row = QTreeWidgetItem([name, '0%', '—', '—', '—', '—', '/source/' + name, '/target/' + name, 'Queued'])
     window.queue.addTopLevelItem(row)
     job = dict(row=row, task=task, route=route, workspace=window.tabs.currentWidget(),
                source_site=None, destination_site=None, state='queued', retries=0)

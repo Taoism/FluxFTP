@@ -139,7 +139,7 @@ class CommandMenu(QObject):
                     line = 'FTP < ' + line
                 elif line.startswith('Stopped after'):
                     line = 'ERROR: ' + line
-                self.window.append_ftp_message(line, side)
+                self.window.append_ftp_message(line, side, snapshot[0].parentWidget())
         if self.prepare(snapshot, 'Raw FTP command', [text], raw=True, finished=finished):
             self.window.ftp_command_input.setEditText('')
 

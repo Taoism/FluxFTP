@@ -251,10 +251,11 @@ def test_wizard_test_invalidation_and_new_workspace(window, tmp_path, monkeypatc
     monkeypatch.setattr('fluxftp.app.Pane.refresh', lambda *_: None)
     wizard.accept()
     assert window.tabs.count() == count + 1
-    left, right = window.current_panes()
-    assert left.mode == 'Local' and left.path == str(tmp_path)
-    assert right.mode == 'Remote' and right.path == '/public'
-    assert right.password == 'hidden'
+    panes_by_mode = {pane.mode: pane for pane in window.current_panes()}
+    local, remote = panes_by_mode['Local'], panes_by_mode['Remote']
+    assert local.mode == 'Local' and local.path == str(tmp_path)
+    assert remote.mode == 'Remote' and remote.path == '/public'
+    assert remote.password == 'hidden'
 
 
 def test_cancel_running_script_stops_before_next_step(window, monkeypatch):

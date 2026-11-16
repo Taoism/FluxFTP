@@ -106,7 +106,12 @@ class BufferedQueue:
         job['task'] = self.make_queue_task(job)
         row.setData(0, STATE_ROLE, job['state'])
         parent['row'].addChild(row)
-        self.queue_jobs.append(job)
+        group_id = parent['queue_group']['id']
+        insert_at = self.queue_jobs.index(parent) + 1
+        while insert_at < len(self.queue_jobs) and (
+                self.queue_jobs[insert_at].get('queue_group') or {}).get('id') == group_id:
+            insert_at += 1
+        self.queue_jobs.insert(insert_at, job)
         if job['state'] == 'queued':
             self.pending.append(job)
         return job

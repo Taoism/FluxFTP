@@ -95,6 +95,16 @@ def test_spool_order_and_removal(tmp_path):
     spool.close()
     assert not path.exists()
 
+    ranked = DiskBuffer(rank=lambda item: item['rank'])
+    rank_path = Path(ranked.path)
+    ranked.append(dict(name='larger.bin', rank=(False, 5, '', '', 'larger.bin', 'larger.bin')))
+    ranked.append(dict(name='zeta.bin', rank=(False, 1, 'zeta', 'zeta', 'zeta.bin', 'zeta.bin')))
+    ranked.append(dict(name='alpha.bin', rank=(False, 1, 'alpha', 'alpha', 'alpha.bin', 'alpha.bin')))
+    assert [item['name'] for item in ranked.take(2)] == ['alpha.bin', 'zeta.bin']
+    assert [item['name'] for item in ranked] == ['larger.bin']
+    ranked.close()
+    assert not rank_path.exists()
+
 
 def test_held_large_selection_releases_on_play(window, tmp_path, monkeypatch):
     import fluxftp.queue_buffer as buffer_module

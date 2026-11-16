@@ -44,4 +44,12 @@ def sorted_entries(entries, settings, location, global_key='Name', descending=Fa
     folders = [e for e in entries if e.is_dir and not (separate and e.is_link)]
     links = [e for e in entries if separate and e.is_link]
     files = [e for e in entries if not e.is_dir and not (separate and e.is_link)]
-    return group(folders, 'folder') + group(links, 'file') + group(files, 'file')
+    ordered_files = group(files, 'file')
+    preferred_extensions = {'.nfo': 0, '.sfv': 1, '.m3u': 2}
+    preferred = sorted((entry for entry in ordered_files
+                        if entry.name.rpartition('.')[2] and
+                        '.' + entry.name.rpartition('.')[2].casefold() in preferred_extensions),
+                       key=lambda entry: preferred_extensions['.' + entry.name.rpartition('.')[2].casefold()])
+    preferred_ids = {id(entry) for entry in preferred}
+    remaining = [entry for entry in ordered_files if id(entry) not in preferred_ids]
+    return group(folders, 'folder') + group(links, 'file') + preferred + remaining

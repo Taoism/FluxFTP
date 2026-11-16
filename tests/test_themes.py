@@ -88,18 +88,15 @@ def test_theme_persistence_and_system_palette_restore(window):
 
 
 def test_legacy_dark_migration_and_compact_add_button(window):
-    from PySide6.QtWidgets import QToolButton
     window.preferences.setValue('Display/style', 'Dark')
     window.preferences.setValue('Display/header_theme', 'Dark')
     dialog = PreferencesDialog(window)
     assert dialog.theme_combo.currentText() == 'Midnight'
     assert dialog.header_theme_combo.currentText() == 'Midnight'
-    assert window.tabs.cornerWidget().text() == '+'
-    buttons = [button for button in window.workspace_navigation.findChildren(QToolButton)
-               if button.accessibleName() == 'New workspace']
-    assert buttons and all(button.text() == '+' for button in buttons)
+    button = window.workspace_panel.add_button
+    assert button.text() == '+' and button.accessibleName() == 'New workspace'
     count = window.tabs.count()
-    window.tabs.cornerWidget().click()
+    button.click()
     assert window.tabs.count() == count + 1
     dialog.close()
 

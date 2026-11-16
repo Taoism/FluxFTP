@@ -57,8 +57,7 @@ def test_view_menu_reference_order_shortcuts_and_submenus(window):
     assert [a.text() if not a.isSeparator() else '---' for a in actions] == [
         'Refresh', '---', 'Window list', 'Queue Window', 'System log', 'Transfer Log',
         'FTP Log', 'Task Window', '---', 'Remote columns', 'Local columns',
-        'Window list columns', 'Grid Lines', 'Column Auto Size', '---', 'Current edit files', '---', 'Reset layout…',
-        'Customizable docking layout', 'Dock panels', 'Lock layout', 'Edit Toolbars']
+        'Window list columns', 'Grid Lines', 'Column Auto Size', '---', 'Current edit files', '---', 'Edit Toolbars']
     assert [a.shortcut().toString() for a in actions[:8]] == [
         'F5', '', 'Shift+F1', 'Shift+F3', 'Shift+F5', 'Shift+F4', 'Shift+F2', 'Shift+F7']
     assert all(a.menu() is not None and a.isEnabled() for a in actions[9:14])
@@ -71,22 +70,21 @@ def test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels(window):
         (Qt.Key.Key_F4, 'transfer', window.transfer_log),
         (Qt.Key.Key_F5, 'system', window.log),
         (Qt.Key.Key_F7, 'tasks', window.tasks_log)):
-        window.log_tabs.hide()
+        dock = window.docking.docks[panel_key]
+        dock.hide()
         window.queue.setFocus()
         QTest.keyClick(window.queue, key, Qt.KeyboardModifier.ShiftModifier)
-        assert window.log_tabs.isVisible()
-        assert window.log_tabs.currentWidget() is window.log_panels[panel_key]
+        assert dock.isVisible()
         assert widget.hasFocus()
-    window.queue_panel.hide()
-    window.queue.hide()
+    window.docking.docks['queue'].hide()
     QTest.keyClick(window.tasks_log, Qt.Key.Key_F3, Qt.KeyboardModifier.ShiftModifier)
-    assert window.queue_panel.isVisible() and window.queue.isVisible() and window.queue.hasFocus()
-    window.workspace_panel.hide()
+    assert window.docking.docks['queue'].isVisible() and window.queue.hasFocus()
+    window.docking.docks['workspace'].hide()
     QTest.keyClick(window.queue, Qt.Key.Key_F1, Qt.KeyboardModifier.ShiftModifier)
-    assert window.workspace_panel.isVisible() and window.current_panes()[0].tree.hasFocus()
-    window.work_area.setSizes([800, 0, 100])
+    assert window.docking.docks['workspace'].isVisible() and window.current_panes()[0].tree.hasFocus()
+    window.docking.docks['ftp'].hide()
     window.view_commands.show_panel('ftp')
-    assert window.work_area.sizes()[1] > 0
+    assert window.docking.docks['ftp'].isVisible()
 
 
 def test_panel_context_menu_can_hide_panel(window, monkeypatch):

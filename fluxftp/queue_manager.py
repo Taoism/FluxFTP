@@ -92,6 +92,7 @@ class QueueManager(BufferedQueue):
             self.restore_large_queue(saved)
             return
         options = TransferOptions.from_settings(self.preferences)
+        restored_by_workspace = {}
         for item in saved:
             while self.tabs.count() <= item['workspace']:
                 self.add_workspace()
@@ -101,12 +102,14 @@ class QueueManager(BufferedQueue):
             route = transfer_route(source, destination)
             state = 'failed' if item['state'] == 'failed' else 'queued'
             row = QTreeWidgetItem([item['name'], '0%', '—', '—', '—', '—', item['src'], item['dst'], f'{route} · Restored {state}'])
-            self.queue.addTopLevelItem(row)
+            workspace = self.tabs.widget(item['workspace'])
+            restored_by_workspace[workspace] = restored_by_workspace.get(workspace, 0) + 1
+            self.queue_for_workspace(workspace).addTopLevelItem(row)
             if item.get('size') is not None:
                 row.setData(5, Qt.ItemDataRole.UserRole, item['size'])
                 row.setText(5, self.file_size(item['size']))
             job = dict(deepcopy(item), row=row, source_site=source, destination_site=destination,
-                       workspace=self.tabs.widget(item['workspace']), route=route, state=state,
+                       workspace=workspace, route=route, state=state,
                        needs_credentials=True, options=transfer_settings(self.preferences, source, destination))
             job = self.new_queue_job(job)
             job['task'] = self.make_queue_task(job)
@@ -122,7 +125,9 @@ class QueueManager(BufferedQueue):
         if saved:
             self.paused = True
             self.queue_batch_failed = any(j['state'] == 'failed' for j in self.queue_jobs)
-            self.log.appendPlainText(f'Restored {len(saved)} unfinished queue item(s), paused. Use Start Queue to continue.')
+            for workspace, count in restored_by_workspace.items():
+                self.log_for_workspace(workspace).appendPlainText(
+                    f'Restored {count} unfinished queue item(s), paused. Use Start Queue to continue.')
 
     def prepare_job_identities(self, saved):
         """Keep recovery IDs; assign new IDs when importing duplicate live work."""
@@ -204,9 +209,25 @@ class QueueManager(BufferedQueue):
     def iter_queue_snapshot(self):
         keep_failed = self.preferences.value('Queue/keep_failed', True, type=bool)
         yield from getattr(self, 'deferred_queue', [])
-        for job in sorted(self.queue_jobs, key=lambda job: bool(job.get('buffered'))):
+        emitted = set()
+        for job in self.queue_jobs:
+            if id(job) in emitted:
+                continue
             if job.get('buffered'):
                 if job.get('state') == 'queued':
+                    group_id = job.get('queue_group', {}).get('id')
+                    children = [item for item in self.queue_jobs if item is not job and
+                                item.get('queue_group', {}).get('id') == group_id]
+                    if job.get('route') in ('Upload', 'Download'):
+                        children.sort(key=self.queue_engine.ordered_queue_key)
+                    for child in children:
+                        emitted.add(id(child))
+                        if 'src' not in child or child.get('state') not in ('queued', 'active', 'failed'):
+                            continue
+                        if child['state'] == 'failed' and not keep_failed:
+                            continue
+                        from .queue_job import snapshot
+                        yield snapshot(self, child)
                     for item in job['buffer']:
                         item.update(workspace=max(0, self.tabs.indexOf(job['workspace'])))
                         item['queue_group'] = job['queue_group']
@@ -225,10 +246,10 @@ class QueueManager(BufferedQueue):
 
     def make_queue_task(self, job):
         from .queue_prepare import expansion_template, expanded
-        # Cloud uploads walk and transfer one directory at a time. Keeping the
-        # root job active also preserves unvisited subfolders in recovery.
-        job['streaming_folder'] = bool(job.get('directory') and not job.get('sync') and not job.get('deployment') and
-            not job.get('source_site') and job.get('destination_site') and job['destination_site'].cloud_account)
+        ordered_folder = job.get('route') in ('Upload', 'Download') and job.get('directory')
+        # Plan queued transfers before sending so small files across the entire
+        # folder can be ordered consistently, including cloud targets.
+        job['streaming_folder'] = False
         template = expansion_template(job, max(0, self.tabs.indexOf(job['workspace']))) if job.get('directory') else None
         def task(worker):
             from contextlib import ExitStack
@@ -243,7 +264,25 @@ class QueueManager(BufferedQueue):
                 from .verification_reports import skipped_entry
                 skipped.append((path, reason))
                 skipped_entry(path, reason)
-            planned = DiskBuffer(rank=lambda item: job['options'].priority(Path(item[0]).name)) if job.get('directory') and not job.get('sync') and not job.get('deployment') and not job['streaming_folder'] else None
+            def transfer_rank(item):
+                src = item[0] if isinstance(item, tuple) else item['src']
+                size = item[2] if isinstance(item, tuple) else item.get('size')
+                if job.get('source_site'):
+                    import posixpath
+                    relative = posixpath.relpath(src, job['src'])
+                    directory, filename = posixpath.dirname(relative), posixpath.basename(relative)
+                else:
+                    try:
+                        relative = Path(src).relative_to(Path(job['src']))
+                    except (ValueError, OSError):
+                        relative = Path(Path(src).name)
+                    directory = '' if relative.parent == Path('.') else relative.parent.as_posix()
+                    filename = relative.name
+                return (size is None, size or 0, directory.casefold(), directory,
+                        filename.casefold(), filename)
+            def planned_rank(item):
+                return transfer_rank(item) if ordered_folder else job['options'].priority(Path(item[0]).name)
+            planned = DiskBuffer(rank=planned_rank) if job.get('directory') and not job.get('sync') and not job.get('deployment') else None
             def file_started(src, dst):
                 if self.paused: raise FolderPaused()
                 worker.begin_file()
@@ -256,7 +295,9 @@ class QueueManager(BufferedQueue):
                         site = job[key + '_site']
                         if site and (job.get('sync') or job.get('deployment')): site = replace(site, timezone='')
                         from .site_connections import transfer_connection
-                        connection = transfer_connection(self, site, job.get(key + '_password', ''), 'download' if key == 'source' else 'upload') if site else None
+                        connection = transfer_connection(self, site, job.get(key + '_password', ''),
+                            'download' if key == 'source' else 'upload', job.get('workspace'),
+                            job.get('source_side' if key == 'source' else 'destination_side')) if site else None
                         if connection:
                             if hasattr(connection, 'trace'):
                                 connection.trace.display_side = job.get(key + '_side', getattr(connection.trace, 'display_side', 1 if key == 'source' else 2))
@@ -290,7 +331,8 @@ class QueueManager(BufferedQueue):
                         result = False
                     if worker.cancel.is_set(): raise Cancelled('Cancelled')
                 if planned is not None and len(planned) > BUFFER_LIMIT:
-                    planned = expanded(template, planned, job['options'], worker.cancel)
+                    planned = expanded(template, planned, job['options'], worker.cancel,
+                                       rank=transfer_rank if ordered_folder else None)
                 return {'transferred': result, 'skipped': skipped, 'renamed': renamed, 'crc_errors': crc_errors, 'messages': messages,
                         'planned': planned, 'skipped_directories': skipped_directories}
             except FolderPaused:
@@ -310,8 +352,27 @@ class QueueManager(BufferedQueue):
                 from .queue_prepare import expansion_template, expanded
                 from .queue_io import background
                 template = expansion_template(parent, max(0, self.tabs.indexOf(parent['workspace'])))
+                rank = None
+                if parent.get('route') in ('Upload', 'Download'):
+                    root = parent['src']
+                    def rank(item):
+                        src = item[0] if isinstance(item, tuple) else item['src']
+                        size = item[2] if isinstance(item, tuple) else item.get('size')
+                        if parent.get('source_site'):
+                            import posixpath
+                            relative = posixpath.relpath(src, root)
+                            directory, filename = posixpath.dirname(relative), posixpath.basename(relative)
+                        else:
+                            try:
+                                relative = Path(src).relative_to(Path(root))
+                            except (ValueError, OSError):
+                                relative = Path(Path(src).name)
+                            directory = '' if relative.parent == Path('.') else relative.parent.as_posix()
+                            filename = relative.name
+                        return (size is None, size or 0, directory.casefold(), directory,
+                                filename.casefold(), filename)
                 spool = background(self, 'Preparing folder queue…',
-                    lambda worker: expanded(template, files, parent['options'], worker.cancel))
+                    lambda worker: expanded(template, files, parent['options'], worker.cancel, rank=rank))
             self.install_queue_buffer(parent, spool)
             self.show_transfer_queue()
             self.save_queue_state()
@@ -319,6 +380,7 @@ class QueueManager(BufferedQueue):
         group = dict(id=uuid.uuid4().hex, name=parent.get('name', parent['row'].text(0)), src=parent['src'], dst=parent['dst'])
         parent.update(queue_group=group, queue_group_parent=True)
         parent['row'].setData(0, GROUP_ROLE, group['id'])
+        insert_at = self.queue_jobs.index(parent) + 1
         for src, dst, size in files:
             name = posixpath.basename(src) if parent['source_site'] else Path(src).name
             row = QTreeWidgetItem([name, '0%', '—', '—', '—', self.file_size(size) if size is not None else '—',
@@ -332,11 +394,12 @@ class QueueManager(BufferedQueue):
             job['size'] = size
             job = self.new_queue_job(job, fresh=True)
             job['task'] = self.make_queue_task(job)
-            self.queue_jobs.append(job)
+            self.queue_jobs.insert(insert_at, job)
+            insert_at += 1
             self.pending.append(job)
         parent['row'].setText(8, f"{parent['route']} · Expanded: {len(files)} files")
         if isinstance(files, DiskBuffer): files.close()
-        parent['row'].setExpanded(False)
+        parent['row'].setExpanded(True)
         update_group(self, parent['row'])
         self.show_transfer_queue()
         self.save_queue_state()
@@ -351,29 +414,33 @@ class QueueManager(BufferedQueue):
     def attach_queue_row(self, job):
         from .queue_tree import detach
         row, group = job['row'], job.get('queue_group')
-        detach(self.queue, row)
+        tree = self.queue_for_workspace(job.get('workspace'))
+        detach(tree, row)
         if not group:
-            self.queue.addTopLevelItem(row)
+            tree.addTopLevelItem(row)
             return
-        parent = next((self.queue.topLevelItem(i) for i in range(self.queue.topLevelItemCount())
-                       if self.queue.topLevelItem(i).data(0, GROUP_ROLE) == group['id']), None)
+        parent = next((tree.topLevelItem(i) for i in range(tree.topLevelItemCount())
+                       if tree.topLevelItem(i).data(0, GROUP_ROLE) == group['id']), None)
         if job.get('queue_group_parent'):
             if parent is not None:
                 row.addChildren(parent.takeChildren())
-                detach(self.queue, parent)
-            self.queue.addTopLevelItem(row)
+                detach(tree, parent)
+            tree.addTopLevelItem(row)
             row.setExpanded(False)
             return
         if parent is None:
             parent = QTreeWidgetItem([group['name'], '', '', '', '0/0', '', group['src'], group['dst'], 'Folder'])
             parent.setData(0, GROUP_ROLE, group['id'])
-            self.queue.addTopLevelItem(parent)
+            tree.addTopLevelItem(parent)
             parent.setExpanded(False)
         parent.addChild(row)
         update_group(self, parent)
 
     def show_transfer_queue(self):
         if getattr(self, 'docking', None) and self.docking.active:
+            queue_dock = self.docking.docks.get('queue')
+            if getattr(self, '_manual_panel_layout', False) and queue_dock and queue_dock.isHidden():
+                return
             self.docking.show_panel('queue')
             return
         self.queue_panel.show()
@@ -391,12 +458,13 @@ class QueueManager(BufferedQueue):
                                      for i, size in enumerate(sizes)])
 
     def clear_finished_download(self, job):
-        """Clear successes after reporting, retaining folder totals until it finishes."""
-        if job.get('route') not in ('Download', 'Upload') or job.get('state') != 'complete' or job.get('transfer_outcome', 'complete') not in ('complete', 'skipped'):
+        """Clear completed transfers after reporting, retaining folder totals until they finish."""
+        route = job.get('route')
+        if route not in ('Download', 'Upload', 'FXP') or job.get('state') != 'complete' or job.get('transfer_outcome', 'complete') not in ('complete', 'skipped'):
             return
         group = job.get('queue_group')
         if not group:
-            if job.get('transfer_outcome', 'complete') == 'complete':
+            if job.get('transfer_outcome', 'complete') == 'complete' and (route != 'FXP' or job.get('directory')):
                 self.discard_queue_jobs([job])
             return
         members = [member for member in self.queue_jobs if member.get('queue_group', {}).get('id') == group['id']]
@@ -415,7 +483,7 @@ class QueueManager(BufferedQueue):
             token = parent['row'].data(0, MARKER_PARENT_ROLE) or uuid.uuid4().hex
             parent['row'].setData(0, MARKER_PARENT_ROLE, token)
             row.setData(0, MARKER_OWNER_ROLE, token)
-        self.queue.addTopLevelItem(row)
+        self.queue_for_workspace(parent.get('workspace')).addTopLevelItem(row)
 
     def clear_skipped_folder(self, job):
         if job.get('directory') and job.get('state') == 'complete' and job.get('transfer_outcome') == 'skipped':

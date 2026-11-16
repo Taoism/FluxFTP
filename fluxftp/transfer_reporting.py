@@ -9,8 +9,8 @@ from .queue_tree import GROUP_ROLE, STATE_ROLE, RATE_ROLE, PROGRESS_ROLE, SUMMAR
 from .queue_buffer import BUFFER_ROLE
 
 
-def append(window, text):
-    window.transfer_log.appendPlainText(redact(text))
+def append(window, text, workspace=None):
+    window.log_for_workspace(workspace, 'transfer').appendPlainText(redact(text))
 
 
 def _release_title(name):
@@ -25,7 +25,7 @@ def finish_batch_summaries(window):
     groups = getattr(window, '_transfer_release_summaries', None)
     if not groups:
         return
-    for (side, title), records in groups.items():
+    for (workspace, side, title), records in groups.items():
         files = sum(record['files'] for record in records)
         size = sum(record['bytes'] for record in records)
         failures = sum(record['failures'] for record in records)
@@ -34,8 +34,8 @@ def finish_batch_summaries(window):
         speed = size / elapsed / 1024
         megabytes = size / 1_000_000
         append(window, f'[{side}] All [{title}] transferred {files} file(s) at '
-               f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{speed:.2f} KBps')
-        append(window, f'[{side}] {failures} failed/cancelled')
+               f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{speed:.2f} KBps', workspace)
+        append(window, f'[{side}] {failures} failed/cancelled', workspace)
     window._transfer_release_summaries = {}
 
 
@@ -97,20 +97,21 @@ def update_group(window, row):
 
 def finish(window, job, worker):
     row = job['row']
+    workspace = job.get('workspace')
     state = job.get('transfer_outcome') or job.get('state', 'failed')
     if job.get('directory') and state in ('failed', 'cancelled'):
-        append(window, f"[{job.get('source_side', 1)}] {state.upper()} [{row.text(0)}] {row.toolTip(8)}")
+        append(window, f"[{job.get('source_side', 1)}] {state.upper()} [{row.text(0)}] {row.toolTip(8)}", workspace)
     if not job.get('directory'):
         side = job.get('source_side', 1) if job['route'] != 'Upload' else job.get('destination_side', 2)
         size = row.data(5, Qt.ItemDataRole.UserRole) or 0
         elapsed = max(.001, time.monotonic() - worker.started_at)
         name = job.get('name', row.text(0))
         if state == 'complete':
-            append(window, f'[{side}] {name} {size} bytes/{elapsed:.2f}s/{size / elapsed / 1024:.2f} KBps')
+            append(window, f'[{side}] {name} {size} bytes/{elapsed:.2f}s/{size / elapsed / 1024:.2f} KBps', workspace)
         elif state == 'skipped':
-            append(window, f'[{side}] Skip [{name}] {row.toolTip(8)}')
+            append(window, f'[{side}] Skip [{name}] {row.toolTip(8)}', workspace)
         else:
-            append(window, f'[{side}] {state.upper()} [{name}] {row.toolTip(8)}')
+            append(window, f'[{side}] {state.upper()} [{name}] {row.toolTip(8)}', workspace)
     row.setData(0, STATE_ROLE, job.get('state') if job.get('state') in ('queued', 'active') else state)
     row.setData(0, RATE_ROLE, 0)
     update_group(window, row)
@@ -140,12 +141,12 @@ def finish(window, job, worker):
     files = len(successes) + meta.get('completed', 0)
     megabytes = total / 1_000_000
     append(window, f'[{side}] [{parent.text(0)}] transferred {files} file(s) - Total: '
-           f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{total / elapsed / 1024:.2f} KBps')
-    append(window, f'[{side}] {failures} failed/cancelled')
+           f'{megabytes:.2f} Megabytes/{elapsed:.2f}s/{total / elapsed / 1024:.2f} KBps', workspace)
+    append(window, f'[{side}] {failures} failed/cancelled', workspace)
     title, has_episode = _release_title(parent.text(0))
     if has_episode:
         groups = getattr(window, '_transfer_release_summaries', None)
         if groups is None:
             groups = window._transfer_release_summaries = {}
-        groups.setdefault((side, title), []).append(dict(files=files, bytes=total,
+        groups.setdefault((workspace, side, title), []).append(dict(files=files, bytes=total,
             failures=failures, started=started, finished=time.monotonic()))

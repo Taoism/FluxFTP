@@ -1,6 +1,7 @@
 import json
 
 from fluxftp.core import Site
+from PySide6.QtWidgets import QInputDialog
 from test_queue import window
 
 
@@ -10,17 +11,17 @@ def connect(pane, name, monkeypatch):
     pane.refresh()
 
 
-def test_connections_do_not_replace_workspace_names(window, monkeypatch):
+def test_connections_name_workspaces_after_connected_sites(window, monkeypatch):
     left, right = window.current_panes()
     connect(right, 'Beta', monkeypatch)
-    assert window.tabs.tabText(0) == 'Workspace 1'
+    assert window.tabs.tabText(0) == 'Beta'
     connect(left, 'Alpha', monkeypatch)
-    assert window.tabs.tabText(0) == 'Workspace 1'
-    assert window.window_list.topLevelItem(0).text(0) == 'Workspace 1'
+    assert window.tabs.tabText(0) == 'Alpha | Beta'
+    assert window.window_list.topLevelItem(0).text(0) == 'Alpha | Beta'
     window.save_workspaces()
-    assert json.loads(window.preferences.value('Workspaces/session'))['items'][0]['name'] == 'Workspace 1'
+    assert json.loads(window.preferences.value('Workspaces/session'))['items'][0]['name'] == 'Alpha | Beta'
     left.set_remote(None)
-    assert window.tabs.tabText(0) == 'Workspace 1'
+    assert window.tabs.tabText(0) == 'Beta'
 
 
 def test_failed_connection_does_not_rename_workspace(window, monkeypatch):
@@ -38,9 +39,10 @@ def test_connection_updates_own_workspace_and_refresh_keeps_manual_name(window, 
     window.add_workspace()
     other_name = window.tabs.tabText(1)
     connect(first, 'Alpha', monkeypatch)
-    assert window.tabs.tabText(0) == 'Workspace 1'
+    assert window.tabs.tabText(0) == 'Alpha'
     assert window.tabs.tabText(1) == other_name
-    window.tabs.setTabText(0, 'Custom name')
+    monkeypatch.setattr(QInputDialog, 'getText', lambda *a, **k: ('Custom name', True))
+    window.rename_workspace(0)
     first.refresh()
     assert window.tabs.tabText(0) == 'Custom name'
     connect(first, 'Gamma', monkeypatch)

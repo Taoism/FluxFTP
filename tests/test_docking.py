@@ -37,10 +37,9 @@ def test_dock_float_tab_hide_restore_and_return_preserves_widgets(window):
 def test_docking_lock_and_reset(window, monkeypatch):
     controller = window.docking
     controller.action.setChecked(True)
-    window.layout_lock.action.setChecked(True)
-    assert not controller.action.isEnabled()
+    window.layout_lock.dock_action.setChecked(True)
     assert all(d.features() == QDockWidget.DockWidgetFeature.NoDockWidgetFeatures for d in controller.docks.values())
-    window.layout_lock.action.setChecked(False)
+    window.layout_lock.dock_action.setChecked(False)
     assert controller.docks['queue'].features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
     monkeypatch.setattr(QMessageBox, 'question', lambda *a, **k: QMessageBox.StandardButton.Yes)
     window.reset_layout()

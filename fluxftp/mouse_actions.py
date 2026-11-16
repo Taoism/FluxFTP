@@ -57,12 +57,15 @@ class MouseActions:
 
     def initialize_mouse(self):
         self.mouse_filter = MouseFilter(self)
-        for widget in (self.tabs.tabBar(), self.workspace_navigation, self.log.viewport(),
-                       self.ftp_log.viewport(), self.transfer_log.viewport(), self.tasks_log.viewport()):
+        log_viewports = [widget.viewport() for panel_set in self.panel_manager.sets.values()
+                         for widget in (panel_set['log'], panel_set['ftp_log'],
+                                        panel_set['transfer_log'], panel_set['tasks_log'])]
+        for widget in (self.tabs.tabBar(), self.workspace_navigation, *log_viewports):
             widget.installEventFilter(self.mouse_filter)
         for pane in self.current_panes():
             self.install_pane_mouse(pane)
-        self.queue.itemDoubleClicked.connect(self.mouse_queue)
+        for tree in self.panel_manager.queue_trees():
+            tree.itemDoubleClicked.connect(self.mouse_queue)
         self.mouse_windows = []
 
     def install_pane_mouse(self, pane):
@@ -169,6 +172,13 @@ class MouseActions:
     def default_file_menu(self, pane):
         menu = QMenu(pane)
         entries = pane.selected()
+        select_all = menu.addAction('Select All')
+        select_all.setEnabled(not pane.busy and any(
+            pane.tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) is not None
+            and not pane.tree.topLevelItem(index).isHidden()
+            for index in range(pane.tree.topLevelItemCount())))
+        select_all.triggered.connect(lambda: self.select_all_files(pane))
+        menu.addSeparator()
         if len(entries) == 1:
             entry = entries[0]
             if entry.is_dir:
@@ -202,6 +212,14 @@ class MouseActions:
             action.setEnabled(bool(urls))
         menu.addAction('New folder', pane.mkdir)
         return menu
+
+    @staticmethod
+    def select_all_files(pane):
+        pane.tree.clearSelection()
+        for index in range(pane.tree.topLevelItemCount()):
+            row = pane.tree.topLevelItem(index)
+            if row.data(0, Qt.ItemDataRole.UserRole) is not None and not row.isHidden():
+                row.setSelected(True)
 
     def mouse_queue(self, row, _column=0):
         job = next((job for job in self.queue_jobs if job['row'] is row), None)

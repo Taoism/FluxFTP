@@ -81,7 +81,8 @@ class QueueController:
                 row.setToolTip(1, 'Current file progress; the full folder size is not calculated before uploading.')
             row.setToolTip(8, '')
             if w.preferences.value('Queue/show_paths', False, type=bool):
-                w.log.appendPlainText(f"{route}: {row.text(6)} -> {row.text(7)}")
+                w.log_for_workspace(job.get('workspace')).appendPlainText(
+                    f"{route}: {row.text(6)} -> {row.text(7)}")
             def done(result, target=row, transfer_route=route, current=job):
                 def finish_streamed_file():
                     if current.get('streaming_file_active'):
@@ -114,7 +115,8 @@ class QueueController:
                             if close: close()
                         else:
                             w.expand_queue_files(current, result['planned'])
-                    for message in result.get('messages', []): w.log.appendPlainText(message)
+                    for message in result.get('messages', []):
+                        w.log_for_workspace(current.get('workspace')).appendPlainText(message)
                     if result.get('messages'): target.setToolTip(8, '\n'.join(result['messages']))
                     if result.get('crc_errors'):
                         current['transfer_outcome'] = 'failed'
@@ -124,7 +126,7 @@ class QueueController:
                         set_queue_state(target, 'error', w.preferences)
                         return
                 for old, new in result.get("renamed", []) if isinstance(result, dict) else []:
-                    w.log.appendPlainText(f"Auto Rename: {old} -> {new}")
+                    w.log_for_workspace(current.get('workspace')).appendPlainText(f"Auto Rename: {old} -> {new}")
                     if target.text(7) == old:
                         current['actual_dst'] = new
                         target.setText(7, new)
@@ -143,9 +145,10 @@ class QueueController:
                 for path, reason in skipped_items:
                     if current.get('directory') and not skipped_root:
                         w.transfer_history.skipped(current, path, reason, path in skipped_directories)
-                    w.log.appendPlainText(f"Skipped: {path} ({reason})")
+                    w.log_for_workspace(current.get('workspace')).appendPlainText(f"Skipped: {path} ({reason})")
                     if current.get('directory'):
-                        append_transfer_log(w, f"[{current.get('source_side', 1)}] Skip [{path}] {reason}")
+                        append_transfer_log(w, f"[{current.get('source_side', 1)}] Skip [{path}] {reason}",
+                                            current.get('workspace'))
                     if not skipped_root and path not in skipped_directories:
                         skipped_row = QTreeWidgetItem([Path(path).name, "—", "—", "—", "—", "—", path, "", f"{transfer_route} · Skipped"])
                         skipped_row.setToolTip(8, reason)
@@ -168,7 +171,8 @@ class QueueController:
                     target.setText(2, '0 B/s')
                 target.setText(8, f"{transfer_route} · Complete")
                 set_queue_state(target, 'connected', w.preferences)
-                w.log.appendPlainText(f"Complete: {target.text(0)} ({transfer_route})")
+                w.log_for_workspace(current.get('workspace')).appendPlainText(
+                    f"Complete: {target.text(0)} ({transfer_route})")
             def failed(message, target=row, transfer_route=route, current=job):
                 w.queue_batch_failed = True
                 current['state'] = 'cancelled' if 'Cancelled:' in message else 'failed'
@@ -176,7 +180,7 @@ class QueueController:
                 target.setText(8, f"{transfer_route} · " + ("Cancelled" if "Cancelled:" in message else "Failed"))
                 set_queue_state(target, 'idle' if 'Cancelled:' in message else 'error', w.preferences)
                 target.setToolTip(8, message)
-                w.log.appendPlainText(f"{target.text(0)}: {message}")
+                w.log_for_workspace(current.get('workspace')).appendPlainText(f"{target.text(0)}: {message}")
             transfer_id = uuid.uuid4().hex
             def queue_error(error, current=job, current_record=record, fail=failed, job_id=transfer_id):
                 from .folder_sync import PreviewChanged

@@ -132,9 +132,9 @@ def test_workspace_height_wheel_respects_preference_and_layout_lock(window):
     resize_wheel(row.height_grip)
     assert row.height() == 156
     window.preferences.setValue('Mouse/wheel_panels', True)
-    window.layout_lock.action.setChecked(True)
+    window.layout_lock.toolbar_action.setChecked(True)
     resize_wheel(row.height_grip)
     assert row.height() == 156
-    window.layout_lock.action.setChecked(False)
+    window.layout_lock.toolbar_action.setChecked(False)
     resize_wheel(row.height_grip, -120)
     assert row.height() == 140

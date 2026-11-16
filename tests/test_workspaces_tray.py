@@ -139,7 +139,7 @@ def test_context_menu_repeated_native_events(window, monkeypatch):
 def test_reset_layout_preserves_work_and_names(window, monkeypatch):
     window.show()
     rename(window, monkeypatch, 0, 'Keep my name')
-    window.header_rows.join('tabs', 'tools')
+    window.header_rows.join('overview', 'tools')
     window.header_rows.rows['overview'].set_height(240)
     window.set_toolbar_icon_size(40)
     window.work_area.insertWidget(0, window.queue_panel)
@@ -155,9 +155,10 @@ def test_reset_layout_preserves_work_and_names(window, monkeypatch):
     assert window.tabs.tabText(0) == 'Keep my name'
     assert window.current_panes()[0].site is site
     assert window.current_panes()[0].password == 'not-persisted'
-    assert window.work_area.widget(0) is window.workspace_panel
+    assert window.docking.active
+    assert window.docking.docks['workspace'].widget() is window.workspace_panel
     assert window.tabs.widget(0).orientation() == Qt.Orientation.Horizontal
-    assert window.header_rows.groups == [['tools'], ['connection'], ['tabs'], ['overview']]
+    assert window.header_rows.groups == [['tools'], ['connection'], ['overview']]
     assert window.toolbar_icon_size() == 24
     assert window.header_rows.rows['overview'].height() <= 120
     assert window.preferences.value('Transfer/download_kib', type=int) == 72

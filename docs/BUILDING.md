@@ -155,6 +155,16 @@ present in this repository, so it is not the fresh-checkout build command.
 `release_tools.py` contains separate native packaging/signing helpers. Signing
 identities, certificates and private keys are never stored in this repository.
 
+For a reusable package from the maintained runtime, pass `--test-build` to
+`build_windows.py`. It writes `dist/FluxFTP-Test`, retains OpenSSL 4.1.x as the
+FTP/FTPS default and OpenSSL 3.5.x as the legacy fallback, and replaces the
+previous test package only after the new package passes its runtime and checksum
+checks:
+
+```powershell
+.\<python-3.13.15-env>\Scripts\python.exe build_windows.py --test-build
+```
+
 Before a public binary release, complete package smoke tests, dependency/license
 review, artifact checksums and release notes. GitHub publishing is a separate step.
 

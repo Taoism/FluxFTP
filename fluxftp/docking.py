@@ -89,7 +89,7 @@ class DockLayout(QObject):
 
     def panels(self):
         return dict(workspace=self.window.workspace_panel, tools=self.window.main_toolbar,
-            queue=self.window.queue_panel, **self.window.log_panels)
+            queue=self.window.queue_panel, **self.window.log_stacks)
 
     def enable(self, enabled):
         if enabled == self.active: return
@@ -128,7 +128,7 @@ class DockLayout(QObject):
                     dock.show()
                     panel.show()
                 self.window.header_rows.rows['tools'].hide()
-                logs = [self.docks[key] for key in window.log_panels]
+                logs = [self.docks[key] for key in window.log_stacks]
                 for dock in logs:
                     self.host.tabifyDockWidget(self.docks['queue'], dock)
                 for tab_bar in self.host.findChildren(QTabBar):
@@ -163,7 +163,7 @@ class DockLayout(QObject):
                     window.work_area.insertWidget(index, panel)
                     panel.show()
                 window.workspace_panel.show_caption(True, False)
-                for key, panel in window.log_panels.items():
+                for key, panel in window.log_stacks.items():
                     window.log_tabs.addTab(panel, dict(ftp='FTP Log', transfer='Transfer Log', system='System Log', tasks='Tasks')[key])
                 tools_row = window.header_rows.rows['tools']
                 tools_row.layout().itemAt(0).layout().addWidget(window.main_toolbar, 1)
@@ -261,7 +261,10 @@ class DockLayout(QObject):
         dock.raise_()
         focus = {'queue': self.window.queue, 'ftp': self.window.ftp_log, 'transfer': self.window.transfer_log,
                  'system': self.window.log, 'tasks': self.window.tasks_log}
-        if key in focus: focus[key].setFocus()
+        if key == 'workspace':
+            self.window.mark_commands.pane().tree.setFocus()
+        elif key in focus:
+            focus[key].setFocus()
 
     def show_panel_context_menu(self, key, position):
         dock = self.docks.get(key)
@@ -288,8 +291,11 @@ class DockLayout(QObject):
             self.action.setChecked(True)
         if not self.active:
             return
-        if getattr(self.window, 'layout_lock', None):
-            self.window.layout_lock.action.setChecked(False)
+        layout_lock = getattr(self.window, 'layout_lock', None)
+        if layout_lock:
+            for action in (layout_lock.toolbar_action, layout_lock.dock_action):
+                if action.isChecked():
+                    action.setChecked(False)
 
         self.changing = True
         self.host.setUpdatesEnabled(False)
@@ -303,7 +309,7 @@ class DockLayout(QObject):
             tools.show()
             workspace.show()
             queue.show()
-            for key in self.window.log_panels:
+            for key in self.window.log_stacks:
                 dock = self.docks[key]
                 self.host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
                 self.host.tabifyDockWidget(queue, dock)

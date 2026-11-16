@@ -24,23 +24,24 @@ def test_defaults_and_independent_themes(window):
         for role, value in roles.items(): assert color_value(window.preferences, scope, role) == value
     for role, value in LOG_DEFAULTS.items(): assert color_value(window.preferences, 'log', role) == value
     dialog.color_themes['remote'].setCurrentText('Midnight')
-    left = window.current_panes()[0]
-    assert '#171e27' in left.tree.styleSheet() and '#dce6f2' in left.tree.styleSheet()
+    remote = next(pane for pane in window.current_panes() if pane.mode == 'Remote')
+    assert '#171e27' in remote.tree.styleSheet() and '#dce6f2' in remote.tree.styleSheet()
     window.preferences.setValue('Display/hide_unfocused_selection', True)
     window.apply_colors()
-    assert 'background:transparent; color:#dce6f2' in left.tree.styleSheet()
+    assert 'background:transparent; color:#dce6f2' in remote.tree.styleSheet()
     assert '#171e27' not in window.queue.styleSheet()
-    left.change_mode('Local')
-    assert '#171e27' not in left.tree.styleSheet()
+    remote.change_mode('Local')
+    assert '#171e27' not in remote.tree.styleSheet()
     dialog._set_display_color('local', 'odd', '#abcdef')
     assert dialog.color_themes['local'].currentText() == 'Custom'
-    assert '#abcdef' in left.tree.styleSheet()
+    assert '#abcdef' in remote.tree.styleSheet()
     dialog.color_themes['local'].setCurrentText('(Default)')
     assert color_value(window.preferences, 'local', 'odd') == '#ffffff'
     dialog.color_themes['queue'].setCurrentText('Light')
     assert '#eaf1f8' in window.queue.styleSheet()
     window.add_workspace()
-    assert '#171e27' in window.current_panes()[1].tree.styleSheet()
+    remote = next(pane for pane in window.current_panes() if pane.mode == 'Remote')
+    assert '#171e27' in remote.tree.styleSheet()
     dialog.close()
     dialog = PreferencesDialog(window)
     assert dialog.color_themes['remote'].currentText() == 'Midnight'

@@ -2,9 +2,9 @@
 import json
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QSettings, QSize
+from PySide6.QtCore import Qt, QTimer, QSettings
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QCheckBox, QPlainTextEdit, QHeaderView, QAbstractItemView, QTabWidget, QSplitter,
+    QCheckBox, QSplitter, QTabWidget,
     QToolBar, QStyle)
 
 from . import credentials
@@ -12,7 +12,6 @@ from .connection_factory import ConnectionFactory
 from .directory_cache import DirectoryCache
 from .ident import IdentService
 from .layout_options import CaptionPanel, WorkspaceTabBar
-from .queue_tree import QueueTree
 from .transfer_options import RateLimiter, TransferOptions
 
 
@@ -126,68 +125,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     plus.clicked.connect(self.add_workspace)
     self.tabs.setCornerWidget(plus)
     self._build_quick_connect(layout)
-    self.log = QPlainTextEdit()
-    self.log.setAccessibleName('System log')
-    self.log.setTabChangesFocus(True)
-    self.log.setReadOnly(True)
-    self.log.setMaximumBlockCount(self.preferences.value("General/log_lines", 300, type=int))
     self._activity_logging = self.preferences.value("General/log_to_disk", False, type=bool)
-    self.log.textChanged.connect(self._write_activity_log)
-    self.ftp_log = QPlainTextEdit()
-    self.ftp_log.setAccessibleName('FTP log')
-    self.ftp_log.setTabChangesFocus(True)
-    self.ftp_log.setReadOnly(True)
-    self.ftp_log.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-    self.ftp_log_content = QWidget()
-    ftp_layout = QVBoxLayout(self.ftp_log_content)
-    ftp_layout.setContentsMargins(0, 0, 0, 0)
-    ftp_layout.setSpacing(2)
-    command_row = QHBoxLayout()
-    command_row.setContentsMargins(0, 0, 0, 0)
-    command_row.setSpacing(3)
-    self.ftp_command_input = QComboBox()
-    self.ftp_command_input.setEditable(True)
-    self.ftp_command_input.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-    self.ftp_command_input.addItems(['HELP', 'FEAT', 'SYST', 'PWD', 'NOOP', 'SITE HELP', 'SITE WHO'])
-    self.ftp_command_input.setCurrentIndex(-1)
-    self.ftp_command_input.setCompleter(None)
-    self.ftp_command_input.lineEdit().setPlaceholderText('FTP Command')
-    self.ftp_command_input.setAccessibleName('FTP Command')
-    self.ftp_command_input.lineEdit().setAccessibleName('FTP Command')
-    self.ftp_command_input.lineEdit().returnPressed.connect(self.command_commands.inline_raw)
-    self.ftp_command_send = QPushButton('Send')
-    self.ftp_command_send.clicked.connect(self.command_commands.inline_raw)
-    command_row.addWidget(self.ftp_command_input, 1)
-    command_row.addWidget(self.ftp_command_send)
-    ftp_layout.addLayout(command_row)
-    ftp_layout.addWidget(self.ftp_log, 1)
-    self.transfer_log = QPlainTextEdit()
-    self.transfer_log.setAccessibleName('Transfer log')
-    self.transfer_log.setTabChangesFocus(True)
-    self.transfer_log.setReadOnly(True)
-    self.transfer_log.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-    self.tasks_log = QPlainTextEdit()
-    self.tasks_log.setAccessibleName('Tasks log')
-    self.tasks_log.setTabChangesFocus(True)
-    self.tasks_log.setReadOnly(True)
-    self.log_tabs = QTabWidget()
-    self.log_tabs.setTabPosition(QTabWidget.TabPosition.South)
-    self.log_panels = {}
-    for key, widget, title in (('ftp', self.ftp_log_content, 'FTP Log'), ('transfer', self.transfer_log, 'Transfer Log'),
-                               ('system', self.log, 'System Log'), ('tasks', self.tasks_log, 'Tasks')):
-        panel = CaptionPanel(widget, title)
-        self.log_panels[key] = panel
-        self.log_tabs.addTab(panel, title)
-    self.queue = QueueTree()
-    self.queue.setAccessibleName('Transfer queue')
-    self.queue.setAlternatingRowColors(True)
-    self.queue.setHeaderLabels(["Name", "Progress", "Speed", "Transferred", "Files", "Size", "Source path", "Target path", "Remark"])
-    self.queue.setIconSize(QSize(32, 32))
-    self.queue.header().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-    for col in (6, 7):
-        self.queue.header().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-    self.queue.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-    self.queue_commands.install()
     self.resume = QCheckBox("Resume partial files")
     self.resume.setToolTip("Continue partial local, FTP/FTPS and SFTP transfers when source content is unchanged. SCP and cloud do not support byte-offset resume; choose Overwrite for existing partial files.")
     self.resume.setChecked(self.preferences.value("Transfer/resume", True, type=bool))
@@ -195,7 +133,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.add_workspace()
     self.work_area = QSplitter(Qt.Orientation.Vertical)
     self.workspace_panel = CaptionPanel(self.tabs, 'Workspaces', self.add_workspace)
-    self.queue_panel = CaptionPanel(self.queue, 'Queue')
+    self.queue_panel = self.panel_manager.queue_panel
     self.work_area.addWidget(self.workspace_panel)
     self.work_area.addWidget(self.log_tabs)
     self.work_area.addWidget(self.queue_panel)

@@ -1,7 +1,8 @@
 """Expandable queue groups without changing their worker jobs."""
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QPainter, QPainterPath, QLinearGradient, QPalette
-from PySide6.QtWidgets import QTreeWidget, QStyledItemDelegate, QStyleOptionViewItem, QStyle
+from PySide6.QtWidgets import (QTreeWidget, QStyledItemDelegate, QStyleOptionViewItem, QStyle,
+    QAbstractItemView)
 
 GROUP_ROLE = Qt.ItemDataRole.UserRole + 40
 STATE_ROLE = Qt.ItemDataRole.UserRole + 41
@@ -97,11 +98,14 @@ class QueueTree(QTreeWidget):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setExpandsOnDoubleClick(False)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setItemDelegateForColumn(1, ReleaseProgress(self))
 
     def mouseReleaseEvent(self, event):
         row = self.itemAt(event.position().toPoint())
-        toggle = (event.button() == Qt.MouseButton.LeftButton and row is not None and row.childCount()
+        selection_modifiers = Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier
+        toggle = (event.button() == Qt.MouseButton.LeftButton and
+                  not event.modifiers() & selection_modifiers and row is not None and row.childCount()
                   and self.columnAt(int(event.position().x())) == 0
                   and event.position().x() >= self.visualItemRect(row).left())
         super().mouseReleaseEvent(event)

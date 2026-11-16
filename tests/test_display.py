@@ -69,7 +69,7 @@ def test_local_hidden_address_size_and_focus(window, tmp_path):
     window.preferences.setValue('Display/size_mode', 'KBytes')
     window.apply_display_settings()
     assert rows['visible'].text(1) == '2 KB'
-    assert row.text(3) == '1 KB / 2 KB' and row.text(4) == '2 KB'
+    assert row.text(3) == '1 KB / 2 KB' and row.text(5) == '2 KB'
 
 
 def test_folder_icons_turn_dark_and_refresh_with_theme(window, tmp_path):
@@ -113,10 +113,9 @@ def test_sites_grouping_recent_and_menu_visibility(window, monkeypatch):
     actions = pane.sites_menu.actions()
     assert [a.text() for a in actions[:2]] == ['Quick Connect', 'Quick Connect dialog…']
     assert actions[2].isSeparator()
-    assert actions[3].text() == 'Reconnect to Recent'
-    assert actions[4].text() == 'Recent sites'
-    assert actions[5].isSeparator()
-    assert actions[6].text().startswith('Sites ')
+    assert actions[3].text() == 'Recent sites'
+    assert actions[4].isSeparator()
+    assert actions[5].text().startswith('Sites ')
     assert not any(a.text() in ('Manage sites…', 'Disconnect') for a in actions)
     groups = [a.menu() for a in actions if a.text().startswith('Sites ')]
     assert [len(g.actions()) for g in groups] == [2, 2, 1]

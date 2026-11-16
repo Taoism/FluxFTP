@@ -1,6 +1,7 @@
 from threading import Event
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QDockWidget
 from fluxftp.queue_filter import search_page
 from fluxftp.queue_buffer import DiskBuffer
 from test_queue import window, job_for
@@ -9,24 +10,23 @@ from test_queue import window, job_for
 def test_layout_lock_blocks_drag_and_persists(window):
     window.show()
     QTest.qWait(30)
-    window.layout_lock.action.setChecked(True)
-    assert window.preferences.value('Layout/locked', type=bool)
+    window.layout_lock.toolbar_action.setChecked(True)
+    window.layout_lock.dock_action.setChecked(True)
+    assert window.preferences.value('Layout/toolbar_locked', type=bool)
+    assert window.preferences.value('Layout/dock_locked', type=bool)
     grip = window.header_rows.rows['overview'].height_grip
     original = grip.row.height()
     QTest.mousePress(grip, Qt.MouseButton.LeftButton, pos=QPoint(20, 2))
     QTest.mouseMove(grip, QPoint(20, 50))
     QTest.mouseRelease(grip, Qt.MouseButton.LeftButton, pos=QPoint(20, 50))
     assert grip.row.height() == original
-    split = window.work_area
-    sizes = split.sizes()
-    handle = split.handle(1)
-    QTest.mousePress(handle, Qt.MouseButton.LeftButton)
-    QTest.mouseMove(handle, QPoint(10, 80))
-    QTest.mouseRelease(handle, Qt.MouseButton.LeftButton)
-    assert split.sizes() == sizes
     window.add_workspace()
-    assert not window.tabs.currentWidget().handle(1).isEnabled()
-    window.layout_lock.action.setChecked(False)
+    assert not window.main_toolbar.isMovable()
+    features = {key: d.features() for key, d in window.docking.docks.items()}
+    assert all(feature == QDockWidget.DockWidgetFeature.NoDockWidgetFeatures
+               for feature in features.values()), features
+    window.layout_lock.dock_action.setChecked(False)
+    window.layout_lock.toolbar_action.setChecked(False)
     QTest.mousePress(grip, Qt.MouseButton.LeftButton, pos=QPoint(20, 2))
     QTest.mouseMove(grip, QPoint(20, 50))
     QTest.mouseRelease(grip, Qt.MouseButton.LeftButton, pos=QPoint(20, 50))

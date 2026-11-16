@@ -1,7 +1,9 @@
-"""Build the local Windows release with the validated FTP/FTPS TLS runtime.
+"""Build Windows packages using Python 3.13.15 / OpenSSL 3.5.8 and the OpenSSL 4.1 adapter.
 
-Run with .venv-openssl358/Scripts/python.exe. See README.md (Windows runtime).
+Run with the maintained x64 builder environment. Use --test-build to replace the
+reusable dist/FluxFTP-Test package after a successful build.
 """
+import argparse
 import hashlib
 import json
 import os
@@ -17,6 +19,10 @@ RUNTIME_ROOT = Path(os.environ.get('FLUXFTP_RUNTIME_ROOT', ROOT / 'runtime')).re
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--test-build', action='store_true',
+                        help='Replace the reusable dist/FluxFTP-Test package after a successful build.')
+    args = parser.parse_args()
     if sys.platform != "win32" or platform.architecture()[0] != "64bit":
         raise SystemExit("This release builder requires 64-bit Windows Python.")
     if platform.python_version() != "3.13.15" or not ssl.OPENSSL_VERSION.startswith("OpenSSL 3.5.8 "):
@@ -32,17 +38,24 @@ def main():
     cloud_hash = hashlib.sha256((RUNTIME_ROOT / 'rclone' / 'rclone.exe').read_bytes()).hexdigest()
     if cloud_hash != cloud_provenance['executable_sha256']:
         raise SystemExit('Cloud backend checksum does not match its verified provenance.')
-    destination = ROOT / "dist" / f"FluxFTP-{__version__}"
-    if destination.exists():
+    output_name = 'FluxFTP-Test' if args.test_build else f'FluxFTP-{__version__}'
+    build_id = f'{__version__}-test' if args.test_build else __version__
+    destination = ROOT / 'dist' / output_name
+    pyinstaller_dist = ROOT / f'dist-{build_id}'
+    work_path = ROOT / f'build-{build_id}'
+    if not args.test_build and destination.exists():
         raise SystemExit(f"Release already exists: {destination}")
+    if args.test_build:
+        for path in (pyinstaller_dist, work_path):
+            if path.exists(): shutil.rmtree(path)
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
         "--windowed", "--name", "FluxFTP", "--icon", str(ROOT / 'fluxftp' / 'assets' / 'fluxftp.ico'),
-        "--distpath", f"dist-{__version__}",
+        "--distpath", str(pyinstaller_dist),
         # keyring selects OS vaults through entry-point metadata at runtime.
         "--collect-submodules", "keyring.backends", "--copy-metadata", "keyring",
         "--runtime-hook", str(ROOT / 'openssl_runtime_hook.py'),
-        "--workpath", f"build-{__version__}", "--specpath", f"build-{__version__}",
+        "--workpath", str(work_path), "--specpath", str(work_path),
         "--add-data", f"{ROOT / 'README.md'}{os.pathsep}.",
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'cloud-providers'}{os.pathsep}fluxftp/assets/cloud-providers",
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'fluxftp-icon.svg'}{os.pathsep}fluxftp/assets",
@@ -55,7 +68,7 @@ def main():
         "--add-data", f"{RUNTIME_ROOT / 'rclone' / 'fluxftp-oauth-port.patch'}{os.pathsep}cloud_tools",
         str(ROOT / "launch.py"),
     ], cwd=ROOT, check=True)
-    staged = ROOT / f"dist-{__version__}" / "FluxFTP"
+    staged = pyinstaller_dist / "FluxFTP"
     for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'requirements-windows.txt'):
         shutil.copy2(ROOT / name, staged / name)
     shutil.copytree(ROOT / 'licenses', staged / 'licenses', dirs_exist_ok=True)
@@ -93,7 +106,14 @@ def main():
                        for name in ("libssl-3.dll", "libcrypto-3.dll")},
     }, indent=2) + "\n", encoding="utf-8")
     # Copy rather than move: the inspected DLL may remain loaded on Windows.
-    shutil.copytree(staged, destination)
+    if args.test_build:
+        package_staging = ROOT / 'dist' / '.FluxFTP-Test-staging'
+        if package_staging.exists(): shutil.rmtree(package_staging)
+        shutil.copytree(staged, package_staging)
+        if destination.exists(): shutil.rmtree(destination)
+        package_staging.replace(destination)
+    else:
+        shutil.copytree(staged, destination)
     print(f"Packaged {destination}; {bundled}")
     print('After verification, TLS selection and shortcut updates, run ./cleanup_builds.ps1 -Apply. Keep only the verified current release.')
 

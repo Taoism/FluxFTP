@@ -254,8 +254,9 @@ class Workspaces:
         for index, panel in enumerate((self.workspace_panel, self.log_tabs, self.queue_panel)):
             self.work_area.insertWidget(index, panel)
         self.work_area.setSizes([350, 320, 300])
-        self.log_tabs.setCurrentWidget(self.log_panels['ftp'])
-        trees = [self.queue, self.window_list]
+        self.panel_manager.sets[self.tabs.currentWidget()]['active_log'] = 'ftp'
+        self.log_tabs.setCurrentWidget(self.log_stacks['ftp'])
+        trees = [*self.panel_manager.queue_trees(), self.window_list]
         for index in range(self.tabs.count()):
             split = self.tabs.widget(index)
             if hasattr(split, '_workspace_saved_state'):

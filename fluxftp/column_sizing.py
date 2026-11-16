@@ -33,7 +33,7 @@ class ColumnSizing(QObject):
             header.resizeSection(column, width)
         finally:
             self.tree._fitting_columns = False
-        self.options.save_width(self.tree, column, header.sectionSize(column))
+        self.options.save_width(self.tree, column, header.sectionSize(column), manual=True)
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):

@@ -13,6 +13,9 @@ from threading import Lock
 from .connection_model import Site, Cancelled
 from .site_import import validate_site
 
+RANK_COLUMNS = tuple(f'rank{index}' for index in range(6))
+ORDER_BY_RANK = ','.join((*RANK_COLUMNS, 'id'))
+
 
 def checked(cancel):
     if cancel.is_set(): raise Cancelled('Queue operation cancelled')
@@ -47,7 +50,7 @@ class StorageSnapshot:
             if kind == 'items':
                 yield from source
             else:
-                for payload, in source.db.execute('SELECT payload FROM items ORDER BY priority,position,id'):
+                for payload, in source.db.execute(f'SELECT payload FROM items ORDER BY {ORDER_BY_RANK}'):
                     item = json.loads(payload)
                     item.update(overrides)
                     yield item
@@ -91,8 +94,9 @@ class DiskBuffer:
         self._readers = 0
         self._retired_path = None
         self.db.execute('PRAGMA cache_size=-512')
-        self.db.execute('CREATE TABLE items (id INTEGER PRIMARY KEY, priority INTEGER, position INTEGER, payload TEXT)')
-        self.db.execute('CREATE INDEX ordering ON items(priority, position, id)')
+        self.db.execute('CREATE TABLE items (id INTEGER PRIMARY KEY, ' +
+                        ', '.join(RANK_COLUMNS) + ', payload TEXT)')
+        self.db.execute(f'CREATE INDEX ordering ON items({ORDER_BY_RANK})')
         self.count = 0
         self.bytes = 0
         self.rank = rank or (lambda item: 0)
@@ -103,8 +107,13 @@ class DiskBuffer:
             item = dict(item, job_id=job_id(item.get('job_id')))
         rank = self.rank(item)
         if not isinstance(rank, tuple): rank = (1, rank)
-        self.db.execute('INSERT INTO items(priority,position,payload) VALUES (?,?,?)',
-                        (*rank, json.dumps(item, ensure_ascii=False)))
+        if len(rank) > len(RANK_COLUMNS):
+            raise ValueError(f'Queue sort keys can contain at most {len(RANK_COLUMNS)} fields.')
+        values = (*rank, *(None for _ in range(len(RANK_COLUMNS) - len(rank))),
+                  json.dumps(item, ensure_ascii=False))
+        columns = ','.join((*RANK_COLUMNS, 'payload'))
+        placeholders = ','.join('?' for _ in values)
+        self.db.execute(f'INSERT INTO items({columns}) VALUES ({placeholders})', values)
         self.count += 1
         self.bytes += self.item_size(item)
         if self.count % 256 == 0:
@@ -123,7 +132,7 @@ class DiskBuffer:
 
     def __iter__(self):
         self.db.commit()
-        for payload, in self.db.execute('SELECT payload FROM items ORDER BY priority,position,id'):
+        for payload, in self.db.execute(f'SELECT payload FROM items ORDER BY {ORDER_BY_RANK}'):
             yield json.loads(payload)
 
     def take(self, limit, *, eligible=False, release=False, unschedule=False):
@@ -137,7 +146,8 @@ class DiskBuffer:
                 conditions.append("COALESCE(json_extract(payload,'$.scheduled_at'),0)<=?")
                 parameters.append(time.time())
             if conditions: where = ' WHERE ' + ' AND '.join(conditions)
-        rows = self.db.execute('SELECT id,payload FROM items' + where + ' ORDER BY priority,position,id LIMIT ?', (*parameters, limit)).fetchall()
+        rows = self.db.execute(f'SELECT id,payload FROM items{where} ORDER BY {ORDER_BY_RANK} LIMIT ?',
+                               (*parameters, limit)).fetchall()
         # Decode before removal. The caller owns these descriptors until snapshot.
         items = [json.loads(payload) for _, payload in rows]
         try:

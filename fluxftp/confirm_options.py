@@ -69,7 +69,8 @@ class ConfirmOptions:
             return
         self.discard_queue_jobs(jobs)
         for row in rows:
-            detach(self.queue, row)
+            owner = next((job.get('workspace') for job in jobs if job['row'] is row), None)
+            detach(self.queue_for_workspace(owner), row)
         self.save_queue_state()
 
     def discard_queue_jobs(self, jobs):
@@ -83,7 +84,7 @@ class ConfirmOptions:
                 self.pending.remove(job)
             if job in self.queue_jobs:
                 self.queue_jobs.remove(job)
-            detach(self.queue, job['row'])
+            detach(self.queue_for_workspace(job.get('workspace')), job['row'])
             from .queue_job import QueueJob
             if isinstance(job, QueueJob):
                 self.job_views.pop(job.model.job_id, None)
@@ -91,14 +92,15 @@ class ConfirmOptions:
         from .queue_tree import GROUP_ROLE
         from .transfer_reporting import update_group
         owned = {id(job['row']) for job in self.queue_jobs}
-        for i in reversed(range(self.queue.topLevelItemCount())):
-            row = self.queue.topLevelItem(i)
-            if row.data(0, MARKER_OWNER_ROLE) in marker_parents and id(row) not in owned:
-                detach(self.queue, row)
-            elif row.data(0, GROUP_ROLE) and not row.childCount() and id(row) not in owned:
-                detach(self.queue, row)
-            elif row.data(0, GROUP_ROLE):
-                update_group(self, row)
+        for tree in self.panel_manager.queue_trees():
+            for i in reversed(range(tree.topLevelItemCount())):
+                row = tree.topLevelItem(i)
+                if row.data(0, MARKER_OWNER_ROLE) in marker_parents and id(row) not in owned:
+                    detach(tree, row)
+                elif row.data(0, GROUP_ROLE) and not row.childCount() and id(row) not in owned:
+                    detach(tree, row)
+                elif row.data(0, GROUP_ROLE):
+                    update_group(self, row)
 
     def export_queue_list(self):
         from .queue_io import export

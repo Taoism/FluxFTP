@@ -93,7 +93,10 @@ def test_local_delete_checkbox_only_controls_local_files(window, tmp_path, monke
     file = source / 'file.txt'
     file.write_text('keep')
     left.refresh()
-    left.tree.topLevelItem(0).setSelected(True)
+    file_row = next(left.tree.topLevelItem(index) for index in range(left.tree.topLevelItemCount())
+                    if left.tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) is not None
+                    and left.tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole).name == file.name)
+    file_row.setSelected(True)
     window.preferences.setValue('Confirm/delete_local', True)
     calls = answer(monkeypatch, False)
     left.delete()

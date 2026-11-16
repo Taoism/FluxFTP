@@ -288,9 +288,9 @@ def test_reference_style_shell_exposes_quick_connect_and_classic_work_areas():
             for i in range(window.menuBar().actions().__len__())] == ["File", "Edit", "Mark", "View", "FTP", "Tools", "Help"]
     assert window.quick_protocol.count() == len(PROTOCOLS)
     assert [window.queue.headerItem().text(i) for i in range(window.queue.columnCount())] == [
-        "Name", "Progress", "Speed", "Transferred", "Size", "Source path", "Target path", "Remark"]
-    assert [window.log_tabs.tabText(i) for i in range(window.log_tabs.count())] == [
-        "FTP Log", "Transfer Log", "System Log", "Tasks"]
+        "Name", "Progress", "Speed", "Transferred", "Files", "Size", "Source path", "Target path", "Remark"]
+    assert all(window.docking.docks[key].widget() is window.log_stacks[key]
+               for key in ('ftp', 'transfer', 'system', 'tasks'))
     window.close()
 
 

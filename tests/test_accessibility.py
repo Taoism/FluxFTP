@@ -80,7 +80,7 @@ def test_logs_do_not_trap_tab_and_workspace_height_has_keyboard_control(window):
     assert row.height() == 180
     QTest.keyClick(row.height_grip, Qt.Key.Key_Home)
     assert row.height() < 180
-    window.layout_lock.action.setChecked(True)
+    window.layout_lock.toolbar_action.setChecked(True)
     assert not row.height_grip.isEnabled()
 
 

@@ -4,9 +4,9 @@ import json
 from .site_options import decode
 
 
-def transfer_connection(window, site, password, direction):
+def transfer_connection(window, site, password, direction, workspace=None, side=None):
     site, password = transfer_account(window, site, password, direction)
-    return window.new_connection(site, password)
+    return window.new_connection(site, password, workspace=workspace, side=side)
 
 
 def transfer_account(window, site, password, direction):

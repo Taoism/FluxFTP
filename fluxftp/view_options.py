@@ -118,9 +118,12 @@ class ViewOptions:
                 row.setData(0, Qt.ItemDataRole.UserRole, index)
                 row.setSelected(index == w.tabs.currentIndex())
 
-    def save_width(self, tree, column, width):
+    def save_width(self, tree, column, width, *, manual=False):
         group = tree._view_group
-        if not self.applying and not getattr(tree, '_fitting_columns', False) and not tree.isColumnHidden(column):
+        from PySide6.QtWidgets import QApplication
+        user_drag = bool(QApplication.mouseButtons() & Qt.MouseButton.LeftButton)
+        if (not self.applying and not getattr(tree, '_fitting_columns', False)
+                and not tree.isColumnHidden(column) and (manual or user_drag)):
             # A user's drag takes precedence over automatic fitting. Keep the
             # existing group preference, but never lock the header handles.
             if self.value('auto_size/' + group):

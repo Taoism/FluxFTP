@@ -18,7 +18,7 @@ def test_named_hide_restore_and_shared_rows(window, monkeypatch):
     window.apply_layout_settings()
     assert window.header_rows.rows['tools'].isHidden()
     controls.edit_menu.actions()[0].trigger()
-    assert not window.header_rows.rows['tools'].isHidden()
+    assert not window.docking.docks['tools'].isHidden()
     for key in ('tools', 'connection'):
         controls.set_visible(key, False)
     band = next(b for g, b in zip(window.header_rows.groups, window.header_rows.bands) if 'tools' in g)
@@ -26,7 +26,17 @@ def test_named_hide_restore_and_shared_rows(window, monkeypatch):
     monkeypatch.setattr(QMessageBox, 'question', lambda *a, **k: QMessageBox.StandardButton.Yes)
     window.reset_layout()
     assert all(a.isChecked() for a in controls.actions.values())
-    assert all(not row.isHidden() for row in window.header_rows.rows.values())
+    assert all(not window.header_rows.rows[key].isHidden()
+               for key in ('connection', 'overview'))
+    assert not window.docking.docks['tools'].isHidden()
+    controls.set_visible('tabs', False)
+    assert window.tabs.tabBar().isHidden()
+    assert window.workspace_navigation.isHidden()
+    assert window.workspace_panel.add_button.isHidden()
+    controls.set_visible('tabs', True)
+    assert not window.tabs.tabBar().isHidden()
+    assert not window.workspace_navigation.isHidden()
+    assert not window.workspace_panel.add_button.isHidden()
 
 
 def test_pane_toolbar_visibility_persists_and_applies_to_new_workspaces(window):

@@ -26,8 +26,8 @@ class Settings:
         return self.values.get(key, default)
 
 
-def expanded(template, files, options, cancel):
-    spool = DiskBuffer(rank=lambda item: options.priority(item['name']))
+def expanded(template, files, options, cancel, rank=None):
+    spool = DiskBuffer(rank=rank or (lambda item: options.priority(item['name'])))
     try:
         for src, dst, size in files:
             checked(cancel)
@@ -121,12 +121,13 @@ def install(window, prepared):
                     if group: root.update(src=group['src'], dst=group['dst'])
                     window.restore_queue_items([root], identities_checked=True)
                     parent = window.queue_jobs[-1]
-                    detach(window.queue, parent['row'])
-                    for index in reversed(range(window.queue.topLevelItemCount())):
-                        row = window.queue.topLevelItem(index)
+                    tree = window.queue_for_workspace(parent['workspace'])
+                    detach(tree, parent['row'])
+                    for index in reversed(range(tree.topLevelItemCount())):
+                        row = tree.topLevelItem(index)
                         if group and row.data(0, GROUP_ROLE) == group['id'] and not row.childCount():
-                            window.queue.takeTopLevelItem(index)
-                    window.queue.addTopLevelItem(parent['row'])
+                            tree.takeTopLevelItem(index)
+                    tree.addTopLevelItem(parent['row'])
                     window.install_queue_buffer(parent, spool)
                 count += 1
                 dialog.setValue(count)

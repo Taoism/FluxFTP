@@ -239,12 +239,20 @@ class FTPLogHighlighter(QSyntaxHighlighter):
 
 class ColorOptions:
     def initialize_colors(self):
-        self.ftp_log.setMaximumBlockCount(self.preferences.value('General/log_lines', 300, type=int))
-        self.ftp_highlighter = FTPLogHighlighter(self.ftp_log.document(), self.preferences)
+        self.ftp_highlighters = {}
+        for panel_set in self.panel_manager.sets.values():
+            self.configure_ftp_log(panel_set['ftp_log'])
         from PySide6.QtCore import Qt
         self.ftp_message.connect(self.append_ftp_message, Qt.ConnectionType.QueuedConnection)
 
-    def append_ftp_message(self, message, side):
+    def configure_ftp_log(self, widget):
+        widget.setMaximumBlockCount(self.preferences.value('General/log_lines', 300, type=int))
+        highlighter = FTPLogHighlighter(widget.document(), self.preferences)
+        self.ftp_highlighters[widget] = highlighter
+        if widget is self.ftp_log:
+            self.ftp_highlighter = highlighter
+
+    def append_ftp_message(self, message, side, workspace=None):
         reply = message.startswith('FTP < ')
         command = message.startswith('FTP > ')
         direction = 'FTP < ' if reply else 'FTP > ' if command else ''
@@ -256,7 +264,7 @@ class ColorOptions:
                 initial_indent=prefix, subsequent_indent=continuation,
                 break_long_words=True, break_on_hyphens=False)
             output.extend(wrapped or [prefix])
-        self.ftp_log.appendPlainText('\n'.join(output))
+        self.log_for_workspace(workspace, 'ftp').appendPlainText('\n'.join(output))
 
     def apply_colors(self):
         from .themes import apply_icons
@@ -276,12 +284,18 @@ class ColorOptions:
                         brush = QBrush(QColor(comparison_color(self.preferences, result == 'different')))
                         for column in range(row.columnCount()):
                             row.setBackground(column, brush)
-                if pane.site: self._log_site_sides[self._transfer_site_key(pane.site)] = side
-        self.queue.setStyleSheet(list_style(self.preferences, 'queue'))
-        self.queue.setProperty('progressGradient', self.preferences.value(
-            'Colors/progress_gradient', True, type=bool))
-        self.queue.viewport().update()
-        self.ftp_log.setStyleSheet(f"QPlainTextEdit {{ color:{color_value(self.preferences, 'log', 'command')}; background-color:{color_value(self.preferences, 'log', 'background')}; }}")
+                if pane.site:
+                    self._log_site_sides[self._transfer_site_key(pane.site)] = (side, split)
+        log_style = f"QPlainTextEdit {{ color:{color_value(self.preferences, 'log', 'command')}; background-color:{color_value(self.preferences, 'log', 'background')}; }}"
+        transfer_style = f"QPlainTextEdit {{ color:{color_value(self.preferences, 'log', 'prompt')}; background-color:{color_value(self.preferences, 'log', 'background')}; }}"
+        for panel_set in self.panel_manager.sets.values():
+            tree = panel_set['queue']
+            tree.setStyleSheet(list_style(self.preferences, 'queue'))
+            tree.setProperty('progressGradient', self.preferences.value(
+                'Colors/progress_gradient', True, type=bool))
+            tree.viewport().update()
+            panel_set['ftp_log'].setStyleSheet(log_style)
+            panel_set['transfer_log'].setStyleSheet(transfer_style)
         if hasattr(self, 'ftp_command_input'):
             from .themes import palette_for, readable_text
             p = palette_for(self.preferences)
@@ -292,13 +306,15 @@ class ColorOptions:
             selected = p['selection'] if p else native.color(QPalette.ColorRole.Highlight).name()
             css = (f'QComboBox,QLineEdit,QAbstractItemView {{ background:{background}; color:{foreground}; '
                    f'selection-background-color:{selected}; selection-color:{readable_text(foreground, selected)}; }}')
-            self.ftp_command_input.setStyleSheet(css)
-            self.ftp_command_input.lineEdit().setStyleSheet(
-                f'QLineEdit {{ background:{background}; color:{foreground}; border:0; padding:0; '
-                f'selection-background-color:{selected}; selection-color:{readable_text(foreground, selected)}; }}')
-            self.ftp_command_input.view().setStyleSheet(css)
-        self.transfer_log.setStyleSheet(f"QPlainTextEdit {{ color:{color_value(self.preferences, 'log', 'prompt')}; background-color:{color_value(self.preferences, 'log', 'background')}; }}")
-        if hasattr(self, 'ftp_highlighter'): self.ftp_highlighter.rehighlight()
+            for panel_set in self.panel_manager.sets.values():
+                command_input = panel_set['ftp_command_input']
+                command_input.setStyleSheet(css)
+                command_input.lineEdit().setStyleSheet(
+                    f'QLineEdit {{ background:{background}; color:{foreground}; border:0; padding:0; '
+                    f'selection-background-color:{selected}; selection-color:{readable_text(foreground, selected)}; }}')
+                command_input.view().setStyleSheet(css)
+        for highlighter in getattr(self, 'ftp_highlighters', {}).values():
+            highlighter.rehighlight()
 
     def color_tree_style(self, tree, hidden=False):
         scope = tree.property('colorScope') or 'remote'

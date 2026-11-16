@@ -241,11 +241,17 @@ class DisplayOptions:
         ascii_font.setFixedPitch(True)
         fonts['ftp_ascii'] = ascii_font
         if self.app_instance.font() != fonts['application']: self.app_instance.setFont(fonts['application'])
-        roots = {self.queue: 'files', self.log: 'logs', self.ftp_log: 'ftp_ascii',
-                 self.transfer_log: 'ftp_ascii', self.tasks_log: 'logs'}
+        roots = {}
+        for panel_set in self.panel_manager.sets.values():
+            roots.update({panel_set['queue']: 'files', panel_set['log']: 'logs',
+                          panel_set['ftp_log']: 'ftp_ascii', panel_set['transfer_log']: 'ftp_ascii',
+                          panel_set['tasks_log']: 'logs'})
         from .font_zoom import zoomed_font
-        keys = {self.queue: 'queue', self.log: 'log', self.ftp_log: 'ftp_log',
-                self.transfer_log: 'transfer_log', self.tasks_log: 'tasks_log'}
+        keys = {}
+        for panel_set in self.panel_manager.sets.values():
+            keys.update({panel_set['queue']: 'queue', panel_set['log']: 'log',
+                         panel_set['ftp_log']: 'ftp_log', panel_set['transfer_log']: 'transfer_log',
+                         panel_set['tasks_log']: 'tasks_log'})
         if hasattr(self, 'window_list'):
             roots[self.window_list] = 'application'
             keys[self.window_list] = 'workspace'
@@ -296,12 +302,13 @@ class DisplayOptions:
             labels = [p.site.name if p.mode == 'Remote' and p.site else p.mode for p in (split.widget(0), split.widget(1))]
             separator = ' - ' if self.display_value('hyphen_separator', False) else ' ↔ '
             self.tabs.setTabToolTip(index, separator.join(labels))
-        for row in queue_rows(self.queue):
-            size = row.data(5, Qt.ItemDataRole.UserRole)
-            streaming = row.data(0, STREAM_ROLE)
-            if size is not None: row.setText(5, '—' if streaming else self.file_size(size))
-            progress = row.data(3, Qt.ItemDataRole.UserRole)
-            if progress: row.setText(3, self.file_size(progress[0]) if streaming else f'{self.file_size(progress[0])} / {self.file_size(progress[1])}')
+        for tree in self.panel_manager.queue_trees():
+            for row in queue_rows(tree):
+                size = row.data(5, Qt.ItemDataRole.UserRole)
+                streaming = row.data(0, STREAM_ROLE)
+                if size is not None: row.setText(5, '—' if streaming else self.file_size(size))
+                progress = row.data(3, Qt.ItemDataRole.UserRole)
+                if progress: row.setText(3, self.file_size(progress[0]) if streaming else f'{self.file_size(progress[0])} / {self.file_size(progress[1])}')
         self.apply_layout_settings()
         if hasattr(self, 'view_commands'):
             self.view_commands.options.apply()
@@ -356,10 +363,11 @@ class DisplayOptions:
             return values[:20] if isinstance(values, list) else []
         except ValueError: return []
 
-    def remember_recent_site(self, site):
+    def remember_recent_site(self, site, pane=None):
         # Site has no password fields; only connection profiles are persisted.
         record = asdict(site)
-        self._session_reconnect_site = record
+        if pane is not None:
+            pane._session_reconnect_site = record
         previous = [value for value in self.recent_sites() if isinstance(value, dict) and value != record]
         self.preferences.setValue('Display/recent_connected_sites', json.dumps([record] + previous[:19]))
 
@@ -397,7 +405,7 @@ class DisplayOptions:
             profiles.append(profile)
         if self.display_value('show_recent', True) and profiles:
             if menu.actions(): menu.addSeparator()
-            session_site = getattr(self, '_session_reconnect_site', None)
+            session_site = getattr(pane, '_session_reconnect_site', None)
             if session_site is not None:
                 reconnect = menu.addAction('Reconnect to ' + str(session_site.get('name') or session_site['host']),
                     lambda: self.choose_recent_site(pane, session_site))

@@ -224,8 +224,9 @@ class LayoutOptions:
         for i in range(self.tabs.count()):
             self.initialize_pane_positions(self.tabs.widget(i))
         key = self.preferences.value('Layout/active_log', 'ftp', type=str)
-        if key in self.log_panels:
-            self.log_tabs.setCurrentWidget(self.log_panels[key])
+        if key in self.log_stacks:
+            self.panel_manager.sets[self.tabs.currentWidget()]['active_log'] = key
+            self.log_tabs.setCurrentWidget(self.log_stacks[key])
 
     def panel_position_moved(self, *_):
         self._manual_panel_layout = True
@@ -251,7 +252,7 @@ class LayoutOptions:
                     save_controls()
             if sum(split.sizes()):
                 self.preferences.setValue(self.pane_layout_key(split), bytes(split.saveState()).hex())
-        for key, panel in self.log_panels.items():
+        for key, panel in self.log_stacks.items():
             if self.log_tabs.currentWidget() is panel:
                 self.preferences.setValue('Layout/active_log', key)
                 break
@@ -290,7 +291,9 @@ class LayoutOptions:
         else:
             self.workspace_panel.show_caption(True, False)
         self.queue_panel.show_caption(self.layout_value('caption_queue'), style)
-        for key, panel in self.log_panels.items(): panel.show_caption(self.layout_value('caption_' + key), style)
+        for panel_set in self.panel_manager.sets.values():
+            for key, panel in panel_set['log_panels'].items():
+                panel.show_caption(self.layout_value('caption_' + key), style)
         native = self.layout_value('navigate_tabs') and not self.layout_value('multiple_lines')
         detached = hasattr(self, 'header_rows')
         self.tabs.tabBar().setVisible(False)

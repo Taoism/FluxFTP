@@ -57,8 +57,9 @@ class ApplicationUpdates:
         from .app_updates import start_debian_installer, start_ubuntu_installer, start_windows_installer
         import os
         try:
+            archive, expected_sha256 = path.path, path.sha256
             if self.window_thread_platform() == 'win32':
-                start_windows_installer(path, offer, self.install_root, os.getpid())
+                start_windows_installer(archive, offer, self.install_root, os.getpid(), expected_sha256)
             elif self.window_thread_platform().startswith('linux'):
                 try:
                     release = __import__('platform').freedesktop_os_release()
@@ -66,13 +67,13 @@ class ApplicationUpdates:
                     release = {}
                 if release.get('ID', '').lower() == 'debian':
                     installer = Worker(lambda _worker: start_debian_installer(
-                        path, offer, os.getpid()), self.window)
+                        archive, offer, os.getpid(), expected_sha256), self.window)
                     installer.result.connect(lambda _: self._install_started())
                     installer.failed.connect(self._install_failed)
                     self.worker = installer
                     installer.start()
                     return
-                start_ubuntu_installer(path, offer, self.install_root, os.getpid())
+                start_ubuntu_installer(archive, offer, self.install_root, os.getpid())
             self._install_started()
         except Exception as error:
             self._install_failed(error)

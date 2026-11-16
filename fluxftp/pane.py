@@ -418,7 +418,8 @@ class Pane(QWidget):
         if self.busy:
             return
         if data.get("_disabled"):
-            self.window.log.appendPlainText(f"Site '{site_name}' is disabled.")
+            self.window.log_for_workspace(self.parentWidget()).appendPlainText(
+                f"Site '{site_name}' is disabled.")
             return
         site = self.window.site_from_profile(data)
         warn_plain = self.window.preferences.value("Confirm/unencrypted", True, type=bool)
@@ -630,7 +631,8 @@ class Pane(QWidget):
         session_generation = self.browse_session.generation
         def task(worker):
             def factory():
-                c = self.window.new_connection(site, password)
+                c = self.window.new_connection(site, password, workspace=self.parentWidget(),
+                                               side=int(self.number))
                 c.trace.display_side = int(self.number)
                 return c
             if not persistent:
@@ -648,7 +650,7 @@ class Pane(QWidget):
             if generation != self.generation:
                 self.busy = False
                 return
-            self.window.remember_recent_site(site)
+            self.window.remember_recent_site(site, self)
             if getattr(self, '_workspace_connected_site', None) is not site:
                 self._workspace_connected_site = site
                 self.window.update_connected_workspace_name(self)
@@ -753,7 +755,8 @@ class Pane(QWidget):
             self.window.directory_cache.clear(site)
             self.busy = True
             def task(worker):
-                c = self.window.new_connection(site, password)
+                c = self.window.new_connection(site, password, workspace=self.parentWidget(),
+                                               side=int(self.number))
                 c.trace.display_side = int(self.number)
                 with c:
                     remote_fn(c)
