@@ -395,7 +395,7 @@ class PreferencesDialog(QDialog):
 
             self.general_upnp = self._check(form, "General/upnp_enabled", "Enable UPnP", False)
             self.general_upnp.setToolTip("Request temporary router port mappings for active IPv4 FTP/FTPS data connections. Requires a compatible UPnP router.")
-            description.setText("Data folder changes migrate saved sites; daily backups retain the latest four copies; activity logs respect the configured line limit. When a compatible GitHub release is available, FluxFTP asks before downloading and installing it. Update files are checked against the release SHA-256 manifest. UPnP maps active IPv4 FTP/FTPS data ports until the connection closes (one-hour lease); it does not apply to passive mode, proxies, SFTP or Ident. OpenSSL updates use Python’s official Windows builds.")
+            description.setText("Data folder changes migrate saved sites; daily backups retain the latest four copies; activity logs respect the configured line limit. When a compatible GitHub release is available, FluxFTP downloads and verifies it in the background, then installs it when you exit. Windows may request administrator approval for installation. Update files are checked against the release SHA-256 manifest. UPnP maps active IPv4 FTP/FTPS data ports until the connection closes (one-hour lease); it does not apply to passive mode, proxies, SFTP or Ident. OpenSSL updates use Python’s official Windows builds.")
 
         elif title == "Ident":
             apply = lambda *_: self.window.apply_ident_settings()

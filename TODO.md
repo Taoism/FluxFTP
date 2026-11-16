@@ -78,8 +78,9 @@ remaining companion requirements are combined here as well.
   Workspaces, and each log panel.
 - [x] Preserve fractional high-DPI scaling and refresh FluxFTP's custom font and
   toolbar sizing when moving the window between monitors or changing DPI.
-- [x] Add an application update check against GitHub releases, choose the asset
-  for the running OS, and ask before downloading, installing, or restarting.
+- [x] Check GitHub releases in the background, automatically download and verify
+  compatible updates, and install on exit so the next launch uses the new version.
+  Windows may request administrator approval when the install folder requires it.
 - [x] Add an FTP Rush-style FluxFTP layout preset with the two-pane workspace
   above a bottom tab area for the transfer queue and logs. Keep panels movable
   and persist the user's customized dock layout when FluxFTP exits. Make the

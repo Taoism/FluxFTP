@@ -1,4 +1,4 @@
-"""Prompt for verified FluxFTP releases and hand installation off safely."""
+"""Download verified releases in the background and install them on exit."""
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMessageBox
 
@@ -29,65 +29,72 @@ class ApplicationUpdates:
     def _offer(self, offer):
         if offer is None:
             return
-        prefs = self.window.preferences
-        if prefs.value('General/ignored_update', '', type=str) == offer.version:
-            return
-        prompt = QMessageBox(self.window)
-        prompt.setIcon(QMessageBox.Icon.Information)
-        prompt.setWindowTitle('FluxFTP update available')
-        prompt.setText(f'FluxFTP {offer.version} is available. Would you like to download and install it now?')
-        if offer.notes:
-            prompt.setInformativeText(offer.notes[:2500])
-        update = prompt.addButton('Update now', QMessageBox.ButtonRole.AcceptRole)
-        later = prompt.addButton('Later', QMessageBox.ButtonRole.RejectRole)
-        prompt.setDefaultButton(update)
-        prompt.exec()
-        if prompt.clickedButton() is update:
-            self._download(offer)
-        elif prompt.clickedButton() is later:
-            prefs.setValue('General/ignored_update', offer.version)
+        self._download(offer)
 
     def _download(self, offer):
         from .app_updates import download_update
         self.window.statusBar().showMessage(f'Downloading FluxFTP {offer.version}…')
         self._run(lambda _worker: download_update(offer),
-                  lambda path: self._install(path, offer), self._install_failed)
+                  lambda path: self._downloaded(path, offer), self._install_failed)
 
-    def _install(self, path, offer):
-        from .app_updates import start_debian_installer, start_ubuntu_installer, start_windows_installer
-        import os
+    def _downloaded(self, path, offer):
+        self.pending_update = (path, offer)
+        self.window.statusBar().showMessage(
+            f'FluxFTP {offer.version} is downloaded and verified. It will install when you exit.', 15000)
+        self.window.log.appendPlainText(
+            f'FluxFTP {offer.version} is ready. The update will install when you exit; Windows may ask for administrator approval.')
+
+    def install_pending(self):
+        """Begin installation after a confirmed close; return whether the window may close."""
+        pending = getattr(self, 'pending_update', None)
+        if pending is None:
+            return True
+        if getattr(self, '_installing', False):
+            return False
+        path, offer = pending
+        if self.window_thread_platform().startswith('linux'):
+            try:
+                release = __import__('platform').freedesktop_os_release()
+            except (AttributeError, OSError):
+                release = {}
+            if release.get('ID', '').lower() == 'debian':
+                from .app_updates import start_debian_installer
+                import os
+                self._installing = True
+                self._run(lambda _worker: start_debian_installer(
+                    path.path, offer, os.getpid(), path.sha256),
+                    self._debian_installer_started, self._debian_installer_failed)
+                return False
         try:
-            archive, expected_sha256 = path.path, path.sha256
-            if self.window_thread_platform() == 'win32':
-                start_windows_installer(archive, offer, self.install_root, os.getpid(), expected_sha256)
-            elif self.window_thread_platform().startswith('linux'):
-                try:
-                    release = __import__('platform').freedesktop_os_release()
-                except (AttributeError, OSError):
-                    release = {}
-                if release.get('ID', '').lower() == 'debian':
-                    installer = Worker(lambda _worker: start_debian_installer(
-                        archive, offer, os.getpid(), expected_sha256), self.window)
-                    installer.result.connect(lambda _: self._install_started())
-                    installer.failed.connect(self._install_failed)
-                    self.worker = installer
-                    installer.start()
-                    return
-                start_ubuntu_installer(archive, offer, self.install_root, os.getpid())
-            self._install_started()
+            self._start_platform_installer(path, offer)
+            self.pending_update = None
+            return True
         except Exception as error:
             self._install_failed(error)
+            return False
+
+    def _start_platform_installer(self, path, offer):
+        from .app_updates import start_ubuntu_installer, start_windows_installer
+        import os
+        archive = path.path
+        if self.window_thread_platform() == 'win32':
+            start_windows_installer(archive, offer, self.install_root, os.getpid(), path.sha256)
+        elif self.window_thread_platform().startswith('linux'):
+            start_ubuntu_installer(archive, offer, self.install_root, os.getpid())
+
+    def _debian_installer_started(self, _result):
+        self.pending_update = None
+        self._installing = False
+        self.window.close()
+
+    def _debian_installer_failed(self, error):
+        self._installing = False
+        self._install_failed(error)
 
     @staticmethod
     def window_thread_platform():
         import sys
         return sys.platform
-
-    def _install_started(self):
-        self.window.statusBar().showMessage('Update prepared. FluxFTP will restart to finish installing.', 10000)
-        QMessageBox.information(self.window, 'FluxFTP update',
-            'The verified update is ready. FluxFTP will close and restart to finish installation.')
-        self.window.close()
 
     def _check_failed(self, error):
         # Startup update checks are best effort and should not interrupt normal use.

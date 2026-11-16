@@ -1,6 +1,6 @@
 # FluxFTP test status
 
-Collected on 2026-11-16: 1129 test cases.
+Collected on 2026-11-16: 1131 test cases.
 
 ## Test policy
 
@@ -12,11 +12,11 @@ Collected on 2026-11-16: 1129 test cases.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
 - The two 100,001-item queue stress tests are deferred by request; see the incremental plan in `TODO.md`.
 
-Current totals: 1124 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
+Current totals: 1126 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
 
 ## Previous test history
 
-The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,129 tests: nine previously added IDs, two updater-security tests, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
+The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,131 tests: nine previously added IDs, two updater-security tests, two automatic-update workflow tests, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
 
 ### Individual historical failures
 
@@ -41,7 +41,7 @@ These failed in earlier batches. Their current release status appears in the fin
 
 ### Test ID changes since the archived Nov. 9 list
 
-The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,129 categorized IDs shows 11 added IDs and 2 IDs no longer present (net increase: 9). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
+The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,131 categorized IDs shows 13 added IDs and 2 IDs no longer present (net increase: 11). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
 
 | Newly collected test | Latest recorded status |
 |---|---|
@@ -56,6 +56,8 @@ The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, cont
 | `tests/test_site_validation.py::test_new_site_defaults_nat_masquerade_off` | Passed (previous targeted batch; carried forward) |
 | `tests/test_app_updates.py::test_downloaded_archive_digest_is_rechecked_in_private_windows_staging` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
+| `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
+| `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
 
 The following IDs were in the archived list but are no longer in today's collection; this records an ID difference and does not by itself establish whether the tests were deleted or renamed:
 
@@ -69,6 +71,7 @@ The following IDs were in the archived list but are no longer in today's collect
 - Archived batches 20–23: 170 cases, 162 passed, 8 failed.
 - Release-focused rerun: 14 passed. Raw JUnit: `C:\codex\FluxFTP-Test-Reports\release-focused-20261116.xml`.
 - Queue, priority, and updater batch: 18 passed initially; the three targeted failures then passed. All 21 unique checks passed. Raw JUnit: `release-queue-updater-20261116.xml` and `release-priority-lock-20261116.xml`.
+- Automatic updater workflow batch: 36 passed, 2 skipped across application and OpenSSL updater tests; both new workflow tests passed.
 - Layout history batch: 18 unique cases passed after updating stale assertions and fixing tab visibility, workspace shortcut focus, and manual queue visibility. Seven focused final checks passed. Raw JUnit: `release-layout-history-rerun-20261116.xml` and `release-layout-check-20261116.xml`.
 - Two remaining historical failures in feature preview and real Windows TLS passed. Raw JUnit: `release-historical-failures-20261116.xml`.
 - The 100,000-file queue stress cases are not part of this release run; follow the incremental plan in `TODO.md`.
@@ -937,7 +940,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_workspaces_tray.py::test_tray_menu_reference_and_shared_actions` | Passed (archived batch 23; carried forward) |
 | `tests/test_workspaces_tray.py::test_workspace_double_click_and_all_name_surfaces` | Passed (archived batch 23; carried forward) |
 
-## Security, credentials, and TLS (81 tests: 79 passed, 0 failed, 2 skipped, 0 pending, 0 deferred)
+## Security, credentials, and TLS (83 tests: 81 passed, 0 failed, 2 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -1022,6 +1025,8 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_trust_service.py::test_tls_pin_scope_context_and_mismatch` | Passed (archived batch 21; carried forward) |
 | `tests/test_app_updates.py::test_downloaded_archive_digest_is_rechecked_in_private_windows_staging` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
+| `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
+| `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
 ## Automation, diagnostics, and CLI (43 tests: 43 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |

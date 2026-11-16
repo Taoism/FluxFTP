@@ -382,6 +382,10 @@ class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmO
         # active-transfer guards must not trap the user in the window.
         # Save the visible main-window placement before shutdown changes panel
         # geometry or stops the window-position observer.
+        updater = getattr(self, 'application_updates', None)
+        if updater is not None and not updater.install_pending():
+            event.ignore()
+            return
         self.window_positions.save(self)
         self.save_queue_state()
         for record in list(getattr(self, 'active', {}).values()):

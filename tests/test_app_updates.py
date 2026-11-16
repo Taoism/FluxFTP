@@ -79,3 +79,41 @@ def test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writ
     assert '/inheritance:r' in calls[0] and '*S-1-5-21-1-2-3-1000:(OI)(CI)F' in calls[0]
     assert '*S-1-5-18:(OI)(CI)F' in calls[0] and '*S-1-5-32-544:(OI)(CI)F' in calls[0]
     assert calls[1][-2:] == ['/setintegritylevel', '(OI)(CI)M']
+
+
+def test_available_release_downloads_automatically_without_prompt(monkeypatch):
+    from fluxftp.app_updates_ui import ApplicationUpdates
+
+    update_offer = offer()
+    updater = ApplicationUpdates.__new__(ApplicationUpdates)
+    calls = []
+    updater._download = lambda item: calls.append(item)
+    updater._offer(update_offer)
+    assert calls == [update_offer]
+
+
+def test_verified_download_is_held_until_application_exit(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from fluxftp.app_updates_ui import ApplicationUpdates
+
+    messages, starts = [], []
+    window = SimpleNamespace(
+        statusBar=lambda: SimpleNamespace(showMessage=lambda *args: messages.append(args)),
+        log=SimpleNamespace(appendPlainText=messages.append),
+    )
+    updater = ApplicationUpdates.__new__(ApplicationUpdates)
+    updater.window = window
+    updater.install_root = tmp_path / 'FluxFTP'
+    updater.pending_update = None
+    archive = tmp_path / 'update.zip'
+    downloaded = SimpleNamespace(path=archive, sha256='a' * 64)
+    update_offer = offer()
+    updater._downloaded(downloaded, update_offer)
+    assert updater.pending_update == (downloaded, update_offer)
+    monkeypatch.setattr(updater, 'window_thread_platform', lambda: 'win32')
+    monkeypatch.setattr(app_updates, 'start_windows_installer',
+                        lambda *args: starts.append(args))
+    assert updater.install_pending() is True
+    assert starts and starts[0][0] == archive and starts[0][1] == update_offer
+    assert updater.pending_update is None
+    assert any('install when you exit' in item for item in messages if isinstance(item, str))
