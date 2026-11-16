@@ -72,6 +72,7 @@ The following IDs were in the archived list but are no longer in today's collect
 - Release-focused rerun: 14 passed. Raw JUnit: `C:\codex\FluxFTP-Test-Reports\release-focused-20261116.xml`.
 - Queue, priority, and updater batch: 18 passed initially; the three targeted failures then passed. All 21 unique checks passed. Raw JUnit: `release-queue-updater-20261116.xml` and `release-priority-lock-20261116.xml`.
 - Automatic updater workflow batch: 36 passed, 2 skipped across application and OpenSSL updater tests; both new workflow tests passed.
+- Elevated installer checksum regression: 4 application updater tests passed after switching the helper to the .NET SHA-256 API.
 - Layout history batch: 18 unique cases passed after updating stale assertions and fixing tab visibility, workspace shortcut focus, and manual queue visibility. Seven focused final checks passed. Raw JUnit: `release-layout-history-rerun-20261116.xml` and `release-layout-check-20261116.xml`.
 - Two remaining historical failures in feature preview and real Windows TLS passed. Raw JUnit: `release-historical-failures-20261116.xml`.
 - The 100,000-file queue stress cases are not part of this release run; follow the incremental plan in `TODO.md`.

@@ -222,10 +222,16 @@ def start_windows_installer(archive, offer, install_root, process_id, expected_s
         script_path.write_text(r'''
 $ErrorActionPreference = 'Stop'
 $config = Get-Content -LiteralPath $args[0] -Raw | ConvertFrom-Json
+function Get-FluxFtpSha256([string]$path) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  $stream = [IO.File]::OpenRead($path)
+  try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
 if ($config.version -notmatch '^\d+(\.\d+){1,2}$') { throw 'The update version is invalid.' }
 if (-not (Test-Path -LiteralPath (Join-Path $config.target 'FluxFTP.exe'))) { throw 'The target is not a FluxFTP installation.' }
 try { Wait-Process -Id $config.pid -ErrorAction SilentlyContinue } catch {}
-$archiveHash = (Get-FileHash -LiteralPath $config.archive -Algorithm SHA256).Hash.ToLowerInvariant()
+$archiveHash = Get-FluxFtpSha256 $config.archive
 if ($archiveHash -ne $config.sha256) { throw 'The update archive failed SHA-256 verification.' }
 $parent = Split-Path -Parent $config.target
 $privateRoot = $PSScriptRoot

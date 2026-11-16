@@ -50,7 +50,7 @@ def test_downloaded_archive_digest_is_rechecked_in_private_windows_staging(tmp_p
     assert Path(config['archive']).parent == private
     assert config['sha256'] == digest and config['version'] == '0.146.0'
     script = (private / 'install.ps1').read_text(encoding='utf-8')
-    assert 'Get-FileHash' in script and '$PSScriptRoot' in script
+    assert 'SHA256]::Create()' in script and '$PSScriptRoot' in script
     assert '$env:TEMP' not in script
 
     downloaded.path.write_bytes(b'tampered')
