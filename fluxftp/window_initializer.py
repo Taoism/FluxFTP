@@ -95,7 +95,7 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self._toolbar_action("Sites", QStyle.StandardPixmap.SP_DirOpenIcon, self.manage_sites,
                          "Manage, import, and connect to saved sites (F3)")
     self._toolbar_action("Options", QStyle.StandardPixmap.SP_FileDialogDetailedView, self.open_preferences,
-                         "Configure connection, transfer, display, and confirmation options")
+                         "Configure connection, transfer, display, and confirmation options (F6)")
     self.main_toolbar.addSeparator()
     self._toolbar_action("Refresh Both", QStyle.StandardPixmap.SP_BrowserReload, self.refresh_both_panes,
                          "Refresh both file listings")

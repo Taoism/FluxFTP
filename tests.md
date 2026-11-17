@@ -1,6 +1,6 @@
 # FluxFTP test status
 
-Collected on 2026-11-16: 1131 test cases.
+Collected on 2026-11-17: 1132 test cases.
 
 ## Test policy
 
@@ -12,11 +12,11 @@ Collected on 2026-11-16: 1131 test cases.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
 - The two 100,001-item queue stress tests are deferred by request; see the incremental plan in `TODO.md`.
 
-Current totals: 1126 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
+Current totals: 1127 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
 
 ## Previous test history
 
-The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,131 tests: nine previously added IDs, two updater-security tests, two automatic-update workflow tests, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
+The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,132 tests: nine previously added IDs, two updater-security tests, two automatic-update workflow tests, the F6 Options regression test, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
 
 ### Individual historical failures
 
@@ -41,7 +41,7 @@ These failed in earlier batches. Their current release status appears in the fin
 
 ### Test ID changes since the archived Nov. 9 list
 
-The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,131 categorized IDs shows 13 added IDs and 2 IDs no longer present (net increase: 11). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
+The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,132 categorized IDs shows 14 added IDs and 2 IDs no longer present (net increase: 12). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
 
 | Newly collected test | Latest recorded status |
 |---|---|
@@ -58,6 +58,7 @@ The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, cont
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
+| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (F-key batch 2026-11-17) |
 
 The following IDs were in the archived list but are no longer in today's collection; this records an ID difference and does not by itself establish whether the tests were deleted or renamed:
 
@@ -76,6 +77,10 @@ The following IDs were in the archived list but are no longer in today's collect
 - Layout history batch: 18 unique cases passed after updating stale assertions and fixing tab visibility, workspace shortcut focus, and manual queue visibility. Seven focused final checks passed. Raw JUnit: `release-layout-history-rerun-20261116.xml` and `release-layout-check-20261116.xml`.
 - Two remaining historical failures in feature preview and real Windows TLS passed. Raw JUnit: `release-historical-failures-20261116.xml`.
 - The 100,000-file queue stress cases are not part of this release run; follow the incremental plan in `TODO.md`.
+- F-key validation (2026-11-17): 11 passed. Pane-order regression batch:
+  4 passed after restoring stable pane identity when both panes share a mode.
+- Release-focused workflow checks (2026-11-17): 77 passed, 1 skipped across
+  Tools, layout, compare, OpenSSL, workspace, deployment, artifact, and cloud tests.
 - SonarQube quality gate: OK; no new issues.
 
 ## Queue, transfer, and retries (238 tests: 236 passed, 0 failed, 0 skipped, 0 pending, 2 deferred)
@@ -769,7 +774,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_sort.py::test_reference_defaults_and_independent_controls` | Passed (archived batch 19; carried forward) |
 | `tests/test_sort.py::test_separate_links_and_tie_order` | Passed (archived batch 19; carried forward) |
 
-## Workspace, layout, and accessibility (167 tests: 167 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Workspace, layout, and accessibility (168 tests: 168 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -824,7 +829,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_docking.py::test_floating_dock_geometry_is_saved_and_restored` | Passed (previous targeted batch; carried forward) |
 | `tests/test_edit_menu.py::test_reference_and_active_pane` | Passed (archived batch 06; carried forward) |
 | `tests/test_edit_menu.py::test_rename_preflight` | Passed (archived batch 06; carried forward) |
-| `tests/test_file_menu.py::test_clone_local_locations_filters_without_queue` | Passed (archived batch 07; carried forward) |
+| `tests/test_file_menu.py::test_clone_local_locations_filters_without_queue` | Passed (pane-order regression batch 2026-11-17) |
 | `tests/test_file_menu.py::test_clone_remote_site_path_and_independent_profile` | Passed (archived batch 07; carried forward) |
 | `tests/test_file_menu.py::test_configuration_roundtrip_excludes_secrets_and_keeps_types` | Passed (archived batch 07; carried forward) |
 | `tests/test_file_menu.py::test_explicit_tray_action_and_missing_tray_fallback` | Passed (archived batch 07; carried forward) |
@@ -1226,6 +1231,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Passed (release validation 2026-11-16) |
 | `tests/test_toolbar_visibility.py::test_pane_toolbar_visibility_persists_and_applies_to_new_workspaces` | Passed (archived batch 20; carried forward) |
 | `tests/test_view_menu.py::test_current_edit_files_tracks_only_editors_and_preserves_sessions` | Passed (archived batch 22; carried forward) |
+| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (F-key batch 2026-11-17) |
 | `tests/test_view_menu.py::test_panel_context_menu_can_hide_panel` | Passed (archived batch 22; carried forward) |
 | `tests/test_view_menu.py::test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels` | Passed (release validation 2026-11-16) |
 | `tests/test_view_menu.py::test_refresh_targets_last_active_pane_without_duplicate_shortcuts` | Passed (archived batch 22; carried forward) |

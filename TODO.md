@@ -53,6 +53,8 @@ remaining companion requirements are combined here as well.
 
 ### Desktop features
 
+- [x] Make the F6 key open Options from anywhere in the main window; show F6 on
+  the Options toolbar tooltip and share the same action with Edit and Tools.
 - [x] Double-click any column divider to size that column to its contents;
   keep workspace tabs beneath the Workspaces heading and mark duplicated tab
   pairs, and start Quick Connect with blank fields.

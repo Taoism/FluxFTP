@@ -100,6 +100,10 @@ class Workspaces:
             if workspace is None or workspace.count() != 2:
                 continue
             first, second = workspace.widget(0), workspace.widget(1)
+            if first.mode == second.mode:
+                if first.number > second.number:
+                    workspace.insertWidget(0, second)
+                continue
             local_first = order == 'Local then Site'
             should_swap = (local_first and first.mode != 'Local' and second.mode == 'Local'
                            or not local_first and first.mode == 'Local' and second.mode != 'Local')

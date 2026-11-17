@@ -63,6 +63,21 @@ def test_view_menu_reference_order_shortcuts_and_submenus(window):
     assert all(a.menu() is not None and a.isEnabled() for a in actions[9:14])
 
 
+def test_function_key_commands_include_f6_options(window, monkeypatch):
+    visible(window)
+    tools_actions = window.tools_commands.actions
+    options = tools_actions['Options…']
+    assert options.shortcut().toString() == 'F6'
+    assert options in window.edit_menu.actions()
+    assert options in window.actions()
+    assert 'F6' in window.main_toolbar.actions()[1].toolTip()
+
+    opened = []
+    monkeypatch.setattr('fluxftp.preferences.PreferencesDialog.exec', lambda _dialog: opened.append(True))
+    QTest.keyClick(window.queue, Qt.Key.Key_F6)
+    assert opened == [True]
+
+
 def test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels(window):
     visible(window)
     for key, panel_key, widget in (

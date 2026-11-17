@@ -55,7 +55,7 @@ GLYPHS = {
 # Match existing action descriptions; callbacks and shortcut ownership stay intact.
 DESCRIPTIONS = {
     'Manage, import, and connect': ('sites', 'Sites', 'Manage, import, and connect to saved sites (F3).'),
-    'Configure connection': ('options', 'Options', 'Configure connections, transfers, display, and confirmations.'),
+    'Configure connection': ('options', 'Options', 'Configure connections, transfers, display, and confirmations (F6).'),
     'Open another two-pane': ('workspace', 'New workspace', 'Open another pair of file panes.'),
     'Verify files against': ('verify', 'Verify SFV', 'Check file checksums against an SFV manifest.'),
     'Connect to a saved': ('sites', 'Sites', 'Choose Quick Connect, a recent connection, or a saved site.'),
