@@ -59,7 +59,9 @@ class ToolbarVisibility(QObject):
     def apply(self):
         window = self.window
         tabs_visible = self.visible('tabs')
-        window.tabs.tabBar().setVisible(tabs_visible)
+        # WorkspaceNavigation replaces QTabWidget's native bar; do not let a
+        # toolbar visibility refresh re-enable the unused native tab strip.
+        window.tabs.tabBar().setVisible(False)
         window.workspace_panel.add_button.setVisible(tabs_visible)
         window.workspace_navigation.setVisible(tabs_visible)
         for key, action in self.actions.items():

@@ -24,6 +24,11 @@ def buffered_folder(window, tmp_path, count):
     return parent
 
 
+def queue_column(window, name):
+    labels = [window.queue.headerItem().text(i) for i in range(window.queue.columnCount())]
+    return labels.index(name)
+
+
 def test_large_folder_has_bounded_rows_and_complete_portable_snapshot(window, tmp_path):
     parent = buffered_folder(window, tmp_path, 12002)
     assert len(window.queue_jobs) == BUFFER_LIMIT + 1
@@ -64,7 +69,8 @@ def test_multiple_batches_copy_every_file_and_release_completed_rows(window, tmp
     assert max(peaks) <= 9
     assert parent['row'].childCount() == 0
     assert parent['row'].data(0, BUFFER_ROLE)['completed'] == 31
-    assert parent['row'].text(7) == '31/31 files · Complete'
+    assert parent['row'].text(queue_column(window, 'Files')) == '31/31'
+    assert parent['row'].text(queue_column(window, 'Remark')) == 'Complete'
     assert 'transferred 31 file(s)' in window.transfer_log.toPlainText()
     assert not window.pending and not window.active
     assert read_queue(window.queue_file) == []
@@ -187,7 +193,8 @@ def test_failed_file_retained_while_buffer_drains(window, tmp_path, monkeypatch)
     (source / '00000.bin').write_bytes(b'x')
     window.queue_commands.retry(True)
     settle(window)
-    assert parent['row'].text(7) == '31/31 files · Complete'
+    assert parent['row'].text(queue_column(window, 'Files')) == '31/31'
+    assert parent['row'].text(queue_column(window, 'Remark')) == 'Complete'
 
 
 def test_buffer_read_error_pauses_without_losing_queue(window, tmp_path, monkeypatch):

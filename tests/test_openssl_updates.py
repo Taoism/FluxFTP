@@ -45,9 +45,9 @@ def test_version_rejects_other_branches_prereleases_and_paths(bad):
 def test_numeric_stable_release_selection(monkeypatch):
     refs = [{'ref': 'refs/tags/openssl-bin-' + value,
              'object': {'type': 'commit', 'sha': COMMIT}}
-            for value in ['3.5.9', '3.5.10', '3.5.11-beta1', '3.6.0']]
+            for value in ['3.5.9', '3.5.10', '3.5.11-beta1', '3.6.5']]
     monkeypatch.setattr(updates, 'api', lambda _: refs)
-    assert updates.newest_release() == ('3.6.0', COMMIT)
+    assert updates.newest_release() == ('3.5.10', COMMIT)
 
 
 def test_annotated_tag_is_resolved_and_invalid_commit_rejected(monkeypatch):
@@ -98,15 +98,15 @@ def test_successful_pair_is_published_only_after_probe(tmp_path, monkeypatch):
 
 def test_probe_failure_preserves_previous_runtime(tmp_path, monkeypatch):
     mock_download(monkeypatch)
-    previous = make_pair(tmp_path, '3.5.8')
+    previous = make_pair(tmp_path, '3.5.9')
     runtime.write_json(tmp_path / 'selected.json', {'directory': previous.name})
     def fail(_):
         raise RuntimeError('probe failed')
     monkeypatch.setattr(updates, 'probe', fail)
     with pytest.raises(RuntimeError):
-        updates.stage(tmp_path, '3.5.9', COMMIT)
+        updates.stage(tmp_path, '3.5.10', COMMIT)
     assert runtime.selected_directory(tmp_path) == previous
-    assert not (tmp_path / ('3.5.9-' + COMMIT)).exists()
+    assert not (tmp_path / ('3.5.10-' + COMMIT)).exists()
 
 
 def test_tampering_wrong_architecture_and_path_traversal(tmp_path):
@@ -126,9 +126,15 @@ def test_tampering_wrong_architecture_and_path_traversal(tmp_path):
         runtime.validate_pair(directory)
 
 
+def test_end_of_life_36_line_is_rejected(tmp_path):
+    directory = make_pair(tmp_path, '3.6.5')
+    with pytest.raises(ValueError, match='supported OpenSSL 3.5 LTS line'):
+        runtime.validate_pair(directory)
+
+
 def test_daily_checks_and_no_downgrade(tmp_path, monkeypatch):
     calls = []
-    monkeypatch.setattr(updates, 'newest_release', lambda: calls.append(True) or ('3.5.8', COMMIT))
+    monkeypatch.setattr(updates, 'newest_release', lambda: calls.append(True) or ('3.5.9', COMMIT))
     assert 'up to date' in updates.check(tmp_path, current=(3, 5, 9))
     assert updates.check(tmp_path) is None
     assert len(calls) == 1
@@ -189,10 +195,10 @@ def test_real_windows_pair_loads_and_negotiates_verified_tls(tmp_path):
         pytest.skip('Windows runtime')
     if sys.version_info[:2] != (3, 13):
         pytest.skip('Cached OpenSSL runtime targets Python 3.13')
-    cached_runtime = Path(__file__).parents[1] / 'runtime/python-3.13.15/DLLs'
+    cached_runtime = Path(__file__).parents[1] / 'build/python313/DLLs'
     if not all((cached_runtime / name).is_file() for name in runtime.DLLS):
         pytest.skip('Cached OpenSSL runtime DLLs are unavailable')
-    directory = make_pair(tmp_path, '3.5.8', real=True)
+    directory = make_pair(tmp_path, '3.5.9', real=True)
     runtime.probe(directory)
     # A claimed version that does not match the actual DLLs must be rejected.
     manifest = runtime.read_json(directory / 'manifest.json')

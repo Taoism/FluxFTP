@@ -2,12 +2,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAccessible, QFont
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (QApplication, QWidget, QLineEdit, QComboBox, QAbstractSpinBox,
-    QAbstractItemView, QAbstractButton, QPlainTextEdit, QTextEdit, QScrollArea)
+    QAbstractItemView, QAbstractButton, QPlainTextEdit, QTextEdit, QScrollArea, QLabel)
 
 from fluxftp.app import SiteDialog
 from fluxftp.preferences import PreferencesDialog
 from fluxftp.site_manager import SitesDialog
 from fluxftp.themes import PALETTES, contrast, stylesheet
+from fluxftp.accessibility import enable_copyable_text
 from test_queue import window
 
 
@@ -109,3 +110,20 @@ def test_builtin_theme_text_contrast_and_focus_styles(window):
         window.preferences.setValue('Display/style', name)
         css = stylesheet(window.preferences, '')
         assert 'QPushButton:focus' in css and 'QComboBox:focus' in css
+
+
+def test_read_only_text_and_static_labels_can_be_selected_and_copied():
+    root = QWidget()
+    label = QLabel('Connection status: Ready', root)
+    field = QLineEdit(root)
+    field.setReadOnly(True)
+    field.setText('sftp://example.test/home')
+    enable_copyable_text(root)
+    assert label.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
+    assert label.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByKeyboard
+    assert label.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
+    root.show()
+    field.selectAll()
+    QTest.keyClick(field, Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier)
+    assert QApplication.clipboard().text() == 'sftp://example.test/home'
+    root.close()

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fluxftp"
-version = "0.147.2"
+version = "0.147.3"
 description = "A modern two-pane FTP, FTPS and SFTP desktop client"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "licenses/*.txt"]
 requires-python = ">=3.11"
-dependencies = ["PySide6>=6.8,<7", "paramiko>=4,<6", "keyring>=25,<27", "cryptography>=44", "miniupnpc>=2.3,<3"]
+dependencies = ["PySide6>=6.11.3,<7,!=6.12.0", "paramiko>=4,<6", "keyring>=25,<27", "cryptography>=44", "miniupnpc>=2.3.4,<3; platform_system != 'Windows'", "miniupnpc>=2.3.5,<3; platform_system == 'Windows'"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pyftpdlib>=2", "pyopenssl>=25", "pyinstaller>=6", "tzdata"]
@@ -20,6 +20,7 @@ fluxftp = "fluxftp.app:main"
 
 [project.scripts]
 fluxftp-cli = "fluxftp.cli:main"
+rush_cmdline = "fluxftp.rush_cmdline:main"
 
 [tool.setuptools.packages.find]
 include = ["fluxftp*"]

@@ -25,7 +25,7 @@ Windows-only automation as a complete release.
 The GitHub workflow builds the Ubuntu archive and Debian `.deb` from the same
 release tag, runs their packaged checks, and attaches those packages and their
 checksums. The maintained Windows builder requires separately validated OpenSSL
-4.1 and 3.5.8 runtime files. Build and smoke-check the Windows package locally,
+4.x and 3.5.9 runtime files. Build and smoke-check the Windows package locally,
 then attach its ZIP and `SHA256SUMS.txt` to the draft release before publishing.
 The release workflow verifies the attached Windows checksum and package tests.
 

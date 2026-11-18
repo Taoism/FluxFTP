@@ -1,5 +1,6 @@
 """Temporary, owned UPnP mappings for active IPv4 FTP listeners."""
 import ipaddress
+from importlib.metadata import version as package_version
 import uuid
 
 import miniupnpc
@@ -14,6 +15,12 @@ class PortMapper:
 
     def map(self, host, port):
         try:
+            installed = tuple(int(part) for part in package_version("miniupnpc").split(".")[:3])
+            if installed < (2, 3, 4):
+                raise RuntimeError(
+                    f"UPnP is disabled because miniupnpc {'.'.join(map(str, installed))} "
+                    "contains a vulnerable gateway-response parser. Update miniupnpc to 2.3.4 or later."
+                )
             if ipaddress.ip_address(host).version != 4:
                 raise ValueError("UPnP port mapping requires IPv4.")
             if self.gateway is None:

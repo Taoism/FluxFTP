@@ -13,7 +13,11 @@ remaining companion requirements are combined here as well.
   versions and review results current. The 0.146.0 updater hardens Windows
   staging with a random access-controlled directory and repeats the package
   digest check before installation; Debian staging also uses a private directory
-  and digest checks. Continue the broader dependency and application audit.
+  and digest checks. The 2026-11-18 audit updates PySide6 and setuptools, adds a
+  pip-audit CI check, builds patched miniupnpc 2.3.5 Windows wheels, and updates
+  the bundled rclone to v1.76.0 built with Go 1.26.11; govulncheck is clean for
+  reachable vulnerabilities. See `docs/SECURITY_AUDIT.md`. Continue the broader
+  dependency and native-library audit.
 
 ### Platform builds and release
 
@@ -70,12 +74,32 @@ remaining companion requirements are combined here as well.
 - [x] Fix double-click activation for file and folder items in the browser panes.
 - [x] Fix opening Options from the F6/Edit menu path; it now shares one action
   across Edit and Tools.
-- [ ] Review and fix rendering of items in the left sidebar.
-- [ ] Remember the positions and arrangement of panels and windows across launches.
-- [ ] Add FluxFTP CLI scripting compatibility for RushApp FTP Transfer
-  (`rush_cmdline.exe`, `Script RushApp.FTP.Transfer(...)`), including its path
-  placeholders and transfer/directory/logout flags (`RS_UP`, `RS_DIRDES`,
-  `RS_DIRSRC`, `RS_LOGOUT`).
+- [x] Allow users to select and copy text displayed in read-only text boxes
+  and other non-editable text fields throughout the interface.
+- [x] Add a show/hide control to the password field in the saved-site editor;
+  keep the password masked by default and let the user reveal it on demand.
+- [x] Add a hotkey manager modeled on the supplied FTPRush reference. Show a
+  searchable or scrollable action table with Name, Hotkey, and Apply to columns;
+  include actions even when no shortcut is assigned. Support Global, Remote,
+  Local, and Queue scopes, including actions available in more than one scope.
+  Cover the reference action groups: window and panel navigation, site and
+  connection actions, local/remote file and directory commands, selection and
+  search, queue submission and control, transfer modes, logs, layouts, and
+  scripting. Let users assign and clear shortcuts, save changes across
+  launches, and restore the shipped factory-default shortcut map at any time,
+  independent of their saved custom assignments. Detect duplicate shortcuts
+  where their scopes overlap, and explain conflicts before applying a change.
+- [x] Review and fix rendering of items in the left sidebar. The workspace
+  overview now stretches its last visible column across the dock, including
+  when optional columns are hidden.
+- [x] Remember the positions and arrangement of panels and windows across
+  launches. Main and dialog geometry, dock positions/visibility/floating
+  geometry, panel sizes, and pane split ratios are persisted and restored.
+- [x] Add FluxFTP CLI scripting compatibility for RushApp FTP Transfer
+  (`rush_cmdline.exe`, `Script RushApp.FTP.Transfer(...)`), with `{~N}` path
+  parameters, saved-site bookmark paths, and upload/download/FXP, file/folder,
+  and logout flags. The shim queues work through the authenticated loopback API;
+  unsupported RushScript statements and transfer options are rejected.
 - [x] Add direct View → Dock panels → Move to Bottom commands for Queue,
   Workspaces, and each log panel.
 - [x] Preserve fractional high-DPI scaling and refresh FluxFTP's custom font and
@@ -88,8 +112,73 @@ remaining companion requirements are combined here as well.
   and persist the user's customized dock layout when FluxFTP exits. Make the
   Tools panel and each pane's icons, address bar, and filter independently movable;
   double-clicking the pane divider centers the two workspaces.
-- [ ] Define the intended workflow and requirements for auto trading before
-  implementation.
+- [ ] Add a Debian tester debug mode with a clear way to enable diagnostics and
+  collect useful application and runtime logs for troubleshooting.
+- [ ] Fix and verify the F6 shortcut on Debian so it opens Options from the
+  main window; identify any platform-specific shortcut handling and add coverage.
+  The hotkey manager now gives Global actions application shortcut scope, with
+  focused regression coverage. Verify the packaged app on Debian; check whether
+  the original failure involved monitor detection on a single-monitor setup.
+- [ ] Define and implement the auto-trading workflow before enabling trades.
+  Requirements captured so far:
+  - FTP Method 2: poll each configured source site every 10 seconds and compare
+    directory listings to detect newly created source folders; determine a
+    reliable comparison method (the initial idea was to export two `ls`
+    snapshots and compare them). Record each detected trade in local
+    `trade.DB`, then FXP the content from source to destination. Clarify the
+    unspecified "extra feature" described as "same as previous."
+  - IRC-triggered trades: investigate whether FluxFTP can receive matching
+    messages from HexChat, then record and process them through `trade.DB`.
+    Also assess a built-in IRC mode that connects and idles in configured
+    channels under a trading-instance nickname, watches configured matching
+    expressions, and submits matching trades through `trade.DB`.
+  - `trade.DB`: local ledger of file and folder locations; support population
+    through both "cowboy" and "rational" methods (define these terms), and
+    decide whether to encrypt it and/or offer automatic wiping and its
+    retention trigger.
+  - `.fluxftprc`: define hierarchical trading rules for each configured
+    source and destination, including sections, whitelists, and blacklists.
+    Proposed rule shape: `bookmark:(source or destination):path:whitelist:blacklist`.
+    A bookmark names the entry (example: `siteA`); `source` marks a path for
+    automatic sending, and `destination` marks a path for automatic receiving.
+    Complete the remaining syntax and semantics before implementation.
+  - Define trade detection precisely: make the 10-second polling interval
+    configurable; determine how listings are compared; detect when a source
+    folder is stable and fully uploaded before trading; and specify behavior
+    for renamed, deleted, or partially uploaded folders.
+  - Define a durable trade lifecycle and stable trade ID, with explicit states
+    such as detected, waiting for stability, eligible, transferring, verified,
+    complete, failed, paused, and cancelled. Persist transitions and recover
+    queued or in-progress trades safely after restart.
+  - Prevent duplicate submissions caused by repeated polls, duplicate IRC
+    messages, or restarts. Specify whether source changes update an existing
+    trade or create a new one.
+  - Define transfer conflict and completion behavior: skip, replace, or rename
+    existing destination content; verify transferred files before completion;
+    handle partial transfers; and set retry limits, backoff, and terminal
+    failure behavior.
+  - Complete `.fluxftprc` syntax and semantics with examples for source and
+    destination pairs, nested paths, multiple rules, whitelist/blacklist
+    precedence, conflicting rules, and invalid configuration. Evaluate a
+    readable validated format and provide a dry-run preview of matched trades.
+  - Specify `trade.DB` fields, schema migration and backup behavior, retention,
+    and any wipe policy or trigger. Keep credentials out of the ledger unless
+    a reviewed design requires otherwise. Define the "cowboy" and "rational"
+    population methods in concrete terms.
+  - Define IRC input format and matching expressions, allowed channels and
+    senders, and how matches map to configured source/destination rules. Decide
+    whether HexChat integration is required or optional, define reconnect and
+    disconnect behavior, and validate all IRC input as untrusted before it can
+    create a trade.
+  - Define operational limits and offline behavior, including concurrent
+    connections, queue priority, bandwidth limits, and source-site outages.
+  - Add controls and visibility: preview rules before enabling them, allow
+    per-rule pause/disable and a global trading-off switch, and log why each
+    candidate trade matched or was rejected.
+  - Write acceptance scenarios for polling detection, incomplete-folder
+    exclusion, duplicate suppression, IRC-triggered trades, transfer
+    verification and retry, and restart recovery. Include end-to-end examples
+    for a polled folder, an IRC-triggered trade, and a failed transfer/retry.
 - [x] Validate SSHFS mounts end to end on Windows with WinFsp/SSHFS-Win and a
   trusted SFTP server. The opt-in integration test mounts a drive, reads a
   fixture file, and confirms unmount cleanup.

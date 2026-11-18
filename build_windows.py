@@ -1,4 +1,4 @@
-"""Build Windows packages using Python 3.13.15 / OpenSSL 3.5.8 and the OpenSSL 4.1 adapter.
+"""Build Windows packages using Python 3.13.15 / OpenSSL 3.5.9 and the OpenSSL 4.x adapter.
 
 Run with the maintained x64 builder environment. Use --test-build to replace the
 reusable dist/FluxFTP-Test package after a successful build.
@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import sqlite3
 import ssl
 import subprocess
 import sys
@@ -25,11 +26,14 @@ def main():
     args = parser.parse_args()
     if sys.platform != "win32" or platform.architecture()[0] != "64bit":
         raise SystemExit("This release builder requires 64-bit Windows Python.")
-    if platform.python_version() != "3.13.15" or not ssl.OPENSSL_VERSION.startswith("OpenSSL 3.5.8 "):
-        raise SystemExit(f"Expected Python 3.13.15 / OpenSSL 3.5.8; got {sys.version} / {ssl.OPENSSL_VERSION}")
     sys.path.insert(0, str(ROOT))
     from fluxftp import __version__
-    from fluxftp.openssl_runtime import probe, validate_pair
+    from fluxftp.openssl_runtime import BASE_VERSION, probe, validate_pair
+    expected_base = '.'.join(map(str, BASE_VERSION))
+    if sqlite3.sqlite_version_info < (3, 54, 1):
+        raise SystemExit(f"Expected SQLite 3.54.1 or newer; got {sqlite3.sqlite_version}")
+    if platform.python_version() != "3.13.15" or not ssl.OPENSSL_VERSION.startswith(f"OpenSSL {expected_base} "):
+        raise SystemExit(f"Expected Python 3.13.15 / OpenSSL {expected_base}; got {sys.version} / {ssl.OPENSSL_VERSION}")
     adapter = validate_pair(RUNTIME_ROOT / 'ssl4-adapter')
     if not adapter['version'].startswith('4.1.'):
         raise SystemExit(f"Expected OpenSSL 4.1.x adapter; got {adapter['version']}")
@@ -69,6 +73,15 @@ def main():
         str(ROOT / "launch.py"),
     ], cwd=ROOT, check=True)
     staged = pyinstaller_dist / "FluxFTP"
+    cli_dist = pyinstaller_dist / 'rush_cmdline-build'
+    subprocess.run([
+        sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile',
+        '--console', '--name', 'rush_cmdline', '--distpath', str(cli_dist),
+        '--workpath', str(work_path / 'rush_cmdline'), '--specpath', str(work_path / 'rush_cmdline'),
+        '--collect-submodules', 'keyring.backends', '--copy-metadata', 'keyring',
+        str(ROOT / 'rush_cmdline_entry.py'),
+    ], cwd=ROOT, check=True)
+    shutil.copy2(cli_dist / 'rush_cmdline.exe', staged / 'rush_cmdline.exe')
     for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'requirements-windows.txt'):
         shutil.copy2(ROOT / name, staged / name)
     shutil.copytree(ROOT / 'licenses', staged / 'licenses', dirs_exist_ok=True)
@@ -86,24 +99,45 @@ def main():
         # System DLLs can be read-only; do not copy that flag into generated
         # staging files, where it prevents PyInstaller from rebuilding.
         shutil.copyfile(system32 / name, staged / '_internal' / name)
+    # Qt's OpenSSL backend loads the x64-suffixed DLL names dynamically. PyInstaller
+    # can otherwise collect an unsigned OpenSSL copy from the builder's System32.
+    python_dlls = RUNTIME_ROOT / 'python-3.13.15' / 'DLLs'
+    for source_name, bundled_name in (
+        ('libcrypto-3.dll', 'libcrypto-3-x64.dll'),
+        ('libssl-3.dll', 'libssl-3-x64.dll'),
+    ):
+        source = python_dlls / source_name
+        shutil.copyfile(source, staged / '_internal' / bundled_name)
+        # Windows searches the executable directory before System32. Keep the
+        # Qt aliases beside FluxFTP.exe so the system OpenSSL cannot win lookup.
+        shutil.copyfile(source, staged / bundled_name)
     # Check the actual bundled DLLs, independently of the Python used above.
     import ctypes
     crypto = ctypes.CDLL(str(staged / "_internal" / "libcrypto-3.dll"))
     crypto.OpenSSL_version.argtypes = [ctypes.c_int]
     crypto.OpenSSL_version.restype = ctypes.c_char_p
     bundled = crypto.OpenSSL_version(0).decode("ascii")
+    qt_crypto = ctypes.CDLL(str(staged / '_internal' / 'libcrypto-3-x64.dll'))
+    qt_crypto.OpenSSL_version.argtypes = [ctypes.c_int]
+    qt_crypto.OpenSSL_version.restype = ctypes.c_char_p
+    qt_bundled = qt_crypto.OpenSSL_version(0).decode('ascii')
+    if not qt_bundled.startswith(f'OpenSSL {expected_base} '):
+        raise SystemExit(f"Wrong packaged Qt OpenSSL: {qt_bundled}")
     if hashlib.sha256((staged / '_internal' / 'cloud_tools' / 'rclone.exe').read_bytes()).hexdigest() != cloud_hash:
         raise SystemExit('Packaged cloud backend checksum mismatch.')
-    if not bundled.startswith("OpenSSL 3.5.8 "):
+    if not bundled.startswith("OpenSSL 3.5.9 "):
         raise SystemExit(f"Wrong packaged OpenSSL: {bundled}")
     (staged / "runtime-version.json").write_text(json.dumps({
         "fluxftp": __version__, "python": platform.python_version(),
         "ftp_ftps_openssl": f"OpenSSL {adapter['version']}",
         "ftp_ftps_openssl_default": f"OpenSSL {adapter['version']}",
         "ftp_ftps_openssl_legacy": bundled,
+        "sqlite": sqlite3.sqlite_version,
         "cloud_backend": cloud_provenance,
         "dll_sha256": {name: hashlib.sha256((staged / "_internal" / name).read_bytes()).hexdigest()
-                       for name in ("libssl-3.dll", "libcrypto-3.dll")},
+                       for name in ("libssl-3.dll", "libcrypto-3.dll",
+                                    "libssl-3-x64.dll", "libcrypto-3-x64.dll",
+                                    "sqlite3.dll")},
     }, indent=2) + "\n", encoding="utf-8")
     # Copy rather than move: the inspected DLL may remain loaded on Windows.
     if args.test_build:

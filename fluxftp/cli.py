@@ -73,6 +73,10 @@ def build_parser():
     transfer.add_argument('--destination-site', help='Saved site receiving the destination; omit for local destination')
     transfer.add_argument('--directory', action='store_true', help='Source is a remote directory')
     transfer.add_argument('--start', action='store_true', help='Start the queue after adding this transfer')
+
+    rush = commands.add_parser('rush-script', help='Queue supported RushApp.FTP.Transfer calls')
+    rush.add_argument('script', help='RushApp.FTP.Transfer call or a script containing transfer calls')
+    rush.add_argument('parameters', nargs='*', help='Values for {~0}, {~1}, … path placeholders')
     return parser
 
 
@@ -90,6 +94,8 @@ def run(args):
         elif args.directory:
             raise ValueError('--directory applies only to a remote source')
         return _request('POST', '/v1/transfers', payload)
+    if args.command == 'rush-script':
+        return _request('POST', '/v1/rush-script', {'script': args.script, 'parameters': args.parameters})
     if args.command == 'queue':
         action = args.queue_action
         if action in ('status', 'transfers'):

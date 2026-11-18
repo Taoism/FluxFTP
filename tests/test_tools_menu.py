@@ -16,11 +16,13 @@ def test_tools_reference_and_shortcuts(window, monkeypatch):
     commands = window.tools_commands
     assert commands.actions['Site Manager…'].shortcut().toString() == 'F3'
     assert commands.actions['Options…'].shortcut().toString() == 'F6'
+    assert commands.actions['Options…'].shortcutContext() == Qt.ShortcutContext.ApplicationShortcut
     assert len([a for a in window.findChildren(QAction) if a.shortcut().toString() == 'F3']) == 1
     assert commands.actions['Script Designer…'].isEnabled()
     assert commands.actions['Scheduled Automation…'].isEnabled()
     assert window.wizard_action.isEnabled()
-    for label in ('View RAW Directory…', 'Hotkey Manager…', 'Restart UPnP service…'):
+    assert commands.actions['Hotkey Manager…'].isEnabled()
+    for label in ('View RAW Directory…', 'Restart UPnP service…'):
         assert not commands.actions[label].isEnabled()
     # Exercise the actual key binding without opening a modal dialog.
     calls = []

@@ -156,6 +156,7 @@ class FakeGateway:
 def test_upnp_maps_active_listener_and_cleans_up(servers, monkeypatch):
     from fluxftp import upnp
     gateway = FakeGateway()
+    monkeypatch.setattr(upnp, "package_version", lambda _name: "2.3.5")
     monkeypatch.setattr(upnp.miniupnpc, "UPnP", lambda **_: gateway)
     _, site = servers(False)
     site.passive = False
@@ -168,6 +169,7 @@ def test_upnp_maps_active_listener_and_cleans_up(servers, monkeypatch):
 def test_upnp_does_not_replace_or_delete_other_mappings(monkeypatch):
     from fluxftp import upnp
     gateway = FakeGateway()
+    monkeypatch.setattr(upnp, "package_version", lambda _name: "2.3.5")
     monkeypatch.setattr(upnp.miniupnpc, "UPnP", lambda **_: gateway)
     mapper = PortMapper(Trace())
     gateway.mappings[1400] = ("192.168.1.2", 1400, "Another app", True, 0)
@@ -182,8 +184,19 @@ def test_upnp_does_not_replace_or_delete_other_mappings(monkeypatch):
 def test_upnp_failure_is_reported(monkeypatch):
     from fluxftp import upnp
     gateway = FakeGateway()
+    monkeypatch.setattr(upnp, "package_version", lambda _name: "2.3.5")
     def fail(): raise RuntimeError("No UPnP gateway")
     gateway.selectigd = fail
     monkeypatch.setattr(upnp.miniupnpc, "UPnP", lambda **_: gateway)
     with pytest.raises(OSError, match="No UPnP gateway"):
         PortMapper(Trace()).map("127.0.0.1", 1400)
+
+
+def test_upnp_refuses_vulnerable_native_parser_before_discovery(monkeypatch):
+    from fluxftp import upnp
+    discovered = []
+    monkeypatch.setattr(upnp, "package_version", lambda _name: "2.3.3")
+    monkeypatch.setattr(upnp.miniupnpc, "UPnP", lambda **_: discovered.append(True))
+    with pytest.raises(OSError, match="vulnerable gateway-response parser"):
+        PortMapper(Trace()).map("127.0.0.1", 1400)
+    assert discovered == []

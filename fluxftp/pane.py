@@ -508,6 +508,8 @@ class Pane(QWidget):
         if not getattr(self.window, '_restoring_workspaces', False):
             self.window.apply_pane_order(self.parentWidget())
             self.window.save_workspaces()
+        if hasattr(self.window, 'hotkey_manager'):
+            self.window.hotkey_manager.attach_pane(self)
 
     def go_local(self):
         if not self.busy:

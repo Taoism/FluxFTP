@@ -129,7 +129,7 @@ def main():
             raise RuntimeError('Installed Debian package GUI smoke check failed:\n' + smoke.stdout + smoke.stderr)
         rclone = subprocess.run([str(extracted / 'opt/fluxftp/_internal/cloud_tools/rclone'), 'version'],
             check=True, text=True, capture_output=True)
-        if 'v1.75.1-fluxftp.2' not in rclone.stdout:
+        if 'v1.76.0-fluxftp.3' not in rclone.stdout:
             raise RuntimeError('Debian package contains an unexpected rclone backend.')
     print(deb)
 

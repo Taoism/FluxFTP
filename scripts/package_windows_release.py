@@ -68,6 +68,7 @@ def main():
     (stage / 'START_HERE.txt').write_text(
         'FluxFTP ' + __version__ + ' for Windows x64\n\n'
         'Extract this entire ZIP to a writable folder and run FluxFTP.exe.\n'
+        'Legacy scripts can submit supported RushApp.FTP.Transfer calls with rush_cmdline.exe.\n'
         'Keep the _internal folder beside the executable. Python is not required.\n'
         'This package is unsigned; Windows may display an unknown-publisher warning.\n'
         'Build environment and TLS library versions are recorded in release-manifest.json.\n'

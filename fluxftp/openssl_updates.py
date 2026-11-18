@@ -10,7 +10,7 @@ import time
 import urllib.request
 from _sha1 import sha1
 
-from .openssl_runtime import (DLLS, BASE_VERSION, version, sha256, read_json,
+from .openssl_runtime import (DLLS, BASE_VERSION, OPENSSL3_LINE, version, sha256, read_json,
                               write_json, validate_pair, probe)
 
 API = 'https://api.github.com/repos/python/cpython-bin-deps'
@@ -59,7 +59,9 @@ def newest_release():
     for ref in refs:
         match = re.fullmatch(r'refs/tags/openssl-bin-(3\.(?:0|[1-9][0-9]{0,5})\.(?:0|[1-9][0-9]{0,5}))', ref['ref'])
         if match:
-            candidates.append((version(match[1]), match[1], ref['object']))
+            release_version = version(match[1])
+            if release_version[:2] == OPENSSL3_LINE:
+                candidates.append((release_version, match[1], ref['object']))
     if not candidates:
         raise ValueError('No stable Windows builds available')
     _, release, obj = max(candidates, key=lambda item: item[0])

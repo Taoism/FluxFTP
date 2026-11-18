@@ -23,7 +23,8 @@ except ImportError:  # Source tooling on Python <= 3.11.
 
 DLLS = ('libcrypto-3.dll', 'libssl-3.dll')
 DLLS4 = ('libcrypto-4-x64.dll', 'libssl-4-x64.dll')
-BASE_VERSION = (3, 5, 8)
+BASE_VERSION = (3, 5, 9)
+OPENSSL3_LINE = (3, 5)
 DEFAULT_MAJOR = 4
 _handles = []
 _ready_file = None
@@ -124,6 +125,8 @@ def validate_pair(directory):
     manifest = read_json(directory / 'manifest.json')
     release = version(manifest['version'])
     major = release[0]
+    if major == 3 and release[:2] != OPENSSL3_LINE:
+        raise ValueError('Only the supported OpenSSL 3.5 LTS line is accepted')
     if release < (BASE_VERSION if major == 3 else (4, 1, 0)):
         raise ValueError('Runtime downgrade refused')
     if not re.fullmatch('[0-9a-f]{40}', manifest['commit']):

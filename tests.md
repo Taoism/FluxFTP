@@ -1,6 +1,6 @@
 # FluxFTP test status
 
-Collected on 2026-11-17: 1132 test cases.
+Collected on 2026-11-18: 1145 test cases.
 
 ## Test policy
 
@@ -12,11 +12,31 @@ Collected on 2026-11-17: 1132 test cases.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
 - The two 100,001-item queue stress tests are deferred by request; see the incremental plan in `TODO.md`.
 
-Current totals: 1127 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
+Current totals: 1140 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
+
+The RushApp compatibility batch passed all 6 focused tests on 2026-11-18, including the existing CLI/API test extended to exercise `rush-script`, plus parser safety, upload/download/FXP routing, path parameters, and the `rush_cmdline` forwarding entry point.
+
+The panel/window layout persistence batch passed all 8 focused tests on 2026-11-18: dock/pane restoration, dock float/tab/hide behavior, docking reset and new-window restoration, floating geometry, and main/dialog geometry persistence.
+
+The Debian F6 follow-up passed its 2 focused Windows Qt regression tests on 2026-11-18. Global hotkeys now use application shortcut scope so F6 remains available while child widgets have focus. Packaged Debian runtime verification remains pending.
+
+The security audit dependency update passed all 19 tests in `tests/test_connection_controls.py` on 2026-11-18, including the new check that blocks discovery through vulnerable miniupnpc versions. PySide6 6.11.3 and setuptools 84.2.1 were installed in the test environment; `pip-audit -r requirements-windows.txt` reported no known vulnerabilities.
+
+The Windows UPnP build batch verified and built miniupnpc 2.3.5 for CPython 3.13 x64 and the local CPython 3.11 test environment. Five upstream response-parser fixtures and all 19 `tests/test_connection_controls.py` cases passed with the patched wheel installed; `pip-audit -r requirements-windows.txt` reported no known vulnerabilities.
+
+The OpenSSL version policy batch passed 33 focused runtime/updater tests on 2026-11-18. Two environment-dependent checks were skipped: the live DLL negotiation test requires CPython 3.13, and the official 4.1 MSI fixture is not cached. The supported 3.x LTS baseline is now 3.5.9; updater selection ignores the end-of-life 3.6 line.
+
+The SQLite 3.54.1 runtime update passed all 9 `tests/test_transfer_history.py` cases on 2026-11-18. The additional queue-buffer regression batch passed 8 cases and exposed 2 stale column assertions; both were corrected and rerun successfully. The packaged Windows smoke test passed with SQLite 3.54.1.
+
+The two stale queue-buffer assertions were updated to locate the Files and Remark columns by header. Both focused reruns passed on 2026-11-18.
+
+The rclone security update passed its 2 patched Go regression tests and all 20 focused Python cloud tests on 2026-11-18. rclone v1.76.0 was rebuilt with Go 1.26.11; `govulncheck ./...` reported no reachable vulnerabilities.
+
+The left-sidebar rendering tests passed. The separate localized batches completed: `tests/test_view_options.py` had 7 passes and one failure (`test_auto_size_manual_width_and_mode_restoration`); `tests/test_layout.py` had 6 passes and one failure (`test_native_tabs_and_dropdown_navigation`); and `tests/test_workspaces_tray.py` passed all 15 tests. On 2026-11-18, both failures were fixed and rerun successfully; the related toolbar-visibility tests also passed (4 focused tests total).
 
 ## Previous test history
 
-The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,132 tests: nine previously added IDs, two updater-security tests, two automatic-update workflow tests, the F6 Options regression test, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
+The archived `build/test-batches/nodeids.txt` contains 1,120 unique IDs. The current list has 1,144 tests: nine previously added IDs, two updater-security tests, two automatic-update workflow tests, the F6 Options regression test, five copy-text/hotkey-manager tests, one sidebar-rendering test, five RushApp compatibility tests, the UPnP vulnerable-parser guard, and two retired archived IDs. The older TODO aggregate reports 1,115 cases, five fewer than that saved ID inventory; this page uses the per-ID inventory and individual batch evidence. Archived results contained 14 failures and three skips. Thirteen failures were rerun and passed for this release; both 100,001-item queue tests are deferred by request pending the incremental queue stress plan; the UI-search test has a prior batch-14 pass.
 
 ### Individual historical failures
 
@@ -26,22 +46,22 @@ These failed in earlier batches. Their current release status appears in the fin
 |---|---|---|
 | `tests/test_features_0117.py::test_feature_dialog_previews` | Failed in batch 06; screenshot save failed | Passed (release validation 2026-11-16) |
 | `tests/test_mouse.py::test_log_actions_and_empty_tabs` | Failed in batch 11 | Passed (release validation 2026-11-16) |
-| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Failed in batch 12; Python 3.13 OpenSSL DLL unavailable in that runtime | Passed (release validation 2026-11-16) |
+| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Failed in batch 12; Python 3.13 OpenSSL DLL unavailable in that runtime | Skipped (OpenSSL branch update 2026-11-18) |
 | `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Failed in batch 13 | Passed (release validation 2026-11-16) |
 | `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Failed in batch 13 | Passed (release validation 2026-11-16) |
 | `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Failed timing threshold in batch 14 (0.848 s vs 0.75 s); TODO records 1.813 s in another run; isolated reruns passed | Deferred by request (incremental queue stress plan) |
 | `tests/test_themes.py::test_legacy_dark_migration_and_compact_add_button` | Failed in batch 20 | Passed (release validation 2026-11-16) |
 | `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Failed in batch 20 | Passed (release validation 2026-11-16) |
 | `tests/test_ui.py::test_reference_style_shell_exposes_quick_connect_and_classic_work_areas` | Failed in batch 21 | Passed (release validation 2026-11-16) |
-| `tests/test_view_menu.py::test_view_menu_reference_order_shortcuts_and_submenus` | Failed in batch 22 | Passed (release validation 2026-11-16) |
-| `tests/test_view_menu.py::test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels` | Failed in batch 22 | Passed (release validation 2026-11-16) |
+| `tests/test_view_menu.py::test_view_menu_reference_order_shortcuts_and_submenus` | Failed in batch 22 | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels` | Failed in batch 22 | Passed (menu regression batch 2026-11-18) |
 | `tests/test_window_positions.py::test_main_window_geometry_saved_and_smoke_does_not_overwrite` | Failed in batch 22; a later isolated rerun passed | Passed (release validation 2026-11-16) |
 | `tests/test_window_positions.py::test_manual_collapsed_queue_not_expanded_for_transfer` | Failed in batch 23 | Passed (release validation 2026-11-16) |
 | `tests/test_workspaces_tray.py::test_reset_layout_preserves_work_and_names` | Failed in batch 23 | Passed (release validation 2026-11-16) |
 
 ### Test ID changes since the archived Nov. 9 list
 
-The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,132 categorized IDs shows 14 added IDs and 2 IDs no longer present (net increase: 12). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
+The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, contains 1,120 unique test IDs. Comparing it with today's 1,144 categorized IDs shows 26 added IDs and 2 IDs no longer present (net increase: 24). The TODO's earlier aggregate says 1,115 tests, a five-test discrepancy with the archived ID list; the direct ID comparison below uses the saved 1,120-ID inventory.
 
 | Newly collected test | Latest recorded status |
 |---|---|
@@ -58,7 +78,17 @@ The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, cont
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
-| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (F-key batch 2026-11-17) |
+| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_accessibility.py::test_read_only_text_and_static_labels_can_be_selected_and_copied` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_manager_lists_actions_scopes_and_searches` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_shortcuts_persist_clear_and_restore_factory_defaults` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_conflicting_shortcuts_are_explained_and_not_applied` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_key_sequence_editor_can_clear_selected_shortcut` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_queue_script_maps_download_fxp_and_bookmark_paths` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_queue_script_resolves_paths_and_uses_transfer_queue` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_rush_cmdline_forwards_script_and_path_parameters` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_transfer_parser_accepts_flags_parameters_and_pascal_quotes` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_transfer_parser_rejects_unknown_flags_options_and_extra_code` | Passed (RushApp compatibility batch 2026-11-18) |
 
 The following IDs were in the archived list but are no longer in today's collection; this records an ID difference and does not by itself establish whether the tests were deleted or renamed:
 
@@ -77,11 +107,12 @@ The following IDs were in the archived list but are no longer in today's collect
 - Layout history batch: 18 unique cases passed after updating stale assertions and fixing tab visibility, workspace shortcut focus, and manual queue visibility. Seven focused final checks passed. Raw JUnit: `release-layout-history-rerun-20261116.xml` and `release-layout-check-20261116.xml`.
 - Two remaining historical failures in feature preview and real Windows TLS passed. Raw JUnit: `release-historical-failures-20261116.xml`.
 - The 100,000-file queue stress cases are not part of this release run; follow the incremental plan in `TODO.md`.
+- Copy/hotkey validation (2026-11-18): 10 focused accessibility and hotkey tests passed. Related menu regression batch ran 50 unique cases: 48 passed initially, 2 failed, then both passed on focused rerun.
 - F-key validation (2026-11-17): 11 passed. Pane-order regression batch:
   4 passed after restoring stable pane identity when both panes share a mode.
 - Release-focused workflow checks (2026-11-17): 77 passed, 1 skipped across
   Tools, layout, compare, OpenSSL, workspace, deployment, artifact, and cloud tests.
-- SonarQube quality gate: OK; no new issues.
+- SonarQube quality gate (copy/hotkey change 2026-11-18): OK; zero new issues.
 
 ## Queue, transfer, and retries (238 tests: 236 passed, 0 failed, 0 skipped, 0 pending, 2 deferred)
 
@@ -136,10 +167,10 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_queue_buffer.py::test_buffer_read_error_pauses_without_losing_queue` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_buffer.py::test_cancel_and_clear_restore_include_unloaded_files` | Passed (archived batch 14; carried forward) |
 | `tests/test_queue_buffer.py::test_failed_buffer_batch_rolls_back_every_descriptor` | Passed (archived batch 15; carried forward) |
-| `tests/test_queue_buffer.py::test_failed_file_retained_while_buffer_drains` | Passed (archived batch 15; carried forward) |
+| `tests/test_queue_buffer.py::test_failed_file_retained_while_buffer_drains` | Passed (focused rerun 2026-11-18; uses Files and Remark headers) |
 | `tests/test_queue_buffer.py::test_held_large_selection_releases_on_play` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_buffer.py::test_large_folder_has_bounded_rows_and_complete_portable_snapshot` | Passed (archived batch 14; carried forward) |
-| `tests/test_queue_buffer.py::test_multiple_batches_copy_every_file_and_release_completed_rows` | Passed (archived batch 14; carried forward) |
+| `tests/test_queue_buffer.py::test_multiple_batches_copy_every_file_and_release_completed_rows` | Passed (focused rerun 2026-11-18; uses Files and Remark headers) |
 | `tests/test_queue_buffer.py::test_recovery_releases_held_and_preserves_future_schedule` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_buffer.py::test_second_buffer_gets_next_available_slot` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_buffer.py::test_spool_order_and_removal` | Passed (release validation 2026-11-16) |
@@ -186,16 +217,16 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_queue_folders.py::test_remove_folder_and_restore_queue_preserves_children` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_folders.py::test_saved_files_restore_under_folder_and_can_be_reordered` | Passed (archived batch 15; carried forward) |
 | `tests/test_queue_folders.py::test_worker_progress_supports_large_files` | Passed (archived batch 15; carried forward) |
-| `tests/test_queue_menu.py::test_clear_restore_after_workspace_closed_keeps_files` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_conditional_adds_only_matching_selected_files_held` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_load_is_paused_and_rejects_unsafe_paths_without_changes` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_manual_order_changes_execution_and_survives_recovery` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_multiselect_stability_and_active_guard` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_queue_menu_order_shortcuts_and_focus_conflict` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_recovered_due_schedule_stays_paused` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_retry_selected_preserves_other_paused_jobs` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_scheduled_jobs_wait_persist_and_only_start_when_due` | Passed (archived batch 16; carried forward) |
-| `tests/test_queue_menu.py::test_speed_limits_apply_to_shared_limiter_and_cancel` | Passed (archived batch 16; carried forward) |
+| `tests/test_queue_menu.py::test_clear_restore_after_workspace_closed_keeps_files` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_conditional_adds_only_matching_selected_files_held` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_load_is_paused_and_rejects_unsafe_paths_without_changes` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_manual_order_changes_execution_and_survives_recovery` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_multiselect_stability_and_active_guard` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_queue_menu_order_shortcuts_and_focus_conflict` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_recovered_due_schedule_stays_paused` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_retry_selected_preserves_other_paused_jobs` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_scheduled_jobs_wait_persist_and_only_start_when_due` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_queue_menu.py::test_speed_limits_apply_to_shared_limiter_and_cancel` | Passed (menu regression batch 2026-11-18) |
 | `tests/test_queue_recovery.py::test_deferred_queue_close_and_save_preserve_items` | Passed (archived batch 16; carried forward) |
 | `tests/test_queue_recovery.py::test_delete_queue_keeps_files_and_other_saved_workspace` | Passed (archived batch 16; carried forward) |
 | `tests/test_queue_recovery.py::test_load_selected_keeps_other_workspace_saved` | Passed (archived batch 16; carried forward) |
@@ -354,9 +385,9 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[bad_state]` | Passed (archived batch 03; carried forward) |
 | `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[cancel]` | Passed (archived batch 03; carried forward) |
 | `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[success]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[darwin-rclone]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[linux-rclone]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[win32-rclone.exe]` | Passed (archived batch 03; carried forward) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[darwin-rclone]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[linux-rclone]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[win32-rclone.exe]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
 | `tests/test_cloud_streaming.py::test_cloud_folder_uploads_before_descending_and_recovers_unvisited_files` | Passed (archived batch 03; carried forward) |
 | `tests/test_cloud_streaming.py::test_noncloud_folder_keeps_buffered_planning` | Passed (release validation 2026-11-16) |
 | `tests/test_cloud_streaming.py::test_pause_returns_cloud_folder_to_recoverable_queue_before_next_file` | Passed (archived batch 03; carried forward) |
@@ -365,23 +396,23 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[-backend-result]` | Passed (archived batch 03; carried forward) |
 | `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[Failed to query root for drive SECRET: https://example/?token=SECRET-]` | Passed (archived batch 03; carried forward) |
 | `tests/test_cloud_wizard_recovery.py::test_setup_error_never_echoes_provider_secrets` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud.py::test_active_cancellation_preserves_existing_download` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_backend_providers_encryption_and_auth` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_cloud_conflicts_recursive_relay_and_cancel` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_cloud_failed_download_preserves_target` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_cloud_file_roundtrip_and_mutations` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_cloud_site_selection_and_command_guards` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_ftp_cloud_relay[from-cloud]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_ftp_cloud_relay[to-cloud]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_guided_webdav_setup` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive for Business-business]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive-personal]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft SharePoint Online-documentLibrary]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_plaintext_cloud_config_is_refused` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_real_webdav` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_restored_cloud_jobs_do_not_prompt_for_ftp_password` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_setup_question_protocol` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud.py::test_sftp_cloud_relay` | Passed (archived batch 02; carried forward) |
+| `tests/test_cloud.py::test_active_cancellation_preserves_existing_download` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_backend_providers_encryption_and_auth` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_cloud_conflicts_recursive_relay_and_cancel` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_cloud_failed_download_preserves_target` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_cloud_file_roundtrip_and_mutations` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_cloud_site_selection_and_command_guards` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_ftp_cloud_relay[from-cloud]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_ftp_cloud_relay[to-cloud]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_guided_webdav_setup` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive for Business-business]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive-personal]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft SharePoint Online-documentLibrary]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_plaintext_cloud_config_is_refused` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_real_webdav` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_restored_cloud_jobs_do_not_prompt_for_ftp_password` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_setup_question_protocol` | Passed (rclone v1.76.0 security batch 2026-11-18) |
+| `tests/test_cloud.py::test_sftp_cloud_relay` | Passed (rclone v1.76.0 security batch 2026-11-18) |
 | `tests/test_drive_upload.py::test_cancel_and_resume_new_instance` | Passed (archived batch 06; carried forward) |
 | `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[expired]` | Passed (archived batch 06; carried forward) |
 | `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[source]` | Passed (archived batch 06; carried forward) |
@@ -466,24 +497,25 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_compression.py::test_mode_z_listing_upload_download_and_resume[True-True]` | Passed (archived batch 04; carried forward) |
 | `tests/test_compression.py::test_stream_roundtrip_and_bounded_inflation` | Passed (archived batch 03; carried forward) |
 | `tests/test_compression.py::test_unsupported_compression_falls_back_once` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_auto_binding_for_passive_and_active_listings` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_connection_options_persist_and_bypass_auth` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_noop_transfer_replies_leave_control_channel_synchronized` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[::1-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[127.0.0.1-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[172.20.1.2-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[172.32.1.2-True--False]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[192.168.1.20-False--False]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[192.168.1.20-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[example.com-False-EXAMPLE.;192.168.-True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[example.com-True--False]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[fd00::1-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_bypass_rules[nas-True--True]` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_proxy_passive_override_can_be_disabled` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_unavailable_active_port_is_reported` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_upnp_does_not_replace_or_delete_other_mappings` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_upnp_failure_is_reported` | Passed (archived batch 04; carried forward) |
-| `tests/test_connection_controls.py::test_upnp_maps_active_listener_and_cleans_up` | Passed (archived batch 04; carried forward) |
+| `tests/test_connection_controls.py::test_auto_binding_for_passive_and_active_listings` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_connection_options_persist_and_bypass_auth` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_noop_transfer_replies_leave_control_channel_synchronized` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[::1-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[127.0.0.1-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[172.20.1.2-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[172.32.1.2-True--False]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[192.168.1.20-False--False]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[192.168.1.20-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[example.com-False-EXAMPLE.;192.168.-True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[example.com-True--False]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[fd00::1-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_bypass_rules[nas-True--True]` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_proxy_passive_override_can_be_disabled` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_unavailable_active_port_is_reported` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_upnp_does_not_replace_or_delete_other_mappings` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_upnp_failure_is_reported` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_upnp_maps_active_listener_and_cleans_up` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
+| `tests/test_connection_controls.py::test_upnp_refuses_vulnerable_native_parser_before_discovery` | Passed (Windows UPnP 2.3.5 batch 2026-11-18) |
 | `tests/test_connection_diagnostics.py::test_active_ftp_data_check` | Passed (archived batch 05; carried forward) |
 | `tests/test_connection_diagnostics.py::test_bad_login_and_cancel` | Passed (archived batch 05; carried forward) |
 | `tests/test_connection_diagnostics.py::test_diagnostic_controls` | Passed (archived batch 05; carried forward) |
@@ -501,17 +533,17 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_drftpd_ascii_proxy.py::test_drftpd_catalog_compiles_and_is_in_designer` | Passed (archived batch 05; carried forward) |
 | `tests/test_drftpd_ascii_proxy.py::test_proxy_passive_route_and_actionable_failure[False]` | Passed (archived batch 05; carried forward) |
 | `tests/test_drftpd_ascii_proxy.py::test_proxy_passive_route_and_actionable_failure[True]` | Passed (archived batch 05; carried forward) |
-| `tests/test_ftp_menu.py::test_cancelled_export_preserves_existing_file` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_chmod_and_sftp_timestamp_dispatch` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_directory_cache_scopes_expiry_and_inflight_clear` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_invalid_or_cancelled_chmod_and_stale_dialog_do_not_mutate` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_menu_reference_and_quick_dialog` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_move_conflicts_preflight_cancel_and_partial_failure` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_navigation_cache_manual_refresh_and_clear` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_real_scan_move_and_date[False]` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_real_scan_move_and_date[True]` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_scan_links_limits_cancellation_and_permission_failure` | Passed (archived batch 08; carried forward) |
-| `tests/test_ftp_menu.py::test_working_scan_dialogs_export_and_mutation` | Passed (archived batch 08; carried forward) |
+| `tests/test_ftp_menu.py::test_cancelled_export_preserves_existing_file` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_chmod_and_sftp_timestamp_dispatch` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_directory_cache_scopes_expiry_and_inflight_clear` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_invalid_or_cancelled_chmod_and_stale_dialog_do_not_mutate` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_menu_reference_and_quick_dialog` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_move_conflicts_preflight_cancel_and_partial_failure` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_navigation_cache_manual_refresh_and_clear` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_real_scan_move_and_date[False]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_real_scan_move_and_date[True]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_scan_links_limits_cancellation_and_permission_failure` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_ftp_menu.py::test_working_scan_dialogs_export_and_mutation` | Passed (menu regression batch 2026-11-18) |
 | `tests/test_ident.py::test_connecting_lifecycle_handles_parallel_attempts` | Passed (archived batch 09; carried forward) |
 | `tests/test_ident.py::test_failed_connection_stops_ident` | Passed (archived batch 09; carried forward) |
 | `tests/test_ident.py::test_ftp_login_can_query_ident_before_sending_greeting` | Passed (archived batch 09; carried forward) |
@@ -774,7 +806,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_sort.py::test_reference_defaults_and_independent_controls` | Passed (archived batch 19; carried forward) |
 | `tests/test_sort.py::test_separate_links_and_tie_order` | Passed (archived batch 19; carried forward) |
 
-## Workspace, layout, and accessibility (168 tests: 168 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Workspace, layout, and accessibility (173 tests: 173 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -782,7 +814,12 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_accessibility.py::test_logs_do_not_trap_tab_and_workspace_height_has_keyboard_control` | Passed (archived batch 01; carried forward) |
 | `tests/test_accessibility.py::test_options_pages_scroll_at_large_fonts_and_close_stays_visible` | Passed (archived batch 01; carried forward) |
 | `tests/test_accessibility.py::test_site_fields_follow_visual_keyboard_order_and_password_is_protected` | Passed (archived batch 01; carried forward) |
-| `tests/test_accessibility.py::test_visible_controls_have_screen_reader_names` | Passed (archived batch 01; carried forward) |
+| `tests/test_accessibility.py::test_read_only_text_and_static_labels_can_be_selected_and_copied` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_manager_lists_actions_scopes_and_searches` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_shortcuts_persist_clear_and_restore_factory_defaults` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_conflicting_shortcuts_are_explained_and_not_applied` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_hotkeys.py::test_key_sequence_editor_can_clear_selected_shortcut` | Passed (copy/hotkey batch 2026-11-18) |
+| `tests/test_accessibility.py::test_visible_controls_have_screen_reader_names` | Passed (copy/hotkey follow-up 2026-11-18) |
 | `tests/test_colors.py::test_background_ftp_listings_keep_pane_identity_and_redact` | Passed (archived batch 03; carried forward) |
 | `tests/test_colors.py::test_defaults_and_independent_themes` | Passed (release validation 2026-11-16) |
 | `tests/test_colors.py::test_legacy_selection_and_invalid_colors_fall_back` | Passed (archived batch 03; carried forward) |
@@ -823,25 +860,25 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_display.py::test_sites_grouping_recent_and_menu_visibility` | Passed (release validation 2026-11-16) |
 | `tests/test_display.py::test_toolbar_disconnect_targets_its_own_pane` | Passed (archived batch 05; carried forward) |
 | `tests/test_display.py::test_tray_visibility_animation_and_safe_fallback` | Passed (archived batch 05; carried forward) |
-| `tests/test_docking.py::test_dock_float_tab_hide_restore_and_return_preserves_widgets` | Passed (archived batch 05; carried forward) |
-| `tests/test_docking.py::test_docking_lock_and_reset` | Passed (release validation 2026-11-16) |
-| `tests/test_docking.py::test_docking_restores_in_new_window` | Passed (archived batch 05; carried forward) |
-| `tests/test_docking.py::test_floating_dock_geometry_is_saved_and_restored` | Passed (previous targeted batch; carried forward) |
-| `tests/test_edit_menu.py::test_reference_and_active_pane` | Passed (archived batch 06; carried forward) |
-| `tests/test_edit_menu.py::test_rename_preflight` | Passed (archived batch 06; carried forward) |
-| `tests/test_file_menu.py::test_clone_local_locations_filters_without_queue` | Passed (pane-order regression batch 2026-11-17) |
-| `tests/test_file_menu.py::test_clone_remote_site_path_and_independent_profile` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_configuration_roundtrip_excludes_secrets_and_keeps_types` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_explicit_tray_action_and_missing_tray_fallback` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_menu_order_shortcuts_and_close_state` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[format]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[key]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[site]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[transfer]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[type]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_restore_creates_recovery_and_fresh_credentials_preserves_data_path` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_restore_ui_cancel_busy_guard_and_success_exits` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_menu.py::test_restore_write_failure_rolls_back_preferences_and_sites` | Passed (archived batch 07; carried forward) |
+| `tests/test_docking.py::test_dock_float_tab_hide_restore_and_return_preserves_widgets` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_docking.py::test_docking_lock_and_reset` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_docking.py::test_docking_restores_in_new_window` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_docking.py::test_floating_dock_geometry_is_saved_and_restored` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_edit_menu.py::test_reference_and_active_pane` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_edit_menu.py::test_rename_preflight` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_clone_local_locations_filters_without_queue` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_clone_remote_site_path_and_independent_profile` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_configuration_roundtrip_excludes_secrets_and_keeps_types` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_explicit_tray_action_and_missing_tray_fallback` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_menu_order_shortcuts_and_close_state` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[format]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[key]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[site]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[transfer]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_reject_invalid_backup_before_mutation[type]` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_restore_creates_recovery_and_fresh_credentials_preserves_data_path` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_restore_ui_cancel_busy_guard_and_success_exits` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_file_menu.py::test_restore_write_failure_rolls_back_preferences_and_sites` | Passed (menu regression batch 2026-11-18) |
 | `tests/test_font_zoom.py::test_ctrl_wheel_changes_only_target_pane_and_persists` | Passed (archived batch 08; carried forward) |
 | `tests/test_font_zoom.py::test_icon_wheel_options_partial_steps_direction_and_limits` | Passed (archived batch 08; carried forward) |
 | `tests/test_font_zoom.py::test_icon_wheel_over_buttons_applies_once_to_all_toolbars_and_new_tabs` | Passed (archived batch 08; carried forward) |
@@ -860,7 +897,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_header_rows.py::test_shared_rows_height_and_icons_persist` | Passed (archived batch 09; carried forward) |
 | `tests/test_layout.py::test_captions_and_tab_style` | Passed (release validation 2026-11-16) |
 | `tests/test_layout.py::test_defaults_and_persistence` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_native_tabs_and_dropdown_navigation` | Passed (release validation 2026-11-16) |
+| `tests/test_layout.py::test_native_tabs_and_dropdown_navigation` | Passed (layout fixes batch 2026-11-18; native tab bar remains hidden while workspace navigation is shown) |
 | `tests/test_layout.py::test_pane_tabs_busy_guard_and_large_icons` | Passed (release validation 2026-11-16) |
 | `tests/test_layout.py::test_portrait_layout_and_site_local_order` | Passed (release validation 2026-11-16) |
 | `tests/test_layout.py::test_toolbar_paint_and_panel_buffer_switches` | Passed (release validation 2026-11-16) |
@@ -868,11 +905,11 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_local_drive_menu.py::test_drive_failure_leaves_recent_paths_usable` | Passed (archived batch 11; carried forward) |
 | `tests/test_local_drive_menu.py::test_drive_list_refreshes_and_does_not_leak_into_remote_menu` | Passed (archived batch 11; carried forward) |
 | `tests/test_local_drive_menu.py::test_local_dropdown_drives_folders_and_navigation` | Passed (archived batch 11; carried forward) |
-| `tests/test_mark_menu.py::test_filter_clear_export_sort_and_refresh` | Passed (archived batch 11; carried forward) |
-| `tests/test_mark_menu.py::test_mask_cancel_and_text_shortcuts` | Passed (archived batch 11; carried forward) |
-| `tests/test_mark_menu.py::test_menu_and_keyboard_marks_are_independent_of_selection` | Passed (archived batch 11; carried forward) |
-| `tests/test_mark_menu.py::test_remote_paths_and_mask_navigation_guard` | Passed (archived batch 11; carried forward) |
-| `tests/test_mark_menu.py::test_workspace_and_busy_guards` | Passed (archived batch 11; carried forward) |
+| `tests/test_mark_menu.py::test_filter_clear_export_sort_and_refresh` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_mark_menu.py::test_mask_cancel_and_text_shortcuts` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_mark_menu.py::test_menu_and_keyboard_marks_are_independent_of_selection` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_mark_menu.py::test_remote_paths_and_mask_navigation_guard` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_mark_menu.py::test_workspace_and_busy_guards` | Passed (menu regression batch 2026-11-18) |
 | `tests/test_mouse.py::test_edit_queue_validates_and_source_navigation` | Passed (archived batch 11; carried forward) |
 | `tests/test_mouse.py::test_explorer_context_dispatch` | Passed (archived batch 12; carried forward) |
 | `tests/test_mouse.py::test_external_drop_holds_and_recovery_retains_it` | Passed (archived batch 12; carried forward) |
@@ -904,10 +941,10 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_options.py::test_site_timezone_formats_utc_mlsd_timestamps` | Passed (archived batch 13; carried forward) |
 | `tests/test_options.py::test_socks5_proxy_keeps_target_hostname_for_remote_dns` | Passed (archived batch 12; carried forward) |
 | `tests/test_options.py::test_window_new_connection_uses_proxy_and_transport_settings` | Passed (archived batch 13; carried forward) |
-| `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Passed (release validation 2026-11-16) |
-| `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Passed (release validation 2026-11-16) |
-| `tests/test_tools_menu.py::test_tools_reference_and_shortcuts` | Passed (archived batch 20; carried forward) |
-| `tests/test_tools_menu.py::test_tools_shared_preferences_and_layout` | Passed (archived batch 20; carried forward) |
+| `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Passed (panel/window persistence batch 2026-11-18) |
+| `tests/test_tools_menu.py::test_tools_reference_and_shortcuts` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_tools_menu.py::test_tools_shared_preferences_and_layout` | Passed (menu regression batch 2026-11-18) |
 | `tests/test_ui.py::test_compare_folder_contents_marks_unique_and_different_files` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_connect_saved_site_prompts_and_remembers_password` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_drop_rejects_urls_and_honors_cancel` | Passed (archived batch 21; carried forward) |
@@ -971,40 +1008,41 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_key_manager.py::test_managed_sftp_public_key_auth[Ed25519 key for SFTP-256]` | Passed (archived batch 10; carried forward) |
 | `tests/test_key_manager.py::test_managed_sftp_public_key_auth[RSA key for SFTP-2048]` | Passed (archived batch 10; carried forward) |
 | `tests/test_key_manager.py::test_tls_requires_and_receives_managed_certificate` | Passed (archived batch 10; carried forward) |
-| `tests/test_openssl_branches.py::test_adapter_hash_cannot_be_replaced` | Skipped (archived batch 12) |
-| `tests/test_openssl_branches.py::test_branch_selection_preserves_both_channels_and_requires_adapter` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_failed_4_runtime_can_receive_newer_update` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_official_package_url_allowlist[http://github.com/openssl/installer/releases/download/x/a.msi]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://github.com.evil.test/openssl/installer/releases/download/a]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://github.com/other/repo/releases/download/x/a.msi]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://user@github.com/openssl/installer/releases/download/a]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_old_per_executable_selection_migrates_once` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_package_checksum_failure_preserves_selection` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_real_official_package_extract_probe_and_select` | Skipped (archived batch 12) |
-| `tests/test_openssl_branches.py::test_release_filter_and_checksums` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_branches.py::test_ssl_options_page_and_switch_persistence` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_annotated_tag_is_resolved_and_invalid_commit_rejected` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_corrupt_download_does_not_change_selection` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_daily_checks_and_no_downgrade` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_download_source_allowlist[http://api.github.com/repos/python/cpython-bin-deps/tags]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_download_source_allowlist[https://api.github.com.evil.test/repos/python/cpython-bin-deps/tags]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_download_source_allowlist[https://raw.githubusercontent.com/other/repo/library.dll]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_failed_updated_desktop_falls_back_without_loading_bad_tls` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_numeric_stable_release_selection` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_pending_update_is_not_downgraded` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_probe_failure_preserves_previous_runtime` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_ready_replaces_stale_pending_status` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Passed (release validation 2026-11-16) |
-| `tests/test_openssl_updates.py::test_rejected_runtime_cannot_be_reactivated` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_successful_desktop_handoff_does_not_launch_second_window` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_successful_pair_is_published_only_after_probe` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_tampering_wrong_architecture_and_path_traversal` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_ui_controls_persist_and_manual_check_is_explicit` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[../3.5.9]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[2.0.0]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[3.5.09]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[3.5.9-beta1]` | Passed (archived batch 12; carried forward) |
-| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[5.0.0]` | Passed (archived batch 12; carried forward) |
+| `tests/test_openssl_branches.py::test_adapter_hash_cannot_be_replaced` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_branch_selection_preserves_both_channels_and_requires_adapter` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_failed_4_runtime_can_receive_newer_update` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_official_package_url_allowlist[http://github.com/openssl/installer/releases/download/x/a.msi]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://github.com.evil.test/openssl/installer/releases/download/a]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://github.com/other/repo/releases/download/x/a.msi]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_official_package_url_allowlist[https://user@github.com/openssl/installer/releases/download/a]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_old_per_executable_selection_migrates_once` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_package_checksum_failure_preserves_selection` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_real_official_package_extract_probe_and_select` | Skipped (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_release_filter_and_checksums` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_branches.py::test_ssl_options_page_and_switch_persistence` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_annotated_tag_is_resolved_and_invalid_commit_rejected` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_corrupt_download_does_not_change_selection` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_daily_checks_and_no_downgrade` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_download_source_allowlist[http://api.github.com/repos/python/cpython-bin-deps/tags]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_download_source_allowlist[https://api.github.com.evil.test/repos/python/cpython-bin-deps/tags]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_download_source_allowlist[https://raw.githubusercontent.com/other/repo/library.dll]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_end_of_life_36_line_is_rejected` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_failed_updated_desktop_falls_back_without_loading_bad_tls` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_numeric_stable_release_selection` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_pending_update_is_not_downgraded` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_probe_failure_preserves_previous_runtime` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_ready_replaces_stale_pending_status` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Skipped (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_rejected_runtime_cannot_be_reactivated` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_successful_desktop_handoff_does_not_launch_second_window` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_successful_pair_is_published_only_after_probe` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_tampering_wrong_architecture_and_path_traversal` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_ui_controls_persist_and_manual_check_is_explicit` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[../3.5.9]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[2.0.0]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[3.5.09]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[3.5.9-beta1]` | Passed (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_version_rejects_other_branches_prereleases_and_paths[5.0.0]` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_site_tls_files.py::test_tls_file_paths_persist_per_server` | Passed (archived batch 18; carried forward) |
 | `tests/test_site_validation.py::test_editor_accepts_auth_ssl_and_nat_checkbox[False]` | Passed (archived batch 18; carried forward) |
 | `tests/test_site_validation.py::test_editor_accepts_auth_ssl_and_nat_checkbox[True]` | Passed (archived batch 18; carried forward) |
@@ -1033,7 +1071,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
-## Automation, diagnostics, and CLI (43 tests: 43 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Automation, diagnostics, and CLI (48 tests: 48 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -1074,7 +1112,12 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines7]` | Passed (archived batch 01; carried forward) |
 | `tests/test_automation.py::test_wizard_close_waits_for_test_and_does_not_open_workspace` | Passed (archived batch 01; carried forward) |
 | `tests/test_automation.py::test_wizard_test_invalidation_and_new_workspace` | Passed (release validation 2026-11-16) |
-| `tests/test_cli_api.py::test_cli_api_auth_listing_transfers_queue_json_and_exit_codes` | Passed (archived batch 02; carried forward) |
+| `tests/test_cli_api.py::test_cli_api_auth_listing_transfers_queue_json_and_exit_codes` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_queue_script_maps_download_fxp_and_bookmark_paths` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_queue_script_resolves_paths_and_uses_transfer_queue` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_rush_cmdline_forwards_script_and_path_parameters` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_transfer_parser_accepts_flags_parameters_and_pascal_quotes` | Passed (RushApp compatibility batch 2026-11-18) |
+| `tests/test_rush_compat.py::test_transfer_parser_rejects_unknown_flags_options_and_extra_code` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_diagnostics.py::test_missing_certificate_path_is_identified` | Passed (archived batch 05; carried forward) |
 | `tests/test_diagnostics.py::test_redact_echoed_passwords_private_keys_and_log_injection` | Passed (archived batch 05; carried forward) |
 | `tests/test_diagnostics.py::test_ssh_diagnostics_and_global_failure_do_not_dump_exception_secrets` | Passed (archived batch 05; carried forward) |
@@ -1228,27 +1271,28 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_themes.py::test_theme_text_contrast` | Passed (archived batch 20; carried forward) |
 | `tests/test_toolbar_icons.py::test_remote_local_icon_tracks_mode` | Passed (archived batch 20; carried forward) |
 | `tests/test_toolbar_icons.py::test_toolbar_descriptions_themes_and_direction` | Passed (archived batch 20; carried forward) |
-| `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Passed (release validation 2026-11-16) |
+| `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Passed (layout fixes batch 2026-11-18) |
 | `tests/test_toolbar_visibility.py::test_pane_toolbar_visibility_persists_and_applies_to_new_workspaces` | Passed (archived batch 20; carried forward) |
-| `tests/test_view_menu.py::test_current_edit_files_tracks_only_editors_and_preserves_sessions` | Passed (archived batch 22; carried forward) |
-| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (F-key batch 2026-11-17) |
-| `tests/test_view_menu.py::test_panel_context_menu_can_hide_panel` | Passed (archived batch 22; carried forward) |
-| `tests/test_view_menu.py::test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels` | Passed (release validation 2026-11-16) |
-| `tests/test_view_menu.py::test_refresh_targets_last_active_pane_without_duplicate_shortcuts` | Passed (archived batch 22; carried forward) |
-| `tests/test_view_menu.py::test_sites_dropdown_context_menu_opens_site_editor` | Passed (archived batch 22; carried forward) |
-| `tests/test_view_menu.py::test_view_menu_reference_order_shortcuts_and_submenus` | Passed (release validation 2026-11-16) |
-| `tests/test_view_options.py::test_auto_size_manual_width_and_mode_restoration` | Passed (archived batch 22; carried forward) |
+| `tests/test_view_menu.py::test_current_edit_files_tracks_only_editors_and_preserves_sessions` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_panel_context_menu_can_hide_panel` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_refresh_targets_last_active_pane_without_duplicate_shortcuts` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_sites_dropdown_context_menu_opens_site_editor` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_menu.py::test_view_menu_reference_order_shortcuts_and_submenus` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_view_options.py::test_auto_size_manual_width_and_mode_restoration` | Passed (layout fixes batch 2026-11-18; manual width persisted after auto-size was disabled) |
 | `tests/test_view_options.py::test_grid_modes_are_exclusive_and_repaint_all_lists` | Passed (archived batch 22; carried forward) |
 | `tests/test_view_options.py::test_listing_metadata_unix_mlsd_and_missing_facts` | Passed (archived batch 22; carried forward) |
 | `tests/test_view_options.py::test_reference_defaults_and_live_column_visibility` | Passed (release validation 2026-11-16) |
 | `tests/test_view_options.py::test_settings_survive_new_window_and_configuration_backup` | Passed (archived batch 22; carried forward) |
 | `tests/test_view_options.py::test_sftp_numeric_ownership` | Passed (archived batch 22; carried forward) |
-| `tests/test_view_options.py::test_workspace_columns_selection_and_live_status` | Passed (archived batch 22; carried forward) |
+| `tests/test_view_options.py::test_workspace_columns_selection_and_live_status` | Passed (left-sidebar rendering batch 2026-11-18) |
+| `tests/test_view_options.py::test_workspace_overview_fills_sidebar_width` | Passed (left-sidebar rendering batch 2026-11-18) |
 | `tests/test_window_initializer.py::test_smoke_window_isolates_settings_initializes_services_and_wires_widgets` | Passed (archived batch 22; carried forward) |
-| `tests/test_window_positions.py::test_dialog_geometry_is_remembered_per_window_type` | Passed (archived batch 22; carried forward) |
+| `tests/test_window_positions.py::test_dialog_geometry_is_remembered_per_window_type` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_window_positions.py::test_folder_successes_hide_then_group_clears[Download]` | Passed (archived batch 22; carried forward) |
 | `tests/test_window_positions.py::test_folder_successes_hide_then_group_clears[Upload]` | Passed (archived batch 22; carried forward) |
-| `tests/test_window_positions.py::test_main_window_geometry_saved_and_smoke_does_not_overwrite` | Passed (release validation 2026-11-16) |
+| `tests/test_window_positions.py::test_main_window_geometry_saved_and_smoke_does_not_overwrite` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_window_positions.py::test_manual_collapsed_queue_not_expanded_for_transfer` | Passed (release validation 2026-11-16) |
 | `tests/test_window_positions.py::test_non_success_remains[Download]` | Passed (archived batch 22; carried forward) |
 | `tests/test_window_positions.py::test_non_success_remains[Upload]` | Passed (archived batch 22; carried forward) |

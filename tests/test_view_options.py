@@ -92,6 +92,21 @@ def test_workspace_columns_selection_and_live_status(window):
     assert tree.topLevelItemCount() == 1
 
 
+def test_workspace_overview_fills_sidebar_width(window):
+    window.resize(1200, 800)
+    window.show()
+    QTest.qWait(30)
+    tree = window.window_list
+    header = tree.header()
+    last_visible = max(i for i in range(tree.columnCount()) if not tree.isColumnHidden(i))
+    assert header.stretchLastSection()
+    assert header.sectionViewportPosition(last_visible) + header.sectionSize(last_visible) >= tree.viewport().width() - 2
+
+    window.view_commands.options.actions['windows_columns/action'].trigger()
+    last_visible = max(i for i in range(tree.columnCount()) if not tree.isColumnHidden(i))
+    assert header.sectionViewportPosition(last_visible) + header.sectionSize(last_visible) >= tree.viewport().width() - 2
+
+
 def test_grid_modes_are_exclusive_and_repaint_all_lists(window):
     options = window.view_commands.options
     pane = window.current_panes()[0]

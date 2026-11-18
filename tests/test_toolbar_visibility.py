@@ -34,7 +34,7 @@ def test_named_hide_restore_and_shared_rows(window, monkeypatch):
     assert window.workspace_navigation.isHidden()
     assert window.workspace_panel.add_button.isHidden()
     controls.set_visible('tabs', True)
-    assert not window.tabs.tabBar().isHidden()
+    assert window.tabs.tabBar().isHidden()
     assert not window.workspace_navigation.isHidden()
     assert not window.workspace_panel.add_button.isHidden()
 

@@ -60,35 +60,40 @@ smoke check and bundled rclone version check before reporting success.
 
 ## Source environment
 
-Use Windows x64 and Python 3.13 for the primary development path. The project
+Use Windows x64, Python 3.13, and the Visual Studio C++ Build Tools for the
+primary development path. The project
 declares Python 3.11 or newer; the maintained Windows release uses OpenSSL 4.1.x
-by default and retains OpenSSL 3.5.x as its bundled legacy fallback. The custom
+by default and retains OpenSSL 3.5.x as its bundled fallback. The custom
 runtime and OpenSSL 4 adapter are not downloaded or installed by this repository.
 
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install setuptools==84.2.1 wheel
+.\.venv\Scripts\python.exe scripts/build_miniupnpc_windows.py --install
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m fluxftp --smoke-test
 ```
 
-`requirements-windows.txt` records the maintained release's Python dependency
-versions. It is a reference snapshot, not a replacement for installing the project.
+`build_miniupnpc_windows.py` verifies the pinned miniupnpc 2.3.5 source archive,
+builds its extension with MSVC, and installs the wheel. `requirements-windows.txt`
+records the maintained release's Python dependency versions. It is a reference
+snapshot, not a replacement for installing the project.
 No user settings, binaries, runtime caches or credentials are included.
 
 ## Cloud backend
 
 Cloud features expect `runtime/rclone/rclone.exe` on Windows (`rclone` elsewhere).
-The maintained backend is rclone v1.75.1 with FluxFTP callback-port and OneDrive
+The maintained backend is rclone v1.76.0 with FluxFTP callback-port and OneDrive
 default-drive fixes. The patch is included as `scripts/rclone-fluxftp.patch`.
-Install Git and Go (the maintained backend used Go 1.26.10), then run:
+Install Git and Go 1.26.11, then run:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/build_cloud_backend.py
 ```
 
 The script checks out pinned upstream commit
-`687d264b689b8c49a67e2e52a8a5e0caa01c04ce`, verifies the included patch digest,
+`e982ff36668f5130d94b4f70409babb3d964df42`, verifies the included patch digest,
 applies it to a new checkout, runs the patch's tests and builds the backend.
 Git/Go need network access to fetch source and modules. It refuses to reuse an
 existing source checkout; use `--source` with a fresh directory to rebuild.
@@ -147,17 +152,26 @@ build and does not update the published installation.
 ## Maintained release builder
 
 `build_windows.py` is retained as the release recipe. It intentionally requires
-Python 3.13.15 / OpenSSL 3.5.8 as its build interpreter, a verified patched rclone
-backend and a validated CPython/OpenSSL 4.1 adapter under `runtime/ssl4-adapter`.
-The application selects OpenSSL 4.1.x by default and retains OpenSSL 3.5.x as its
-legacy fallback. Those binary inputs are not
+Python 3.13.15 / OpenSSL 3.5.9 as its build interpreter, a verified patched rclone
+backend and a validated CPython/OpenSSL 4.x adapter under `runtime/ssl4-adapter`.
+The application selects the latest stable OpenSSL 4.x by default and retains the
+latest supported OpenSSL 3.5 LTS release as its fallback. Those binary inputs are not
 present in this repository, so it is not the fresh-checkout build command.
 `release_tools.py` contains separate native packaging/signing helpers. Signing
 identities, certificates and private keys are never stored in this repository.
 
+Before building in that environment, install the pinned Windows dependencies
+and patched UPnP wheel into the same Python 3.13.15 environment:
+
+```powershell
+.\<python-3.13.15-env>\Scripts\python.exe -m pip install setuptools==84.2.1 wheel
+.\<python-3.13.15-env>\Scripts\python.exe scripts/build_miniupnpc_windows.py --install
+.\<python-3.13.15-env>\Scripts\python.exe -m pip install -r requirements-windows.txt --find-links build/miniupnpc-wheels
+```
+
 For a reusable package from the maintained runtime, pass `--test-build` to
-`build_windows.py`. It writes `dist/FluxFTP-Test`, retains OpenSSL 4.1.x as the
-FTP/FTPS default and OpenSSL 3.5.x as the legacy fallback, and replaces the
+`build_windows.py`. It writes `dist/FluxFTP-Test`, retains the latest stable OpenSSL
+4.x as the FTP/FTPS default and the latest supported OpenSSL 3.5 LTS as fallback, and replaces the
 previous test package only after the new package passes its runtime and checksum
 checks:
 
@@ -174,8 +188,8 @@ Publishing a GitHub Release starts `.github/workflows/public-release.yml`.
 The tag must match the version in `pyproject.toml` (for example, `v0.133.0`).
 The workflow builds the pinned, patched rclone backend, runs release-focused
 tests and source smoke checks, and builds the Ubuntu and Debian packages. The
-maintained Windows builder requires the separately validated OpenSSL 4.1 adapter
-and OpenSSL 3.5.8 base runtime. Build and smoke-check that package locally with
+maintained Windows builder requires the separately validated OpenSSL 4.x adapter,
+OpenSSL 3.5.9 base runtime, and SQLite 3.54.1. Build and smoke-check that package locally with
 `build_windows.py`, then prepare its ZIP with `scripts/package_windows_release.py`.
 Attach the Windows ZIP and its `SHA256SUMS.txt` to the draft release before
 publishing. The workflow validates that asset and attaches the Ubuntu and Debian
@@ -190,8 +204,8 @@ Debian assets to an existing release by enabling `publish_assets`.
 
 The workflow's Windows job runs release checks but its hosted development
 package is not the published Windows artifact. Publish the Windows ZIP from the
-maintained builder so it includes the OpenSSL 4.1 default and OpenSSL 3.5.8
-legacy runtime.
+maintained builder so it includes the current OpenSSL 4.x default and OpenSSL
+3.5.9 fallback runtime.
 It does not claim to sign or notarize Windows, macOS or Linux releases.
 Code-signing identities and the required non-Windows build hosts remain separate
 prerequisites.

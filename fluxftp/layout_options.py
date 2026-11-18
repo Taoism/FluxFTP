@@ -296,7 +296,6 @@ class LayoutOptions:
                 panel.show_caption(self.layout_value('caption_' + key), style)
         native = self.layout_value('navigate_tabs') and not self.layout_value('multiple_lines')
         detached = hasattr(self, 'header_rows')
-        self.tabs.tabBar().setVisible(False)
         self.tabs.cornerWidget().setVisible(False)
         # Workspace switching and closing stay in the Workspaces list. Keep
         # the panel header compact: one label and one add button.
@@ -304,6 +303,9 @@ class LayoutOptions:
         from PySide6.QtWidgets import QTabWidget
         bottom = self.layout_value('tabs_bottom')
         self.tabs.setTabPosition(QTabWidget.TabPosition.South if bottom else QTabWidget.TabPosition.North)
+        # QTabWidget can reshow its native bar when the tab position changes.
+        # WorkspaceNavigation is the visible tab control in every layout.
+        self.tabs.tabBar().setVisible(False)
         self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideRight)
         self.tabs.tabBar().setExpanding(False)
         css = self.active_tab_style('QTabBar::tab:selected')

@@ -123,7 +123,8 @@ class ViewOptions:
         from PySide6.QtWidgets import QApplication
         user_drag = bool(QApplication.mouseButtons() & Qt.MouseButton.LeftButton)
         if (not self.applying and not getattr(tree, '_fitting_columns', False)
-                and not tree.isColumnHidden(column) and (manual or user_drag)):
+                and not tree.isColumnHidden(column)
+                and (manual or user_drag or not self.value('auto_size/' + group))):
             # A user's drag takes precedence over automatic fitting. Keep the
             # existing group preference, but never lock the header handles.
             if self.value('auto_size/' + group):
@@ -158,7 +159,10 @@ class ViewOptions:
             old_signature = getattr(tree, '_view_signature', None)
             tree._view_signature = signature
             header = tree.header()
-            header.setStretchLastSection(False)
+            # The workspace overview lives above the file panes and spans the
+            # full dock width. Keep its final visible column aligned to the
+            # right edge instead of leaving an empty strip after the table.
+            header.setStretchLastSection(group == 'windows')
             for column, show in enumerate(visible):
                 tree.setColumnHidden(column, not show)
                 header.setSectionResizeMode(column, QHeaderView.ResizeMode.Interactive)

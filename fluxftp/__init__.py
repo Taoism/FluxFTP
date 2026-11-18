@@ -1,3 +1,3 @@
 """FluxFTP desktop client."""
 
-__version__ = '0.147.2'
+__version__ = '0.147.3'

@@ -197,6 +197,9 @@ class ControlAPI(QObject):
             destination.parentWidget = lambda: split
             jobs = w.enqueue_items(source, destination, [Entry(entry_name, directory, size)], start=start, confirmed=True)
             return 202, {'queued': True, 'held': not start, 'transfers': [self._job(job) for job in (jobs or [])]}
+        if method == 'POST' and path == '/v1/rush-script':
+            from .rush_compat import queue_script
+            return 202, queue_script(self, payload)
         return 404, {'error': 'unknown endpoint'}
 
     def _endpoint(self, value, label):

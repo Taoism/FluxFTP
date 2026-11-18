@@ -9,9 +9,9 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT = '687d264b689b8c49a67e2e52a8a5e0caa01c04ce'
-PATCH_SHA256 = '4c98d1bfd0b426404cbf6e248725afc10553764c2fbf373f07c8862d61481d65'
-VERSION = 'v1.75.1-fluxftp.2'
+COMMIT = 'e982ff36668f5130d94b4f70409babb3d964df42'
+PATCH_SHA256 = '779c4bdfe66b6e5f122a57985a122eca96c724b4a63f4656103c9e5ef7ffe0cd'
+VERSION = 'v1.76.0-fluxftp.3'
 
 
 def main():
@@ -46,9 +46,11 @@ def main():
         '-o', str(output), '.'], cwd=source, env=environment, check=True)
     subprocess.run([str(output), 'version'], check=True)
     shutil.copyfile(patch, destination / 'fluxftp-oauth-port.patch')
-    provenance = dict(version=VERSION, source_url='https://github.com/rclone/rclone',
+    provenance = dict(version=VERSION, upstream_version='v1.76.0',
+        source_url='https://github.com/rclone/rclone',
         source_commit=COMMIT, patch_sha256=PATCH_SHA256,
         executable_sha256=hashlib.sha256(output.read_bytes()).hexdigest(),
+        onedrive_callback='http://localhost:18342/',
         go=subprocess.check_output([go, 'env', 'GOVERSION'], cwd=source,
             env=environment, text=True).strip())
     (destination / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n', encoding='utf-8')

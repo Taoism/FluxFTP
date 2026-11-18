@@ -97,7 +97,7 @@ def add_controls(form, window):
                 text += ' — restart FluxFTP to apply.'
             status.setText(text)
         except (OSError, ValueError, KeyError, TypeError):
-            status.setText('Selected runtime is unavailable. Startup will use the bundled OpenSSL 3.5.x legacy runtime.')
+            status.setText('Selected runtime is unavailable. Startup will use the bundled OpenSSL 3.5.x runtime.')
     def select(major):
         try:
             runtime.choose_branch(location, major)
@@ -107,7 +107,7 @@ def add_controls(form, window):
             group.button(runtime.branch(location)).setChecked(True)
         refresh()
     for major in (4, 3):
-        label = 'OpenSSL 4.1.x (default)' if major == 4 else 'OpenSSL 3.5.x (legacy)'
+        label = 'OpenSSL 4.x (default)' if major == 4 else 'OpenSSL 3.5.x'
         radio = QRadioButton(label)
         radio.setObjectName(f'ssl_branch_{major}')
         group.addButton(radio, major)
@@ -120,7 +120,7 @@ def add_controls(form, window):
     timer = QTimer(status)
     timer.timeout.connect(refresh)
     timer.start(2000)
-    enabled = QCheckBox('Automatically download verified OpenSSL 4.x and legacy 3.5.x updates')
+    enabled = QCheckBox('Automatically download verified OpenSSL 4.x and 3.5.x updates')
     enabled.setChecked(window.preferences.value('Updates/openssl_enabled', True, type=bool))
     enabled.toggled.connect(lambda value: window.preferences.setValue('Updates/openssl_enabled', value))
     form.addRow(enabled)
@@ -129,9 +129,9 @@ def add_controls(form, window):
     enabled.setEnabled(updater is not None)
     button.clicked.connect(lambda: updater.start(force=True))
     form.addRow(button)
-    label = QLabel('OpenSSL 4.1.x is the default. OpenSSL 3.5.x remains available as a legacy option.\n'
+    label = QLabel('OpenSSL 4.x is the default. OpenSSL 3.5.x remains available as the supported 3.x line.\n'
                    'Checks run daily in the background. Verified updates activate on the next launch; '
-                   'active transfers are not interrupted. A failed startup falls back to bundled OpenSSL 3.5.x.\n'
+                   'active transfers are not interrupted. A failed startup falls back to bundled OpenSSL 3.5.9.\n'
                    'This setting controls FTP/FTPS. SFTP and cloud providers use their own libraries.'
                    if updater else 'OpenSSL updates are available in the packaged Windows application.')
     label.setWordWrap(True)

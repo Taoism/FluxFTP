@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout,
     QLabel, QPushButton, QLineEdit, QComboBox, QSpinBox, QCheckBox, QDialogButtonBox, QFileDialog,
     QTreeWidget, QTreeWidgetItem, QStackedWidget, QPlainTextEdit, QMessageBox, QInputDialog,
-    QGroupBox, QScrollArea)
+    QGroupBox, QScrollArea, QToolButton)
 from .core import Site, PROTOCOLS
 from .cloud import CLOUD_PROTOCOLS
 from .provider_icons import provider_icon
@@ -50,6 +50,12 @@ class SiteDialog(QDialog):
         self.protocol.currentIndexChanged.connect(self._protocol_changed)
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_visibility = QToolButton()
+        self.password_visibility.setText('Show')
+        self.password_visibility.setAccessibleName('Show site password')
+        self.password_visibility.setToolTip('Show the site password')
+        self.password_visibility.setCheckable(True)
+        self.password_visibility.toggled.connect(self._toggle_password_visibility)
         self.passive = QCheckBox("Passive Mode")
         self.force_utf8 = QCheckBox("Forced UTF-8")
         self.utf8_username = QCheckBox("UTF-8 Username")
@@ -187,6 +193,14 @@ class SiteDialog(QDialog):
         elif username.text().casefold() == "anonymous":
             username.clear()
 
+    def _toggle_password_visibility(self, visible):
+        self.password.setEchoMode(QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password)
+        label = 'Hide' if visible else 'Show'
+        action = 'Hide' if visible else 'Show'
+        self.password_visibility.setText(label)
+        self.password_visibility.setAccessibleName(f'{action} site password')
+        self.password_visibility.setToolTip(f'{action} the site password')
+
     def _general_page(self):
         page, page_layout = self._property_page("Site")
         scroll = QScrollArea()
@@ -210,7 +224,11 @@ class SiteDialog(QDialog):
         grid.addWidget(QLabel("Username"), 3, 0)
         grid.addWidget(self.fields["username"], 3, 1)
         grid.addWidget(QLabel("Password"), 3, 2)
-        grid.addWidget(self.password, 3, 3)
+        password_layout = QHBoxLayout()
+        password_layout.setContentsMargins(0, 0, 0, 0)
+        password_layout.addWidget(self.password, 1)
+        password_layout.addWidget(self.password_visibility)
+        grid.addLayout(password_layout, 3, 3)
         self.anonymous_login = QCheckBox("Anonymous Login")
         self.anonymous_login.setChecked(True)
         self.anonymous_login.toggled.connect(self._anonymous_toggled)

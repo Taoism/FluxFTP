@@ -82,7 +82,10 @@ class WindowChrome:
         self.layout_commands = LayoutMenu(self, self.tools_menu)
         self.layout_menu = self.layout_commands.menu
         # Share the main-window F6 action so Options is reachable from Edit too.
-        self.edit_menu.addAction(self.tools_commands.actions['Options…'])
+        options_action = self.tools_commands.actions['Options…']
+        self.edit_menu.addAction(options_action)
+        # Keep F6 active across all FluxFTP child widgets on Linux desktops.
+        options_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
 
         help_menu = menus.addMenu("Help")
         self.help_menu = help_menu
@@ -95,6 +98,12 @@ class WindowChrome:
         about = self.about_action = add(help_menu, "About FluxFTP…", lambda: QMessageBox.about(
             self, "About FluxFTP", f"FluxFTP {__version__}\n\nA multi-platform (Windows, Ubuntu, Debian) FTP, FTPS, SFTP and cloud-storage client with synchronization, verification reports and deployment rollback."))
         about.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
+        from .hotkeys import HotkeyManager
+        self.hotkey_manager = HotkeyManager(self)
+        hotkey_action = self.tools_commands.actions['Hotkey Manager…']
+        hotkey_action.setEnabled(True)
+        hotkey_action.setToolTip('Assign and manage keyboard shortcuts')
+        hotkey_action.triggered.connect(lambda checked=False: self.hotkey_manager.show())
 
     def _build_quick_connect(self, layout):
         row = QWidget()

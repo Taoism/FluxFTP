@@ -49,6 +49,7 @@ Supported operations:
 | `GET /v1/transfers` | Transfer IDs, paths, progress, and state |
 | `GET /v1/sites` | Names of enabled saved sites (credentials are never returned) |
 | `POST /v1/transfers` | Queue one transfer using a local path or saved-site name at each endpoint |
+| `POST /v1/rush-script` | Queue supported `RushApp.FTP.Transfer` calls |
 | `POST /v1/queue/play` | Start or resume the queue |
 | `POST /v1/queue/pause` | Pause queue scheduling |
 | `POST /v1/queue/stop` | Stop active work and clear pending work |
@@ -60,6 +61,25 @@ Saved site names refer to entries already configured in FluxFTP. A remote source
 also requires a Boolean `directory` field. Queued transfers are held by default;
 set `start` to `true` to begin immediately. Requests are limited to 16 KiB and
 the API dispatches queue changes on the desktop GUI thread.
+
+For legacy scripts, the Windows package includes `rush_cmdline.exe`; Python
+installations expose the same `rush_cmdline` command. Enable **Tools → JSON API
+Access…** once and keep FluxFTP running. The shim authenticates to the same
+loopback API and accepts a `RushApp.FTP.Transfer` statement plus values for
+`{~0}`, `{~1}`, … path placeholders:
+
+```powershell
+.\rush_cmdline.exe "Script RushApp.FTP.Transfer(0, '', '{~0}', 'file.zip', 'Home FTP', '/incoming', 'file.zip', RS_UP or RS_FILE or RS_DIRSRC or RS_DIRDES or RS_LOGOUT, '', '', '', '', '', 0, 0, 0, 0, 0, 0, 0);" "C:\data"
+```
+
+The compatibility layer supports `RS_UP`, `RS_DOWN`, `RS_FILE`, `RS_DIRSRC`,
+`RS_DIRDES`, and `RS_LOGOUT`. A folder argument is a saved-site bookmark name
+when its `RS_DIR*` flag is absent, or a literal path when present. Literal
+remote paths must be absolute and use `/`; local paths must be absolute. The
+remaining filter, retry, sorting, and depth arguments must be empty or zero.
+The parser accepts only `RushApp.FTP.Transfer` calls; it does not execute
+arbitrary RushScript code. Transfers use FluxFTP's queue and its normal
+connection cleanup behavior.
 
 ### Android companion
 
@@ -188,11 +208,14 @@ Explore [queue and transfer controls](docs/gallery/transfers.md),
 
 ## Run from source
 
-Install 64-bit Python 3.13, then run the following in a checkout using PowerShell:
+Install 64-bit Python 3.13 and the Visual Studio C++ Build Tools, then run the
+following in a checkout using PowerShell:
 
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install setuptools==84.2.1 wheel
+.\.venv\Scripts\python.exe scripts/build_miniupnpc_windows.py --install
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m fluxftp
 ```
@@ -200,7 +223,8 @@ py -3.13 -m venv .venv
 FTP/FTPS/SFTP work without a cloud backend. For cloud features, build the pinned,
 patched rclone backend as described in [BUILDING.md](docs/BUILDING.md).
 Source builds use their Python installation's TLS runtime. The maintained Windows
-release uses OpenSSL 4.1.x by default and keeps OpenSSL 3.5.x as a legacy fallback;
+release uses the latest stable OpenSSL 4.x by default and keeps the latest
+supported OpenSSL 3.5 LTS release as a fallback;
 the binary adapter is not included in this source repository.
 
 ## Connect and transfer

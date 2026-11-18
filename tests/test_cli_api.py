@@ -61,11 +61,12 @@ def test_cli_api_auth_listing_transfers_queue_json_and_exit_codes(monkeypatch, t
 
         window.new_connection = lambda *_args: ListedConnection()
         jobs = []
-        def enqueue(_source, _destination, entries, **_kwargs):
+        def enqueue(source_pane, destination_pane, entries, **_kwargs):
             row = QTreeWidgetItem([entries[0].name, "", "", "", "", str(tmp_path / "report.txt"), "/report.txt", "Upload · Queued"])
             job = {"row": row, "name": entries[0].name, "route": "Upload", "task": None,
                    "workspace": window.tabs.currentWidget(), "source_site": None, "destination_site": None,
-                   "src": str(tmp_path / "report.txt"), "dst": "/report.txt", "state": "queued", "retries": 0}
+                   "src": source_pane.join(entries[0].name), "dst": destination_pane.join(entries[0].name),
+                   "state": "queued", "retries": 0}
             jobs.append(job)
             window.queue_jobs.append(job)
             return [job]
@@ -92,6 +93,15 @@ def test_cli_api_auth_listing_transfers_queue_json_and_exit_codes(monkeypatch, t
         queued = json.loads(queued_json)
         assert queued["queued"] and queued["held"]
         transfer_id = queued["transfers"][0]["id"]
+
+        rush = ("Script RushApp.FTP.Transfer(0, '', '{~0}', 'report.txt', 'alpha', "
+                "'/incoming', 'report.txt', RS_UP or RS_FILE or RS_DIRSRC or RS_DIRDES or RS_LOGOUT, "
+                "'', '', '', '', '', 0, 0, 0, 0, 0, 0, 0);")
+        status, rush_json, error = run_cli(["rush-script", rush, str(source.parent)])
+        assert status == 0 and not error, error
+        rush_result = json.loads(rush_json)
+        assert rush_result["queued"] and rush_result["logout_after_transfer"]
+        assert rush_result["transfers"][0]["destination"] == "/incoming/report.txt"
 
         status, transfers_json, error = run_cli(["queue", "transfers"])
         assert status == 0 and json.loads(transfers_json)["transfers"][0]["id"] == transfer_id

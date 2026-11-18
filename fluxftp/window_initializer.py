@@ -186,5 +186,9 @@ def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self.browse_timer.setInterval(1000)
     self.browse_timer.timeout.connect(self.maintain_browse_sessions)
     self.browse_timer.start()
+    self.hotkey_manager.initialize()
+    from .accessibility import enable_copyable_text, install_copyable_text_support
+    install_copyable_text_support(self.app_instance)
+    enable_copyable_text(self)
 
 
