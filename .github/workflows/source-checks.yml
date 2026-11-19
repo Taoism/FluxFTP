@@ -9,11 +9,23 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
+      - name: Download pinned miniupnpc source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build/miniupnpc-source | Out-Null
+          gh release download v0.147.5 --repo Taoism/FluxFTP --pattern miniupnpc-2.3.5.tar.gz --dir build/miniupnpc-source
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the pinned miniupnpc source archive.' }
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
       - run: python -m pip install setuptools==84.2.1 wheel
-      - run: python scripts/build_miniupnpc_windows.py --install
+      - name: Initialize MSVC x64 build environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - run: python scripts/build_miniupnpc_windows.py --archive build/miniupnpc-source/miniupnpc-2.3.5.tar.gz --install
       - run: python -m pip install -r requirements-windows.txt --find-links build/miniupnpc-wheels
       - run: python -m pip install -e . --no-deps
       - run: python -m pip install pip-audit

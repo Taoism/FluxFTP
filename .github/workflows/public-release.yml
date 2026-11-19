@@ -34,6 +34,15 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || inputs.release_tag }}
 
+      - name: Download pinned miniupnpc source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build/miniupnpc-source | Out-Null
+          gh release download v0.147.5 --repo Taoism/FluxFTP --pattern miniupnpc-2.3.5.tar.gz --dir build/miniupnpc-source
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the pinned miniupnpc source archive.' }
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13.15'
@@ -66,7 +75,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'pip upgrade failed.' }
           python -m pip install setuptools==84.2.1 wheel
           if ($LASTEXITCODE -ne 0) { throw 'Native wheel build tools failed to install.' }
-          python scripts/build_miniupnpc_windows.py --install
+          python scripts/build_miniupnpc_windows.py --archive build/miniupnpc-source/miniupnpc-2.3.5.tar.gz --install
           if ($LASTEXITCODE -ne 0) { throw 'Patched Windows miniupnpc wheel build failed.' }
           python -m pip install -r requirements-windows.txt --find-links build/miniupnpc-wheels
           if ($LASTEXITCODE -ne 0) { throw 'Pinned dependency installation failed.' }
