@@ -30,7 +30,7 @@ mkdir -p "$PREFIX"
 tar -xzf "$WORK/$ARCHIVE" -C "$PREFIX" --strip-components=1
 
 PYTHON="$PREFIX/bin/python3.13"
-"$PYTHON" -c 'import ctypes, sqlite3, ssl, sys; assert sys.version_info[:3] == (3, 13, 18); print(sys.version); print("OpenSSL", ssl.OPENSSL_VERSION); print("SQLite", sqlite3.sqlite_version)'
+"$PYTHON" -c 'import ctypes, sqlite3, ssl, sys; assert sys.version_info[:3] == (3, 13, 18); print(sys.version); print("OpenSSL", ssl.OPENSSL_VERSION); print("SQLite", sqlite3.sqlite_version)' >&2
 LICENSE="$(find "$PREFIX" -maxdepth 4 -type f \( -name LICENSE -o -name LICENSE.txt \) -print -quit)"
 if [[ -z "$LICENSE" ]]; then
   echo 'Standalone Python distribution is missing its license file.' >&2
