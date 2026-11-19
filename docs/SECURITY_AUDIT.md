@@ -2,10 +2,10 @@
 
 Last reviewed: 2026-11-18
 
-This is an initial dependency and application security review for FluxFTP
-0.147.3. It covers the pinned Windows build environment, current Python
-advisories, Qt and miniupnpc vendor advisories, the bundled rclone backend and
-its Go modules, the updater, local control API, and FTP/FTPS/SFTP trust
+This is an initial dependency and application security review for the published
+FluxFTP 0.147.3 Windows package. It covers the pinned Windows build environment,
+current Python advisories, Qt and miniupnpc vendor advisories, the bundled
+rclone backend and its Go modules, the updater, local control API, and FTP/FTPS/SFTP trust
 handling. It does not replace continuous review of later releases or a full
 audit of every native library.
 
@@ -18,9 +18,11 @@ audit of every native library.
 | setuptools | 84.0.0 in Windows build tools | GHSA-xmj3-9gf7-h52w affects versions before 84.1.0 on Windows when installing a crafted legacy wheel. | Pinned to 84.2.1; pip-audit reports no known vulnerabilities in the pinned Python requirements after the update. |
 | rclone | 1.75.1-fluxftp.2 | GHSA-m97j-7x65-wh93 affects the Swift provider shipped by FluxFTP: redirects could forward credentials to another host or downgrade HTTPS to HTTP. GHSA-w33h-3qgq-8mv8 also affected stable self-update through 1.75.1. | Rebuilt as 1.76.0-fluxftp.3 from upstream commit `e982ff36668f5130d94b4f70409babb3d964df42`, retaining and adapting FluxFTP's OAuth/OneDrive patch. The release fixes both advisories. |
 | Go standard library | 1.26.10 build toolchain | GO-2026-6859 affected `net/http` through Go 1.26.10 and could crash an HTTP/1 server handling oversized request bodies concurrently. | Rebuilt the backend with Go 1.26.11. `govulncheck ./...` then reported no reachable vulnerabilities. |
-| OpenSSL 3.x / 4.x | 3.5.9 / 4.1.0 current releases | OpenSSL 3.6 is end of life; 3.5.9 is the current supported 3.x LTS release. OpenSSL 4.1.0 is the current 4.x release. The 2026-11-17 advisory identifies fixes in 3.5.10 and 4.1.1, which are not released yet as of this review. | Set the bundled Windows base to 3.5.9, keep both 3.5 LTS and 4.x update channels, and use 4.1.0 as the current default. Recheck the official release feeds before publishing; update to 3.5.10 / 4.1.1 once available. |
+| OpenSSL 3.x / 4.x | 3.5.9 / 4.1.0 in the published Windows package | Both remain the latest releases listed by OpenSSL. Eight Low-severity advisories published on 2026-11-10 and 2026-11-17 affect these versions: CVE-2026-107493 (PEM stack use-after-free), CVE-2026-124709, CVE-2026-88822, CVE-2026-95691 (QUIC issues), CVE-2026-35190 (Suite B TLS server key-share processing), CVE-2026-88823 and CVE-2026-95692 (AES-GCM-SIV edge cases), and CVE-2026-107496 (CMS encryption with a malformed EC group). Fixes are listed for 3.5.10 / 4.1.1, which are not yet listed as released. FluxFTP uses OpenSSL for client-side FTP/FTPS; source search found no direct use of the affected PEM or CMS APIs, QUIC APIs, AES-GCM-SIV, or Suite B server configuration. This reduces apparent reachability but does not establish that every bundled consumer avoids the affected calls. | Keep 3.5.9 and 4.1.0 as the latest published builds, track these advisories as open upstream exposure, and update both channels promptly when fixed releases are published. Recheck the official release page before packaging. |
 | SQLite | 3.50.4 in the previous Windows package | SQLite 3.50.4 predates fixes for multiple vulnerabilities listed in the SQLite CVE page, including issues fixed in 3.54.0. The app uses SQLite for transfer history and queue storage. | Updated the Windows build runtime to the official SQLite 3.54.1 x64 DLL after verifying archive SHA3-256 `c2d09c8babb9399277055c057c97a53f1ffd7c5f11d0c1f2118ffdfa39f2daa4` against SQLite's download page. The build now rejects older SQLite runtimes and records version and DLL SHA-256 in `runtime-version.json`. The upstream Windows DLL is unsigned. |
-| ICU | 72.1.0.4 from Windows System32 | Qt's Windows package uses the unversioned ICU exports. FluxFTP copies the Microsoft-signed ICU DLLs from the build host; their upstream ICU version is older than current ICU releases, and Windows servicing status was not independently established in this audit. | Keep the OS-provided, Microsoft-signed DLLs for Qt compatibility. Track their file versions/signatures in release inventory and validate them against Windows servicing updates; do not replace with an arbitrary upstream ICU build without Qt ABI validation. |
+| ICU | Not shipped in the published Windows package | The build staging tree can contain ICU DLLs, but `scripts/package_windows_release.py` removes `icu.dll` and `icuuc.dll` before creating the public archive. The installed 0.147.3 package also contains neither file. | No shipped ICU DLL finding for 0.147.3. Keep checking the final staged package after packaging changes. |
+| Qt optional modules | Qt 6.11.3 | The public Windows package strips Qt PDF and VirtualKeyboard DLLs/plugins. QML/Quick and other Qt modules remain in the package; this audit has not yet confirmed which are required at runtime. | Confirm the remaining Qt module set and remove unused modules in a separate packaging change with focused smoke coverage. |
+| Release notices and dependency inventory | Published Windows package 0.147.3 | The published `THIRD_PARTY_NOTICES.md` describes Qt 6.11.2 while the package contains Qt 6.11.3. Its `dependency-inventory.json` lists every installed builder-environment distribution, including test and build tools; it is a license inventory, not an SBOM of modules actually bundled by PyInstaller. | Source notices now identify Qt 6.11.3 and link its matching source archives. Newly built Windows inventories will identify their broad build-environment scope; Linux inventories will identify their Python runtime dependency scope and native-library limitation. These source fixes reach users with the next package. A complete shipped-component SBOM remains future work. |
 
 ## Other reviewed controls
 
@@ -43,9 +45,10 @@ audit of every native library.
 
 ## Verification and remaining work
 
-- `pip-audit -r requirements-windows.txt`: no known vulnerabilities after
-  updating setuptools and miniupnpc. This scan does not cover Qt's native
-  advisories, which were checked against upstream advisories separately.
+- `pip-audit -r requirements-windows.txt` reported no known vulnerabilities
+  when rerun with the locally built CPython 3.11 miniupnpc 2.3.5 wheel supplied
+  by direct file URL. The scan used the pinned requirements and current audit
+  service; it does not cover Qt's native advisories.
 - `tests/test_connection_controls.py`: 19 passed, including a regression test
   that confirms vulnerable parsers are never invoked and the patched version is
   accepted.
@@ -57,19 +60,19 @@ audit of every native library.
 - `govulncheck ./...` against the patched rclone v1.76.0 source built with Go
   1.26.11: no reachable vulnerabilities. Govulncheck reported one vulnerability
   in a required module but found no call path from the rclone code to it.
-- Build and smoke-test the next Windows release with the new Qt and miniupnpc
-  versions.
-- The preserved 0.147.2 Windows release is historical and still contains
-  miniupnpc 2.3.3, rclone 1.75.1 and SQLite 3.50.4. The refreshed
-  `FluxFTP-Test` package contains the patched dependencies listed above.
-- Rebuild every platform package for 0.147.3 from its tagged source before
-  publication; do not reuse historical binary artifacts.
-- Qt 6.11.3 package inventory includes Qt modules not directly imported by the
-  application (including QML/Quick, PDF, and VirtualKeyboard). Review whether
-  those modules are required before removing them; reducing the packaged module
-  set is a separate compatibility task.
-- Continue the broader application and native dependency audit, including
-  shipped Qt/native DLLs and platform-specific packaging.
+- The 0.147.3 Windows, Ubuntu, and Debian release builds have been published;
+  the Windows packaged-app smoke check and platform release workflows passed.
+- Historical 0.147.2 remains vulnerable to the findings recorded for that
+  release; it is superseded by 0.147.3 and is not the current installed build.
+- The published Windows archive and local installation were inspected. Their
+  Qt DLL inventory contains Core, Gui, Network, OpenGL, QML, Quick, Svg, and
+  Widgets; it does not contain ICU, PDF, or VirtualKeyboard DLLs.
+- A temporary Windows package was generated from the release staging tree and
+  inspected: its inventory scope label and Qt 6.11.3 source notices are correct.
+  The temporary archive was removed after validation. The already published
+  0.147.3 archive retains its original notice and inventory until a later release.
+- OpenSSL advisory reachability review is deferred for a later pass. Continue
+  auditing remaining native dependencies and other platform packages.
 
 ## Sources
 
@@ -78,6 +81,9 @@ audit of every native library.
 - [Official miniupnpc 2.3.5 source archive](https://miniupnp.tuxfamily.org/files/miniupnpc-2.3.5.tar.gz)
 - [Qt known vulnerabilities](https://wiki.qt.io/List_of_known_vulnerabilities_in_Qt_products)
 - [Qt 6.11.3 release](https://www.qt.io/blog/qt-6.11.3-released)
+- [OpenSSL downloads and current supported releases](https://www.openssl-library.org/source/)
+- [OpenSSL 3.5 vulnerabilities](https://www.openssl-library.org/news/vulnerabilities-3.5/)
+- [OpenSSL 4.1 vulnerabilities](https://www.openssl-library.org/news/vulnerabilities-4.1/)
 - [GHSA-xmj3-9gf7-h52w](https://github.com/advisories/GHSA-xmj3-9gf7-h52w)
 - [GHSA-m97j-7x65-wh93](https://github.com/rclone/rclone/security/advisories/GHSA-m97j-7x65-wh93)
 - [GHSA-w33h-3qgq-8mv8](https://github.com/rclone/rclone/security/advisories/GHSA-w33h-3qgq-8mv8)

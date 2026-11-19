@@ -12,7 +12,7 @@ Collected on 2026-11-18: 1145 test cases.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
 - The two 100,001-item queue stress tests are deferred by request; see the incremental plan in `TODO.md`.
 
-Current totals: 1140 passed, 0 failed, 3 skipped, 0 pending, 2 deferred.
+Current totals: 1141 passed, 0 failed, 2 skipped, 0 pending, 2 deferred.
 
 The RushApp compatibility batch passed all 6 focused tests on 2026-11-18, including the existing CLI/API test extended to exercise `rush-script`, plus parser safety, upload/download/FXP routing, path parameters, and the `rush_cmdline` forwarding entry point.
 
@@ -25,6 +25,10 @@ The security audit dependency update passed all 19 tests in `tests/test_connecti
 The Windows UPnP build batch verified and built miniupnpc 2.3.5 for CPython 3.13 x64 and the local CPython 3.11 test environment. Five upstream response-parser fixtures and all 19 `tests/test_connection_controls.py` cases passed with the patched wheel installed; `pip-audit -r requirements-windows.txt` reported no known vulnerabilities.
 
 The OpenSSL version policy batch passed 33 focused runtime/updater tests on 2026-11-18. Two environment-dependent checks were skipped: the live DLL negotiation test requires CPython 3.13, and the official 4.1 MSI fixture is not cached. The supported 3.x LTS baseline is now 3.5.9; updater selection ignores the end-of-life 3.6 line.
+
+The security audit follow-up on 2026-11-18 passed Python syntax compilation for both release packagers and generated a temporary Windows release archive. Inspection confirmed that the archive labels the dependency inventory as a build-environment license inventory (including test tools), points to Qt 6.11.3 notices, and no longer carries the stale 6.11.2 notice. The temporary archive was removed after inspection. `pip-audit` against the pinned Windows requirements with the locally built CPython 3.11 miniupnpc 2.3.5 wheel reported no known vulnerabilities.
+
+The 0.147.4 release-focused Windows batch passed 78 tests with one environment-dependent skip. The real OpenSSL 3.5.9 pair test had been skipped previously; now that its DLL fixture was available, it exposed a test setup error that claimed the actual 3.5.9 DLLs were 3.5.9. The fixture now claims 3.5.10, and the mismatch check plus the full focused batch passed.
 
 The SQLite 3.54.1 runtime update passed all 9 `tests/test_transfer_history.py` cases on 2026-11-18. The additional queue-buffer regression batch passed 8 cases and exposed 2 stale column assertions; both were corrected and rerun successfully. The packaged Windows smoke test passed with SQLite 3.54.1.
 
@@ -46,7 +50,7 @@ These failed in earlier batches. Their current release status appears in the fin
 |---|---|---|
 | `tests/test_features_0117.py::test_feature_dialog_previews` | Failed in batch 06; screenshot save failed | Passed (release validation 2026-11-16) |
 | `tests/test_mouse.py::test_log_actions_and_empty_tabs` | Failed in batch 11 | Passed (release validation 2026-11-16) |
-| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Failed in batch 12; Python 3.13 OpenSSL DLL unavailable in that runtime | Skipped (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Failed in batch 12; Python 3.13 OpenSSL DLL unavailable in that runtime | Passed (0.147.4 release-focused batch 2026-11-18; corrected the mismatching manifest fixture) |
 | `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Failed in batch 13 | Passed (release validation 2026-11-16) |
 | `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Failed in batch 13 | Passed (release validation 2026-11-16) |
 | `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Failed timing threshold in batch 14 (0.848 s vs 0.75 s); TODO records 1.813 s in another run; isolated reruns passed | Deferred by request (incremental queue stress plan) |
@@ -1032,7 +1036,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_openssl_updates.py::test_pending_update_is_not_downgraded` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_probe_failure_preserves_previous_runtime` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_ready_replaces_stale_pending_status` | Passed (OpenSSL branch update 2026-11-18) |
-| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Skipped (OpenSSL branch update 2026-11-18) |
+| `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Passed (0.147.4 release-focused batch 2026-11-18) |
 | `tests/test_openssl_updates.py::test_rejected_runtime_cannot_be_reactivated` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_successful_desktop_handoff_does_not_launch_second_window` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_successful_pair_is_published_only_after_probe` | Passed (OpenSSL branch update 2026-11-18) |

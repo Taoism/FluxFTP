@@ -64,7 +64,12 @@ def main():
         inventory.append(dict(name=package, version=distribution.version,
             license=distribution.metadata.get('License-Expression') or distribution.metadata.get('License', ''),
             notices=copied))
-    (stage / 'dependency-inventory.json').write_text(json.dumps(inventory, indent=2) + '\n', encoding='utf-8')
+    dependency_inventory = {
+        'scope': 'Build environment license inventory; includes installed build and test tools and is not a runtime SBOM.',
+        'distributions': inventory,
+    }
+    (stage / 'dependency-inventory.json').write_text(
+        json.dumps(dependency_inventory, indent=2) + '\n', encoding='utf-8')
     (stage / 'START_HERE.txt').write_text(
         'FluxFTP ' + __version__ + ' for Windows x64\n\n'
         'Extract this entire ZIP to a writable folder and run FluxFTP.exe.\n'

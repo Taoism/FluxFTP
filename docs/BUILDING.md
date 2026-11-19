@@ -25,9 +25,9 @@ source revision with its FluxFTP OAuth/OneDrive patch, runs the focused rclone
 tests, packages the GUI with PyInstaller and writes a `.tar.gz` plus
 `SHA256SUMS.txt` under `dist/`. Go bootstraps the Go version required by the
 pinned rclone source, so the build needs network access. The archive contains
-the native rclone backend, runtime provenance, dependency inventory, license
-notices, documentation and per-file checksums. It does not contain saved
-accounts or credentials.
+the native rclone backend, runtime provenance, Python dependency license
+inventory, license notices, documentation and per-file checksums. It does not
+contain saved accounts or credentials.
 
 To verify the archive on Debian 13:
 

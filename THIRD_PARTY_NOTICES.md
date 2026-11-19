@@ -39,7 +39,7 @@ data. No FTP Rush screenshots, archives or reference assets are included.
 
 ## Windows binary release
 
-The downloadable Windows package uses Qt/PySide6/Shiboken 6.11.2 under LGPLv3.
+The downloadable Windows package uses Qt/PySide6/Shiboken 6.11.3 under LGPLv3.
 Copyright The Qt Company Ltd. and contributors. Copies of LGPLv3 and GPLv3 are
 included under `licenses/`. The shared libraries remain separate under `_internal`;
 users may replace compatible libraries or rebuild FluxFTP with modified libraries.
@@ -48,8 +48,8 @@ permitted. The original FluxFTP application remains MIT-licensed.
 
 Corresponding unmodified library source is available at no charge:
 
-- Qt 6.11.2: https://download.qt.io/archive/qt/6.11/6.11.2/single/qt-everywhere-src-6.11.2.tar.xz
-- PySide6/Shiboken 6.11.2: https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/pyside-setup-everywhere-src-6.11.2.tar.xz
+- Qt 6.11.3: https://download.qt.io/archive/qt/6.11/6.11.3/single/qt-everywhere-src-6.11.3.tar.xz
+- PySide6/Shiboken 6.11.3: https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.3-src/pyside-setup-everywhere-src-6.11.3.tar.xz
 - Build instructions: https://doc.qt.io/qtforpython-6/building_from_source/index.html
 
 The unused PDF image plugin and virtual-keyboard plugin/libraries are excluded.

@@ -80,8 +80,12 @@ def copy_dependency_notices(stage):
                 distribution.metadata.get('License', ''),
             'notices': copied,
         })
+    dependency_inventory = {
+        'scope': 'Python runtime dependency license inventory; does not enumerate native libraries or all bundled files.',
+        'distributions': inventory,
+    }
     (stage / 'dependency-inventory.json').write_text(
-        json.dumps(inventory, indent=2) + '\n', encoding='utf-8')
+        json.dumps(dependency_inventory, indent=2) + '\n', encoding='utf-8')
 
 
 def remove_unused_qt_components(bundle):

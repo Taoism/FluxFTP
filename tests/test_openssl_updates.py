@@ -202,7 +202,7 @@ def test_real_windows_pair_loads_and_negotiates_verified_tls(tmp_path):
     runtime.probe(directory)
     # A claimed version that does not match the actual DLLs must be rejected.
     manifest = runtime.read_json(directory / 'manifest.json')
-    manifest['version'] = '3.5.9'
+    manifest['version'] = '3.5.10'
     runtime.write_json(directory / 'manifest.json', manifest)
     with pytest.raises(RuntimeError, match='runtime check failed'):
         runtime.probe(directory)

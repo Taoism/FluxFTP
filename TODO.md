@@ -16,8 +16,11 @@ remaining companion requirements are combined here as well.
   and digest checks. The 2026-11-18 audit updates PySide6 and setuptools, adds a
   pip-audit CI check, builds patched miniupnpc 2.3.5 Windows wheels, and updates
   the bundled rclone to v1.76.0 built with Go 1.26.11; govulncheck is clean for
-  reachable vulnerabilities. See `docs/SECURITY_AUDIT.md`. Continue the broader
-  dependency and native-library audit.
+  reachable vulnerabilities. The refreshed pip-audit scan found no known Python
+  dependency vulnerabilities; release notices now match Qt 6.11.3 and the
+  generated dependency inventories describe their scope. See
+  `docs/SECURITY_AUDIT.md`. Continue the broader dependency and native-library
+  audit; OpenSSL advisory follow-up is deferred.
 
 ### Platform builds and release
 
@@ -306,12 +309,11 @@ remaining companion requirements are combined here as well.
   projects, including selection, safe import boundaries, preview, rollback
   provenance, and failure recovery. Mocked API/archive and deployment regression
   tests pass locally; project access and tokens are needed for live runs.
-- [ ] Run packaged GUI smoke checks for each Linux release artifact and validate
-  the automated Windows release workflow on a release tag. Rebuilt Windows
-  0.132.0 startup/shutdown passed with OpenSSL 3.5.8; Linux release artifacts
-  now include the Ubuntu 24.04/Debian 13 package, whose offscreen GUI smoke and
-  rclone checks pass on Debian 13.7. Fedora 45 packaging and a tagged Windows
-  release workflow remain pending.
+- [x] Run packaged GUI smoke checks for each Linux release artifact and validate
+  the automated Windows release workflow on a release tag. The 0.147.3
+  release workflow built and smoke-checked the Ubuntu package, built and
+  install-checked the Debian package, and passed its tagged Windows release
+  checks. Fedora 45 packaging remains pending.
 - [ ] Continue real-network active FTP, protected-FXP, and UPnP interoperability
   checks; record server, proxy/router path, and cleanup results.
 
