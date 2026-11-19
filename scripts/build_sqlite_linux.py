@@ -38,9 +38,10 @@ def main():
         help='PyInstaller bundle containing FluxFTP and _internal')
     args = parser.parse_args()
     bundle = args.bundle.resolve()
-    target = bundle / '_internal' / 'libsqlite3.so.0'
-    if not target.is_file():
-        parser.error(f'PyInstaller did not bundle the expected SQLite library: {target}')
+    internal = bundle / '_internal'
+    if not internal.is_dir():
+        parser.error(f'PyInstaller bundle is missing its internal library directory: {internal}')
+    target = internal / 'libsqlite3.so.0'
 
     with tempfile.TemporaryDirectory(prefix='fluxftp-sqlite-') as temporary:
         work = Path(temporary)
@@ -78,7 +79,7 @@ def main():
         'library_sha256': sha256(target),
         'build_options': ['--enable-shared', '--disable-static'],
     }
-    (bundle / '_internal' / 'sqlite-provenance.json').write_text(
+    (internal / 'sqlite-provenance.json').write_text(
         json.dumps(provenance, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(provenance, indent=2))
 
