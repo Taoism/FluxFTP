@@ -22,8 +22,11 @@ remaining companion requirements are combined here as well.
   call path; source packagers now prune the unused copies. The Linux release
   build now compiles SQLite 3.54.1 from the official source archive, verifies
   its hash, and records SQLite provenance; extracted portable and Debian package
-  smoke checks passed. The published 0.147.4 Linux packages remain affected
-  until replaced. Windows and Linux release builds now use locally extracted,
+  smoke checks passed. FluxFTP 0.147.5 is now published for Windows, Ubuntu
+  and Debian; the Linux bundles include verified SQLite 3.54.1 and omit the
+  unused Qt PDF/VirtualKeyboard copies. The installed Windows build uses local
+  CPython 3.13.18, OpenSSL 4.1.0 by default, and OpenSSL 3.5.9 as fallback.
+  Windows and Linux release builds now use locally extracted,
   checksum-pinned CPython 3.13.18 runtimes without changing system Python or
   PATH. The Windows runtime is verified with OpenSSL 3.5.9 and SQLite 3.54.1.
   Complete the native-library inventory, track the fixed Qt
