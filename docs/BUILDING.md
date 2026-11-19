@@ -12,22 +12,31 @@ Install the build prerequisites on Ubuntu 24.04:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-venv python3-pip python3-dev build-essential \
-  pkg-config git golang-go binutils libxcb-cursor0 libxkbcommon-x11-0 \
+sudo apt install build-essential curl pkg-config git golang-go \
+  binutils libxcb-cursor0 libxkbcommon-x11-0 \
   libxcb-xinerama0 libxcb-icccm4 libxcb-keysyms1 libxcb-image0 \
   libxcb-render-util0 libxcb-randr0 libxcb-shape0 libxcb-xfixes0 \
   libgl1 libegl1 libdbus-1-3
 bash scripts/build_linux_release.sh
 ```
 
-The script creates an isolated Python environment, builds the pinned rclone
+The script downloads the CPython 3.13.18 x86_64 GNU/Linux install-only runtime
+from Astral's immutable python-build-standalone 20261110 release, verifies its
+SHA-256, and extracts it under `runtime/linux-python-3.13.18-20261110/`. That
+local copy does not modify the system Python, PATH or environment variables.
+The release build creates its virtual environment from this interpreter and
+PyInstaller uses it for the bundled app. The script then builds the pinned rclone
 source revision with its FluxFTP OAuth/OneDrive patch, runs the focused rclone
-tests, packages the GUI with PyInstaller and writes a `.tar.gz` plus
-`SHA256SUMS.txt` under `dist/`. Go bootstraps the Go version required by the
-pinned rclone source, so the build needs network access. The archive contains
-the native rclone backend, runtime provenance, Python dependency license
-inventory, license notices, documentation and per-file checksums. It does not
-contain saved accounts or credentials.
+tests, packages the GUI with PyInstaller, and compiles SQLite 3.54.1 from the
+official `sqlite-autoconf-3540100.tar.gz` source archive. The SQLite source
+SHA3-256 is checked before building; the staged shared library version and
+SHA-256 are recorded in `_internal/sqlite-provenance.json` and checked again by
+the release packager. Go bootstraps the Go version required by the pinned
+rclone source, so the build needs network access. The archive contains the
+native rclone backend, SQLite provenance, Python dependency license inventory,
+license notices, documentation and per-file checksums. The Python inventory
+does not enumerate all bundled native libraries. The archive does not contain
+saved accounts or credentials.
 
 To verify the archive on Debian 13:
 
@@ -151,32 +160,34 @@ build and does not update the published installation.
 
 ## Maintained release builder
 
-`build_windows.py` is retained as the release recipe. It intentionally requires
-Python 3.13.15 / OpenSSL 3.5.9 as its build interpreter, a verified patched rclone
-backend and a validated CPython/OpenSSL 4.x adapter under `runtime/ssl4-adapter`.
+`build_windows.py` is retained as the release recipe. It requires the local
+CPython 3.13.18 runtime under `runtime/windows-python-3.13.18-20261110/`, with
+OpenSSL 3.5.9 and SQLite 3.54.1, a verified patched rclone backend and a validated
+CPython/OpenSSL 4.x adapter under `runtime/ssl4-adapter`.
 The application selects the latest stable OpenSSL 4.x by default and retains the
 latest supported OpenSSL 3.5 LTS release as its fallback. Those binary inputs are not
 present in this repository, so it is not the fresh-checkout build command.
 `release_tools.py` contains separate native packaging/signing helpers. Signing
 identities, certificates and private keys are never stored in this repository.
 
-Before building in that environment, install the pinned Windows dependencies
-and patched UPnP wheel into the same Python 3.13.15 environment:
+Set up the local runtime and isolated build environment with:
 
 ```powershell
-.\<python-3.13.15-env>\Scripts\python.exe -m pip install setuptools==84.2.1 wheel
-.\<python-3.13.15-env>\Scripts\python.exe scripts/build_miniupnpc_windows.py --install
-.\<python-3.13.15-env>\Scripts\python.exe -m pip install -r requirements-windows.txt --find-links build/miniupnpc-wheels
+.\scripts\setup_windows_release_env.ps1
 ```
 
-For a reusable package from the maintained runtime, pass `--test-build` to
+The setup script downloads the immutable CPython 3.13.18 Windows runtime and
+SQLite 3.54.1 archive, verifies their hashes, and installs the pinned build
+dependencies into that local runtime. It does not install Python or update
+system environment variables. For a reusable package,
+pass `--test-build` to
 `build_windows.py`. It writes `dist/FluxFTP-Test`, retains the latest stable OpenSSL
 4.x as the FTP/FTPS default and the latest supported OpenSSL 3.5 LTS as fallback, and replaces the
 previous test package only after the new package passes its runtime and checksum
 checks:
 
 ```powershell
-.\<python-3.13.15-env>\Scripts\python.exe build_windows.py --test-build
+.\runtime\windows-python-3.13.18-20261110\python.exe build_windows.py --test-build
 ```
 
 Before a public binary release, complete package smoke tests, dependency/license

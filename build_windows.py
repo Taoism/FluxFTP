@@ -1,4 +1,4 @@
-"""Build Windows packages using Python 3.13.15 / OpenSSL 3.5.9 and the OpenSSL 4.x adapter.
+"""Build Windows packages using local Python 3.13.18 / OpenSSL 3.5.9 and the OpenSSL 4.x adapter.
 
 Run with the maintained x64 builder environment. Use --test-build to replace the
 reusable dist/FluxFTP-Test package after a successful build.
@@ -17,6 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 RUNTIME_ROOT = Path(os.environ.get('FLUXFTP_RUNTIME_ROOT', ROOT / 'runtime')).resolve()
+PYTHON_RUNTIME = (ROOT / 'runtime' / 'windows-python-3.13.18-20261110').resolve()
 
 
 def main():
@@ -32,8 +33,10 @@ def main():
     expected_base = '.'.join(map(str, BASE_VERSION))
     if sqlite3.sqlite_version_info < (3, 54, 1):
         raise SystemExit(f"Expected SQLite 3.54.1 or newer; got {sqlite3.sqlite_version}")
-    if platform.python_version() != "3.13.15" or not ssl.OPENSSL_VERSION.startswith(f"OpenSSL {expected_base} "):
-        raise SystemExit(f"Expected Python 3.13.15 / OpenSSL {expected_base}; got {sys.version} / {ssl.OPENSSL_VERSION}")
+    if sys.base_prefix != str(PYTHON_RUNTIME):
+        raise SystemExit(f"Use the local Python runtime at {PYTHON_RUNTIME}; got {sys.base_prefix}")
+    if platform.python_version() != "3.13.18" or not ssl.OPENSSL_VERSION.startswith(f"OpenSSL {expected_base} "):
+        raise SystemExit(f"Expected Python 3.13.18 / OpenSSL {expected_base}; got {sys.version} / {ssl.OPENSSL_VERSION}")
     adapter = validate_pair(RUNTIME_ROOT / 'ssl4-adapter')
     if not adapter['version'].startswith('4.1.'):
         raise SystemExit(f"Expected OpenSSL 4.1.x adapter; got {adapter['version']}")
@@ -85,7 +88,7 @@ def main():
     for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'requirements-windows.txt'):
         shutil.copy2(ROOT / name, staged / name)
     shutil.copytree(ROOT / 'licenses', staged / 'licenses', dirs_exist_ok=True)
-    shutil.copy2(RUNTIME_ROOT / 'python-3.13.15' / 'LICENSE.txt', staged / 'licenses' / 'Python-LICENSE.txt')
+    shutil.copy2(PYTHON_RUNTIME / 'LICENSE.txt', staged / 'licenses' / 'Python-LICENSE.txt')
     site_packages = Path(sys.prefix) / 'Lib' / 'site-packages'
     distribution_licenses = staged / 'licenses' / 'python-distributions'
     for metadata in site_packages.glob('*.dist-info'):
@@ -101,16 +104,16 @@ def main():
         shutil.copyfile(system32 / name, staged / '_internal' / name)
     # Qt's OpenSSL backend loads the x64-suffixed DLL names dynamically. PyInstaller
     # can otherwise collect an unsigned OpenSSL copy from the builder's System32.
-    python_dlls = RUNTIME_ROOT / 'python-3.13.15' / 'DLLs'
-    for source_name, bundled_name in (
-        ('libcrypto-3.dll', 'libcrypto-3-x64.dll'),
-        ('libssl-3.dll', 'libssl-3-x64.dll'),
+    python_dlls = PYTHON_RUNTIME / 'DLLs'
+    for source_name, bundled_names in (
+        ('libcrypto-3-x64.dll', ('libcrypto-3.dll', 'libcrypto-3-x64.dll')),
+        ('libssl-3-x64.dll', ('libssl-3.dll', 'libssl-3-x64.dll')),
     ):
         source = python_dlls / source_name
-        shutil.copyfile(source, staged / '_internal' / bundled_name)
-        # Windows searches the executable directory before System32. Keep the
-        # Qt aliases beside FluxFTP.exe so the system OpenSSL cannot win lookup.
-        shutil.copyfile(source, staged / bundled_name)
+        for bundled_name in bundled_names:
+            shutil.copyfile(source, staged / '_internal' / bundled_name)
+            # Keep the Qt aliases beside FluxFTP.exe so System32 cannot win lookup.
+            shutil.copyfile(source, staged / bundled_name)
     # Check the actual bundled DLLs, independently of the Python used above.
     import ctypes
     crypto = ctypes.CDLL(str(staged / "_internal" / "libcrypto-3.dll"))

@@ -14,6 +14,8 @@ import tarfile
 import tempfile
 import tomllib
 
+from qt_package_prune import remove_unused_qt_components
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -88,21 +90,6 @@ def copy_dependency_notices(stage):
         json.dumps(dependency_inventory, indent=2) + '\n', encoding='utf-8')
 
 
-def remove_unused_qt_components(bundle):
-    # These optional Qt components are not imported by FluxFTP. Excluding them
-    # avoids distributing unnecessary PDF and virtual-keyboard plugins.
-    for relative in (
-        '_internal/PySide6/Qt/lib/libQt6Pdf.so.6',
-        '_internal/PySide6/Qt/lib/libQt6VirtualKeyboard.so.6',
-        '_internal/PySide6/Qt/lib/libQt6VirtualKeyboardQml.so.6',
-        '_internal/PySide6/Qt/plugins/imageformats/libqpdf.so',
-        '_internal/PySide6/Qt/plugins/platforminputcontexts/libqtvirtualkeyboardplugin.so',
-    ):
-        path = bundle / relative
-        if path.exists():
-            path.unlink()
-
-
 def glibc_symbol_floor(bundle):
     readelf = shutil.which('readelf')
     if not readelf:
@@ -157,13 +144,21 @@ def main():
             shutil.copyfile(ROOT / relative, stage / relative)
         shutil.copytree(ROOT / 'docs', stage / 'docs', dirs_exist_ok=True)
         shutil.copytree(ROOT / 'licenses', stage / 'licenses', dirs_exist_ok=True)
-        python_license = Path('/usr/share/doc/python3.12/copyright')
+        python_license = source / '_internal' / 'Python-License.txt'
         if not python_license.is_file():
-            raise RuntimeError(f'Python license file is missing: {python_license}')
+            raise RuntimeError('Bundled CPython license file is missing from the app bundle.')
         shutil.copyfile(python_license, stage / 'licenses' / 'Python.txt')
         copy_dependency_notices(stage)
 
         backend_provenance = json.loads((stage / '_internal' / 'cloud_tools' / 'provenance.json').read_text('utf-8'))
+        sqlite_provenance_path = stage / '_internal' / 'sqlite-provenance.json'
+        if not sqlite_provenance_path.is_file():
+            raise RuntimeError('Verified SQLite provenance is missing from the Linux bundle.')
+        sqlite_provenance = json.loads(sqlite_provenance_path.read_text('utf-8'))
+        sqlite_library = stage / '_internal' / 'libsqlite3.so.0'
+        if sqlite_provenance.get('version') != '3.54.1' or \
+                sqlite_provenance.get('library_sha256') != sha256(sqlite_library):
+            raise RuntimeError('Staged SQLite version or checksum does not match its provenance.')
         glibc_floor = glibc_symbol_floor(stage)
         (stage / 'START_HERE.txt').write_text(
             f'FluxFTP {version} for Linux x86_64\n\n'
@@ -188,6 +183,7 @@ def main():
             'signed': False,
             'source_sha256': source_manifest(),
             'rclone': backend_provenance,
+            'sqlite': sqlite_provenance,
         }
         (stage / 'release-manifest.json').write_text(
             json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

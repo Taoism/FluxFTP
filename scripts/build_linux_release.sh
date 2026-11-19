@@ -13,7 +13,8 @@ if [[ "$(uname -m)" != x86_64 ]]; then
   exit 1
 fi
 
-python3 -m venv .venv-linux-build
+LOCAL_PYTHON="$(bash scripts/build_local_python_linux.sh)"
+"$LOCAL_PYTHON/bin/python3.13" -m venv --clear .venv-linux-build
 PYTHON="$ROOT/.venv-linux-build/bin/python"
 "$PYTHON" -m pip install --upgrade pip
 "$PYTHON" -m pip install -e .
@@ -24,6 +25,9 @@ BACKEND="$ROOT/runtime/rclone/rclone"
 BACKEND_SHA256="$(sha256sum "$BACKEND" | cut -d ' ' -f 1)"
 "$PYTHON" release_tools.py package-native --backend "$BACKEND" --sha256 "$BACKEND_SHA256"
 VERSION="$("$PYTHON" -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+cp "$LOCAL_PYTHON/LICENSE.txt" "$ROOT/dist/FluxFTP-$VERSION-linux-x86_64/_internal/Python-License.txt"
+"$PYTHON" scripts/build_sqlite_linux.py --bundle \
+  "$ROOT/dist/FluxFTP-$VERSION-linux-x86_64"
 "$PYTHON" scripts/package_linux_release.py --bundle \
   "$ROOT/dist/FluxFTP-$VERSION-linux-x86_64"
 mv "$ROOT/dist/SHA256SUMS.txt" "$ROOT/dist/SHA256SUMS-linux-ubuntu24.04.txt"

@@ -15,12 +15,20 @@ remaining companion requirements are combined here as well.
   digest check before installation; Debian staging also uses a private directory
   and digest checks. The 2026-11-18 audit updates PySide6 and setuptools, adds a
   pip-audit CI check, builds patched miniupnpc 2.3.5 Windows wheels, and updates
-  the bundled rclone to v1.76.0 built with Go 1.26.11; govulncheck is clean for
-  reachable vulnerabilities. The refreshed pip-audit scan found no known Python
-  dependency vulnerabilities; release notices now match Qt 6.11.3 and the
-  generated dependency inventories describe their scope. See
-  `docs/SECURITY_AUDIT.md`. Continue the broader dependency and native-library
-  audit; OpenSSL advisory follow-up is deferred.
+  bundled rclone to v1.76.0 built with Go 1.26.11; govulncheck is clean for
+  reachable vulnerabilities. The Python dependency scan found no known
+  vulnerabilities. The 0.147.4 package audit found unused Qt PDF/VirtualKeyboard
+  copies in Linux packages and Qt Network CVE-2026-116337 with no direct FluxFTP
+  call path; source packagers now prune the unused copies. The Linux release
+  build now compiles SQLite 3.54.1 from the official source archive, verifies
+  its hash, and records SQLite provenance; extracted portable and Debian package
+  smoke checks passed. The published 0.147.4 Linux packages remain affected
+  until replaced. Windows and Linux release builds now use locally extracted,
+  checksum-pinned CPython 3.13.18 runtimes without changing system Python or
+  PATH. The Windows runtime is verified with OpenSSL 3.5.9 and SQLite 3.54.1.
+  Complete the native-library inventory, track the fixed Qt
+  release, and review Qt optional module necessity. OpenSSL advisory follow-up
+  remains deferred. See `docs/SECURITY_AUDIT.md`.
 
 ### Platform builds and release
 

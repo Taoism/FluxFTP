@@ -1,11 +1,15 @@
 """Build and inspect a native Debian package from a tested FluxFTP bundle."""
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import tomllib
 import os
+
+from qt_package_prune import remove_unused_qt_components
 
 ROOT = Path(__file__).resolve().parents[1]
 MAINTAINER = 'Taoism <366831+Taoism@users.noreply.github.com>'
@@ -23,6 +27,14 @@ def run(*args):
     subprocess.run([str(arg) for arg in args], check=True)
 
 
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bundle', type=Path, required=True,
@@ -37,6 +49,14 @@ def main():
     bundle, output = args.bundle.resolve(), args.output.resolve()
     if not (bundle / 'FluxFTP').is_file() or not (bundle / '_internal').is_dir():
         parser.error('Bundle must contain FluxFTP and _internal.')
+    sqlite_provenance_path = bundle / '_internal' / 'sqlite-provenance.json'
+    if not sqlite_provenance_path.is_file():
+        parser.error('Bundle must contain verified SQLite 3.54.1 provenance.')
+    sqlite_provenance = json.loads(sqlite_provenance_path.read_text('utf-8'))
+    sqlite_library = bundle / '_internal' / 'libsqlite3.so.0'
+    if sqlite_provenance.get('version') != '3.54.1' or \
+            sqlite_provenance.get('library_sha256') != sha256(sqlite_library):
+        parser.error('Bundle SQLite version or checksum does not match its provenance.')
     output.mkdir(parents=True, exist_ok=True)
     version = tomllib.loads((ROOT / 'pyproject.toml').read_text('utf-8'))['project']['version']
     deb_version = version + '-1'
@@ -54,6 +74,7 @@ def main():
         control.mkdir(parents=True)
         opt.parent.mkdir(parents=True)
         shutil.copytree(bundle, opt)
+        remove_unused_qt_components(opt)
         for relative in ('FluxFTP', '_internal/cloud_tools/rclone'):
             executable = opt / relative
             executable.chmod(executable.stat().st_mode | 0o111)
