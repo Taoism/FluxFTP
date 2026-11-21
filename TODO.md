@@ -22,9 +22,11 @@ remaining companion requirements are combined here as well.
   call path; source packagers now prune the unused copies. The Linux release
   build now compiles SQLite 3.54.1 from the official source archive, verifies
   its hash, and records SQLite provenance; extracted portable and Debian package
-  smoke checks passed. FluxFTP 0.147.5 is now published for Windows, Ubuntu
-  and Debian; the Linux bundles include verified SQLite 3.54.1 and omit the
-  unused Qt PDF/VirtualKeyboard copies. The installed Windows build uses local
+  smoke checks passed. FluxFTP 0.147.5 is now superseded by the coordinated
+  0.148.0 release for Windows, Ubuntu and Debian; all package checksums were
+  verified. The 0.148.0 Windows package is installed locally, with 0.147.5
+  kept as a rollback copy. The Linux bundles include verified SQLite 3.54.1
+  and omit the unused Qt PDF/VirtualKeyboard copies. The installed Windows build uses local
   CPython 3.13.18, OpenSSL 4.1.0 by default, and OpenSSL 3.5.9 as fallback.
   Windows and Linux release builds now use locally extracted,
   checksum-pinned CPython 3.13.18 runtimes without changing system Python or
@@ -302,11 +304,13 @@ remaining companion requirements are combined here as well.
 - [x] Map queue capacity with incremental stress runs: used 5,000-file steps
   through 230,000 files. All sizes passed; stop here by decision (no failure
   found). Results are recorded in `tests.md`.
-- [ ] Resume the clean full desktop regression requested on 2026-11-19. The
-  run was interrupted at the user's request after the last reported 56% marker;
-  28 failures had appeared. No per-test checkpoint or JUnit report was saved,
-  so rerun from the beginning for a complete, attributable result. For ordinary
-  releases, reconcile `tests.md` with prior batch history and use focused batches.
+- [x] Resume the clean full desktop regression requested on 2026-11-19. The
+  current 1,116-test collection completed in 45 named batches of 25 (last batch
+  16); after correcting one stale Edit-menu expectation, the affected 25-test
+  batch passed. Three tests were skipped. The 11 failure markers from the
+  interrupted 2026-11-20 attempt remain unidentified because it produced no
+  per-test report. For ordinary releases, reconcile `tests.md` with prior
+  batch history and use focused batches.
 - [x] Add focused tests for the extracted startup composition in
   `window_initializer.py`, covering smoke-mode settings isolation, service
   initialization, and widget wiring.
@@ -325,10 +329,11 @@ remaining companion requirements are combined here as well.
   provenance, and failure recovery. Mocked API/archive and deployment regression
   tests pass locally; project access and tokens are needed for live runs.
 - [x] Run packaged GUI smoke checks for each Linux release artifact and validate
-  the automated Windows release workflow on a release tag. The 0.147.3
-  release workflow built and smoke-checked the Ubuntu package, built and
-  install-checked the Debian package, and passed its tagged Windows release
-  checks. Fedora 45 packaging remains pending.
+  the automated Windows release workflow on a release tag. The v0.148.0
+  workflow passed its Windows, Ubuntu, Debian and asset-publishing jobs; the
+  Ubuntu archive and Debian installer checksums were verified after download.
+  The locally installed Windows package passed startup, credential-vault and
+  F6 smoke checks. Fedora 45 packaging remains pending.
 - [ ] Continue real-network active FTP, protected-FXP, and UPnP interoperability
   checks; record server, proxy/router path, and cleanup results.
 

@@ -1506,3 +1506,17 @@ Packaged startup, credential-vault, and F6 shortcut smoke checks all exited 0.
 The public ZIP passed the packaging script's archive integrity check:
 `build/public-release/windows-0.148.0/FluxFTP-0.148.0-windows-x64.zip` (SHA-256
 `fb334204fcaf3b8f31301cbc0a70dec3bc811d9861b3826c7944a65939ff2d28`).
+
+The v0.148.0 tagged GitHub Actions release run `44875406604` completed
+successfully for Windows, Ubuntu, Debian, and asset publishing. The published
+Windows ZIP, Ubuntu portable archive, and Debian installer were downloaded;
+each package SHA-256 matched its corresponding published checksum file. The
+Windows package is installed at `D:\Program Files\FluxFTP`; its embedded
+version is 0.148.0 and its executable hash matches the verified package. The
+previous installation is preserved at `D:\Program Files\FluxFTP-backup-0.147.5`.
+
+| Published artifact | SHA-256 |
+|---|---|
+| `FluxFTP-0.148.0-windows-x64.zip` | `fb334204fcaf3b8f31301cbc0a70dec3bc811d9861b3826c7944a65939ff2d28` |
+| `FluxFTP-0.148.0-linux-x86_64-ubuntu24.04.tar.gz` | `61796dda96f2e696dd5623d8eed2ec4e6a6e3b287f8831e878b41f7d5a661c8a` |
+| `fluxftp_0.148.0-1_amd64.deb` | `fe0cd35714bb67b8695fa96d2141f836e50d4346065a3ed928eeac95d241a67d` |

@@ -29,7 +29,16 @@ checksums. The maintained Windows builder requires separately validated OpenSSL
 then attach its ZIP and `SHA256SUMS.txt` to the draft release before publishing.
 The release workflow verifies the attached Windows checksum and package tests.
 
-## Previous v0.132.0 release
+## Latest coordinated release: v0.148.0
+
+The v0.148.0 release contains the Windows x64 ZIP, Ubuntu 24.04-built portable
+archive and Debian 13 amd64 installer. The tagged GitHub Actions workflow
+passed all Windows, Ubuntu, Debian and asset-publishing jobs. All three
+published package checksums were verified after download. The Windows package
+passed startup, credential-vault and F6 shortcut smoke checks before local
+installation.
+
+## Historical v0.132.0 release
 
 The v0.132.0 release contains the Windows ZIP, Ubuntu/Debian portable archive,
 and Debian `.deb`, with a dedicated checksum for each platform asset. The About
