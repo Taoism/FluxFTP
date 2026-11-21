@@ -1,6 +1,6 @@
 # FluxFTP test status
 
-Collected on 2026-11-18: 1145 test cases.
+Collected on 2026-11-19: 1148 test cases.
 
 ## Test policy
 
@@ -10,15 +10,27 @@ Collected on 2026-11-18: 1145 test cases.
 - Run the full suite at major version transitions (for example, `0.x` to `1.0` or `1.x` to `2.0`) and for a major language rewrite (for example, Python to Rust).
 - Before a release, check every test's history. Mark unchanged tests with a previous pass successful for the release without rerunning them; run tests that have never run and record the result; rerun tests affected by code or coverage changes. A previous failure remains failed until a rerun passes.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
-- The two 100,001-item queue stress tests are deferred by request; see the incremental plan in `TODO.md`.
+- The two 100,001-item queue stress tests passed on 2026-11-19; the separate incremental capacity map remains open in `TODO.md`.
 
-Current totals: 1141 passed, 0 failed, 2 skipped, 0 pending, 2 deferred.
+Current totals: 1145 passed, 1 failed, 2 skipped, 0 pending, 0 deferred.
 
 The RushApp compatibility batch passed all 6 focused tests on 2026-11-18, including the existing CLI/API test extended to exercise `rush-script`, plus parser safety, upload/download/FXP routing, path parameters, and the `rush_cmdline` forwarding entry point.
 
 The panel/window layout persistence batch passed all 8 focused tests on 2026-11-18: dock/pane restoration, dock float/tab/hide behavior, docking reset and new-window restoration, floating geometry, and main/dialog geometry persistence.
 
-The Debian F6 follow-up passed its 2 focused Windows Qt regression tests on 2026-11-18. Global hotkeys now use application shortcut scope so F6 remains available while child widgets have focus. Packaged Debian runtime verification remains pending.
+The Debian debug/F6 batch passed 10 focused Windows Qt tests on 2026-11-19, including the Tools-menu logging flow, Qt warning capture, frozen `_ssl` fallback, and F6 from the queue, logs, and both panes. After the smoke-test shutdown path was corrected, a fresh 0.147.5 Debian package built on the updated Ubuntu bundle passed extracted GUI smoke, debug logging, and F6 shortcut checks on Debian 13 with Qt 6.11.3. The debug log recorded Debian 13, Python 3.13.18, OpenSSL 3.5.9, and one offscreen virtual 800×800 display. F6 uses application shortcut scope and has no monitor-detection dependency; the one-screen packaged test passed, though the original single-monitor report was not reproducible on an interactive GNOME/Wayland desktop here. SonarQube scan passed on 2026-11-19: quality gate OK, 0 new issues, 0 hotspots.
+
+The installed Windows icon check confirmed that `D:\Program Files\FluxFTP\fluxftp.exe` embeds a 32×32 icon that matches `fluxftp/assets/fluxftp.ico` pixel-for-pixel. The diagnostics UI extraction batch passed 10 focused tests across `tests/test_tools_menu.py`, `tests/test_diagnostics.py`, and `tests/test_window_initializer.py` on 2026-11-19.
+
+The deployment/transfer modularization batch split guarded deployment journal/rollback operations into `deployment_rollback.py` and recursive local/remote transfer-tree orchestration into `transfer_service.py`. The focused deployment/transfer batch passed 137 tests. The separate 100,001-item queue search/recovery/cancel regression passed with 7.30 s planning, 10.43 MiB incremental RSS, 1.47 s export, 3.77 s recovery, and 0.95 s cancellation. The import/export/recovery/folder-scan regression also passed; its largest measured GUI event-loop gap was 0.547 s. The broader exploratory batch also exposed one unrelated current workspace-mode assertion failure, recorded per test below. SonarQube Quality Gate: OK, 0 new issues and 0 hotspots.
+
+The automation engine modularization batch moved script schema validation, saved connection preparation, and step execution into `automation_scripts.py`; the focused `tests/test_automation.py` batch passed all 22 tests on 2026-11-19.
+
+The cloud backend modularization batch split provider/path/error utilities, encrypted account persistence and staged edits, and asynchronous backend job coordination into `cloud_registry.py`, `cloud_account_store.py`, and `cloud_jobs.py`. The focused cloud, account, Drive upload, and protocol-adapter batch passed 97 tests on 2026-11-19.
+
+The Preferences connection modularization batch extracted Ident, list mode, cloud/key manager, SSL, connection, data connection, keep-alive and proxy pages plus proxy-profile lifecycle helpers into `preferences_connection_pages.py`. The focused options, list-mode, Ident and SSL batch passed 23 tests on 2026-11-19.
+
+The Preferences display modularization batch extracted nine visual preference pages into `preferences_display_pages.py` and avoids duplicate theme/color refreshes when a changed combo selection emits both `currentTextChanged` and `textActivated`. Reselecting a preset still applies it. The 33-case focused batch passed after adjusting the reselect test to process the queued Qt event between change and reactivation; the new test checks both deduplication and same-preset reapplication. One initial failure exposed that missing event-loop step in the synthetic test; it and the new test both passed on focused rerun. SonarQube quality gate: OK, 0 new issues and 0 hotspots.
 
 The security audit dependency update passed all 19 tests in `tests/test_connection_controls.py` on 2026-11-18, including the new check that blocks discovery through vulnerable miniupnpc versions. PySide6 6.11.3 and setuptools 84.2.1 were installed in the test environment; `pip-audit -r requirements-windows.txt` reported no known vulnerabilities.
 
@@ -61,7 +73,7 @@ These failed in earlier batches. Their current release status appears in the fin
 | `tests/test_openssl_updates.py::test_real_windows_pair_loads_and_negotiates_verified_tls` | Failed in batch 12; Python 3.13 OpenSSL DLL unavailable in that runtime | Passed (0.147.4 release-focused batch 2026-11-18; corrected the mismatching manifest fixture) |
 | `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Failed in batch 13 | Passed (release validation 2026-11-16) |
 | `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Failed in batch 13 | Passed (release validation 2026-11-16) |
-| `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Failed timing threshold in batch 14 (0.848 s vs 0.75 s); TODO records 1.813 s in another run; isolated reruns passed | Deferred by request (incremental queue stress plan) |
+| `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Failed timing threshold in batch 14 (0.848 s vs 0.75 s); TODO records 1.813 s in another run; isolated reruns passed | Passed (deferred queue regression batch 2026-11-19; 100,001 items; max GUI event-loop gap 0.547 s) |
 | `tests/test_themes.py::test_legacy_dark_migration_and_compact_add_button` | Failed in batch 20 | Passed (release validation 2026-11-16) |
 | `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Failed in batch 20 | Passed (release validation 2026-11-16) |
 | `tests/test_ui.py::test_reference_style_shell_exposes_quick_connect_and_classic_work_areas` | Failed in batch 21 | Passed (release validation 2026-11-16) |
@@ -83,7 +95,7 @@ The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, cont
 | `tests/test_docking.py::test_floating_dock_geometry_is_saved_and_restored` | Passed (previous targeted batch; carried forward) |
 | `tests/test_folder_sizes.py::test_directory_size_column_shows_reported_bytes_immediately` | Passed (previous targeted batch; carried forward) |
 | `tests/test_folder_sizes.py::test_empty_directory_has_parent_row_that_navigates_up` | Passed (previous targeted batch; carried forward) |
-| `tests/test_layout.py::test_portrait_layout_and_site_local_order` | Passed (release validation 2026-11-16) |
+| `tests/test_layout.py::test_portrait_layout_and_site_local_order` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_queue.py::test_paused_queue_close_closes_even_when_save_fails` | Passed (previous targeted batch; carried forward) |
 | `tests/test_site_validation.py::test_new_site_defaults_nat_masquerade_off` | Passed (previous targeted batch; carried forward) |
 | `tests/test_app_updates.py::test_downloaded_archive_digest_is_rechecked_in_private_windows_staging` | Passed (release validation 2026-11-16) |
@@ -91,6 +103,8 @@ The archived [`nodeids.txt`](build/test-batches/nodeids.txt), dated Nov. 9, cont
 | `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_view_menu.py::test_function_key_commands_include_f6_options` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_tools_menu.py::test_tools_debug_logging_starts_and_exposes_log_path` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_debug_logging_supports_frozen_ssl_module_without_file_attribute` | Passed (Debian debug/F6 batch 2026-11-19) |
 | `tests/test_accessibility.py::test_read_only_text_and_static_labels_can_be_selected_and_copied` | Passed (copy/hotkey batch 2026-11-18) |
 | `tests/test_hotkeys.py::test_manager_lists_actions_scopes_and_searches` | Passed (copy/hotkey batch 2026-11-18) |
 | `tests/test_hotkeys.py::test_shortcuts_persist_clear_and_restore_factory_defaults` | Passed (copy/hotkey batch 2026-11-18) |
@@ -120,13 +134,14 @@ The following IDs were in the archived list but are no longer in today's collect
 - Two remaining historical failures in feature preview and real Windows TLS passed. Raw JUnit: `release-historical-failures-20261116.xml`.
 - The 100,000-file queue stress cases are not part of this release run; follow the incremental plan in `TODO.md`.
 - Copy/hotkey validation (2026-11-18): 10 focused accessibility and hotkey tests passed. Related menu regression batch ran 50 unique cases: 48 passed initially, 2 failed, then both passed on focused rerun.
+- Debian debug/F6 validation (2026-11-19): 10 focused tests passed. The freshly packaged Debian 13 executable passed GUI, debug-log, and F6 smoke checks; the Qt offscreen backend reported one 800×800 virtual screen.
 - F-key validation (2026-11-17): 11 passed. Pane-order regression batch:
   4 passed after restoring stable pane identity when both panes share a mode.
 - Release-focused workflow checks (2026-11-17): 77 passed, 1 skipped across
   Tools, layout, compare, OpenSSL, workspace, deployment, artifact, and cloud tests.
 - SonarQube quality gate (copy/hotkey change 2026-11-18): OK; zero new issues.
 
-## Queue, transfer, and retries (238 tests: 236 passed, 0 failed, 0 skipped, 0 pending, 2 deferred)
+## Queue, transfer, and retries (238 tests: 238 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -142,9 +157,9 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_folder_speed.py::test_rolling_speed_survives_file_gaps_then_decays` | Passed (archived batch 07; carried forward) |
 | `tests/test_folder_speed.py::test_streaming_folder_displays_cumulative_bytes_without_inventing_total` | Passed (archived batch 07; carried forward) |
 | `tests/test_folder_speed.py::test_streaming_worker_rate_spans_file_boundaries` | Passed (archived batch 07; carried forward) |
-| `tests/test_large_queue.py::test_large_nested_cloud_folder_plans_every_file` | Passed (archived batch 10; carried forward) |
-| `tests/test_large_queue.py::test_large_queue_roundtrip_preserves_order_and_paths` | Passed (archived batch 10; carried forward) |
-| `tests/test_large_queue.py::test_large_scan_remains_cancellable` | Passed (archived batch 10; carried forward) |
+| `tests/test_large_queue.py::test_large_nested_cloud_folder_plans_every_file` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_large_queue.py::test_large_queue_roundtrip_preserves_order_and_paths` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_large_queue.py::test_large_scan_remains_cancellable` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_marker_queue_cleanup.py::test_marker_waits_for_own_parent_and_preserves_other_rows[cancelled]` | Passed (archived batch 11; carried forward) |
 | `tests/test_marker_queue_cleanup.py::test_marker_waits_for_own_parent_and_preserves_other_rows[complete]` | Passed (archived batch 11; carried forward) |
 | `tests/test_marker_queue_cleanup.py::test_marker_waits_for_own_parent_and_preserves_other_rows[failed]` | Passed (archived batch 11; carried forward) |
@@ -155,13 +170,13 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_parallel_folders.py::test_folder_files_have_parallel_logins_and_queue_rows[True-False]` | Passed (archived batch 13; carried forward) |
 | `tests/test_parallel_folders.py::test_folder_files_have_parallel_logins_and_queue_rows[True-True]` | Passed (archived batch 13; carried forward) |
 | `tests/test_parallel_folders.py::test_same_destination_cannot_run_concurrently` | Passed (archived batch 13; carried forward) |
-| `tests/test_priority.py::test_pending_order_stable_and_respects_eligibility` | Passed (release validation 2026-11-16) |
-| `tests/test_priority.py::test_priority_masks_first_match_regex_and_empty_list` | Passed (release validation 2026-11-16) |
-| `tests/test_priority.py::test_priority_ui_edit_move_delete_persistence` | Passed (release validation 2026-11-16) |
-| `tests/test_priority.py::test_recursive_sibling_order` | Passed (release validation 2026-11-16) |
-| `tests/test_priority.py::test_reorder_affects_waiting_queue` | Passed (release validation 2026-11-16) |
-| `tests/test_queue_100k.py::test_100001_files_bounded_ui_search_recovery_cancel` | Not run — deferred by request (incremental queue stress plan) |
-| `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Not run — deferred by request (incremental queue stress plan) |
+| `tests/test_priority.py::test_pending_order_stable_and_respects_eligibility` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_priority.py::test_priority_masks_first_match_regex_and_empty_list` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_priority.py::test_priority_ui_edit_move_delete_persistence` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_priority.py::test_recursive_sibling_order` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_priority.py::test_reorder_affects_waiting_queue` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_queue_100k.py::test_100001_files_bounded_ui_search_recovery_cancel` | Passed (deferred queue regression batch 2026-11-19; 100,001 items) |
+| `tests/test_queue_async.py::test_100001_import_export_recovery_and_expansion_remain_responsive` | Passed (deferred queue regression batch 2026-11-19; 100,001 items) |
 | `tests/test_queue_async.py::test_atomic_cancel_keeps_previous_file_and_removes_temporary` | Passed (archived batch 14; carried forward) |
 | `tests/test_queue_async.py::test_cancelled_gui_install_rolls_back_partial_rows` | Passed (archived batch 14; carried forward) |
 | `tests/test_queue_async.py::test_cancelled_startup_retains_recovery_file` | Passed (archived batch 14; carried forward) |
@@ -291,47 +306,47 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_transfer_history.py::test_retry_does_not_duplicate_unloaded_buffered_file` | Passed (archived batch 20; carried forward) |
 | `tests/test_transfer_history.py::test_selected_cancel_and_auto_rename_history` | Passed (archived batch 20; carried forward) |
 | `tests/test_transfer_history.py::test_success_is_recorded_before_queue_cleanup_and_no_passwords` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_ascii_upload_download_and_auto_binary[False]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_ascii_upload_download_and_auto_binary[True]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Close FluxFTP-False]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Close FluxFTP-True]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Disconnect-False]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Idle-False]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_disk_reserve_preserves_existing_destination` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_force_active_buffers_and_local_limit_bypass` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_recursive_filename_conversion_and_collision` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_resume_rolls_back_corrupted_partial_tail` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_shared_speed_budget_and_cancellation` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_stall_retries_are_bounded` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_timeout_reconnects_and_resumes_partial` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_options.py::test_transfer_controls_and_queue_limits` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_ascii_required_and_cloud_atomic_fail_before_transfer` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[cancel]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[rename]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[transfer]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_hash_failure_never_promotes` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_upload_preserves_target_until_rename[False]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_atomic_upload_preserves_target_until_rename[True]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_conflict_changed_or_cancelled_preserves_destination` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Overwrite]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Rename]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Resume]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Skip]` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_crc_policy_survives_verified_download[False]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_crc_policy_survives_verified_download[True]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[False-False]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[False-True]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[True-False]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[True-True]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_local_hash_resume_detects_bad_prefix_and_preserves_target` | Passed (archived batch 20; carried forward) |
-| `tests/test_transfer_reliability.py::test_sftp_atomic_replace_with_hash[True]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_sftp_real_hash_and_unsupported_atomic_rename` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_unsupported_ftp_hash_is_explicit[Required]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_unsupported_ftp_hash_is_explicit[When available]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_verified_download_keeps_original_on_corruption[False]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_verified_download_keeps_original_on_corruption[True]` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_verified_fxp` | Passed (archived batch 21; carried forward) |
-| `tests/test_transfer_reliability.py::test_verified_resume_retires_unchanged_partial` | Passed (archived batch 21; carried forward) |
+| `tests/test_transfer_options.py::test_ascii_upload_download_and_auto_binary[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_ascii_upload_download_and_auto_binary[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Close FluxFTP-False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Close FluxFTP-True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Disconnect-False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_completion_action_waits_for_successful_queue[Idle-False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_disk_reserve_preserves_existing_destination` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_force_active_buffers_and_local_limit_bypass` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_recursive_filename_conversion_and_collision` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_resume_rolls_back_corrupted_partial_tail` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_shared_speed_budget_and_cancellation` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_stall_retries_are_bounded` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_timeout_reconnects_and_resumes_partial` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_options.py::test_transfer_controls_and_queue_limits` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_ascii_required_and_cloud_atomic_fail_before_transfer` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[cancel]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[rename]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_failure_preserves_target[transfer]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_hash_failure_never_promotes` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_upload_preserves_target_until_rename[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_atomic_upload_preserves_target_until_rename[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_conflict_changed_or_cancelled_preserves_destination` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Overwrite]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Rename]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Resume]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_conflict_decisions[Auto Skip]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_crc_policy_survives_verified_download[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_crc_policy_survives_verified_download[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[False-False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[False-True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[True-False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_ftp_hash_checks_complete_reply_range[True-True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_local_hash_resume_detects_bad_prefix_and_preserves_target` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_sftp_atomic_replace_with_hash[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_sftp_real_hash_and_unsupported_atomic_rename` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_unsupported_ftp_hash_is_explicit[Required]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_unsupported_ftp_hash_is_explicit[When available]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_verified_download_keeps_original_on_corruption[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_verified_download_keeps_original_on_corruption[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_verified_fxp` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_transfer_reliability.py::test_verified_resume_retires_unchanged_partial` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_upload_delete_fixes.py::test_ascii_refusal_retries_binary_byte_for_byte[m3u-False]` | Passed (archived batch 21; carried forward) |
 | `tests/test_upload_delete_fixes.py::test_ascii_refusal_retries_binary_byte_for_byte[m3u-True]` | Passed (archived batch 21; carried forward) |
 | `tests/test_upload_delete_fixes.py::test_ascii_refusal_retries_binary_byte_for_byte[nfo-False]` | Passed (archived batch 21; carried forward) |
@@ -373,69 +388,69 @@ The following IDs were in the archived list but are no longer in today's collect
 
 | Test | Status |
 |---|---|
-| `tests/test_cloud_account_test.py::test_cancel_and_close_wait_for_worker` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_account_test.py::test_invalid_path_and_failure_retry` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_account_test.py::test_real_backend_listing_without_remote_mutations` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_account_test.py::test_saved_path_and_read_only_request` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_account_test.py::test_test_button_routes_selected_account` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_edit.py::test_cancel_edit_discards_draft[False]` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_edit.py::test_cancel_edit_discards_draft[True]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_edit.py::test_cloud_accounts_edit_button_and_double_click` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_edit.py::test_edit_existing_s3_preserves_identity_and_credentials` | Passed (archived batch 02; carried forward) |
-| `tests/test_cloud_edit.py::test_edit_refuses_to_overwrite_concurrent_change` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_edit.py::test_edit_restores_both_files_if_commit_fails` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_edit.py::test_edit_waits_for_other_operations_before_commit` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: address already in use-another application]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: An attempt was made to access a socket in a way forbidden by its access permissions.-excluded port range]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: Only one usage of each socket address is normally permitted.-another application]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: permission denied-excluded port range]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[unknown listener failure-port availability]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_expired_authorization_explains_reconnect_without_disclosing_response` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_onedrive_listener_error_names_its_dedicated_port` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_public_s3_root_error_explains_bucket_path` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_errors.py::test_unknown_backend_errors_stay_private` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[bad_state]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[cancel]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[success]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[darwin-rclone]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[linux-rclone]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[win32-rclone.exe]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud_streaming.py::test_cloud_folder_uploads_before_descending_and_recovers_unvisited_files` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_streaming.py::test_noncloud_folder_keeps_buffered_planning` | Passed (release validation 2026-11-16) |
-| `tests/test_cloud_streaming.py::test_pause_returns_cloud_folder_to_recoverable_queue_before_next_file` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_wizard_recovery.py::test_custom_drive_id_is_preserved` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_wizard_recovery.py::test_drive_choices_show_labels_and_send_ids` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[-backend-result]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[Failed to query root for drive SECRET: https://example/?token=SECRET-]` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud_wizard_recovery.py::test_setup_error_never_echoes_provider_secrets` | Passed (archived batch 03; carried forward) |
-| `tests/test_cloud.py::test_active_cancellation_preserves_existing_download` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_backend_providers_encryption_and_auth` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_cloud_conflicts_recursive_relay_and_cancel` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_cloud_failed_download_preserves_target` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_cloud_file_roundtrip_and_mutations` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_cloud_site_selection_and_command_guards` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_ftp_cloud_relay[from-cloud]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_ftp_cloud_relay[to-cloud]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_guided_webdav_setup` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive for Business-business]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive-personal]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft SharePoint Online-documentLibrary]` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_plaintext_cloud_config_is_refused` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_real_webdav` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_restored_cloud_jobs_do_not_prompt_for_ftp_password` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_setup_question_protocol` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_cloud.py::test_sftp_cloud_relay` | Passed (rclone v1.76.0 security batch 2026-11-18) |
-| `tests/test_drive_upload.py::test_cancel_and_resume_new_instance` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[expired]` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[source]` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_empty_file_uses_backend_and_verifies_hash` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_finished_file_must_match_checksum` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_fresh_overwrite_is_honored_but_expired_completed_session_is_not_duplicated` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_process_exit_after_ack_recovers_from_durable_session` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_restart_queries_server_after_lost_ack_and_keeps_session_encrypted` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_same_size_skip_requires_matching_hash` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_service_account_jwt_is_signed_and_scope_preserved` | Passed (archived batch 06; carried forward) |
-| `tests/test_drive_upload.py::test_session_address_cannot_receive_token_on_other_host` | Passed (archived batch 06; carried forward) |
+| `tests/test_cloud_account_test.py::test_cancel_and_close_wait_for_worker` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_account_test.py::test_invalid_path_and_failure_retry` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_account_test.py::test_real_backend_listing_without_remote_mutations` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_account_test.py::test_saved_path_and_read_only_request` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_account_test.py::test_test_button_routes_selected_account` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_cancel_edit_discards_draft[False]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_cancel_edit_discards_draft[True]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_cloud_accounts_edit_button_and_double_click` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_edit_existing_s3_preserves_identity_and_credentials` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_edit_refuses_to_overwrite_concurrent_change` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_edit_restores_both_files_if_commit_fails` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_edit.py::test_edit_waits_for_other_operations_before_commit` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: address already in use-another application]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: An attempt was made to access a socket in a way forbidden by its access permissions.-excluded port range]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: Only one usage of each socket address is normally permitted.-another application]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[bind: permission denied-excluded port range]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_authorization_listener_errors_are_actionable_and_private[unknown listener failure-port availability]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_expired_authorization_explains_reconnect_without_disclosing_response` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_onedrive_listener_error_names_its_dedicated_port` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_public_s3_root_error_explains_bucket_path` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_errors.py::test_unknown_backend_errors_stay_private` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[bad_state]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[cancel]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_oauth_port.py::test_onedrive_uses_separate_port_for_listener_and_exchange[success]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[darwin-rclone]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[linux-rclone]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_platform_path.py::test_packaged_cloud_backend_native_name[win32-rclone.exe]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_streaming.py::test_cloud_folder_uploads_before_descending_and_recovers_unvisited_files` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_cloud_streaming.py::test_noncloud_folder_keeps_buffered_planning` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_cloud_streaming.py::test_pause_returns_cloud_folder_to_recoverable_queue_before_next_file` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_cloud_wizard_recovery.py::test_custom_drive_id_is_preserved` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_wizard_recovery.py::test_drive_choices_show_labels_and_send_ids` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[-backend-result]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_wizard_recovery.py::test_optionless_response_continues_without_stale_answer[Failed to query root for drive SECRET: https://example/?token=SECRET-]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud_wizard_recovery.py::test_setup_error_never_echoes_provider_secrets` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_active_cancellation_preserves_existing_download` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_backend_providers_encryption_and_auth` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_cloud_conflicts_recursive_relay_and_cancel` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_cloud_failed_download_preserves_target` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_cloud_file_roundtrip_and_mutations` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_cloud_site_selection_and_command_guards` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_ftp_cloud_relay[from-cloud]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_ftp_cloud_relay[to-cloud]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_guided_webdav_setup` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive for Business-business]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft OneDrive-personal]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_microsoft_account_classification[Microsoft SharePoint Online-documentLibrary]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_plaintext_cloud_config_is_refused` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_real_webdav` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_restored_cloud_jobs_do_not_prompt_for_ftp_password` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_setup_question_protocol` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_cloud.py::test_sftp_cloud_relay` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_cancel_and_resume_new_instance` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[expired]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_changed_source_or_expired_session_restarts[source]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_empty_file_uses_backend_and_verifies_hash` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_finished_file_must_match_checksum` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_fresh_overwrite_is_honored_but_expired_completed_session_is_not_duplicated` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_process_exit_after_ack_recovers_from_durable_session` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_restart_queries_server_after_lost_ack_and_keeps_session_encrypted` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_same_size_skip_requires_matching_hash` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_service_account_jwt_is_signed_and_scope_preserved` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_drive_upload.py::test_session_address_cannot_receive_token_on_other_host` | Passed (cloud backend modularization batch 2026-11-19) |
 | `tests/test_github_artifacts.py::test_deployment_editor_exposes_github_actions_import` | Passed (archived batch 08; carried forward) |
 | `tests/test_github_artifacts.py::test_github_artifact_download_uses_safe_shared_extractor` | Passed (archived batch 08; carried forward) |
 | `tests/test_github_artifacts.py::test_github_provenance_is_validated_and_bound_to_run_url` | Passed (archived batch 08; carried forward) |
@@ -568,40 +583,40 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_legacy_replies.py::test_non_utf8_banner_and_login_reply[FTPS \xb7 AUTH TLS]` | Passed (archived batch 10; carried forward) |
 | `tests/test_legacy_replies.py::test_non_utf8_banner_and_login_reply[FTPS \xb7 Implicit TLS]` | Passed (archived batch 10; carried forward) |
 | `tests/test_legacy_replies.py::test_reply_reader_restored_after_utf8_login` | Passed (archived batch 10; carried forward) |
-| `tests/test_protocol_adapter.py::test_adapter_delegates_operations_and_preserves_cancellation_and_errors` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_all_cloud_providers_and_local_capabilities` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTP \xb7 Unencrypted-True-True-True-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 AUTH SSL-True-True-True-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 AUTH TLS-True-True-True-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 Implicit TLS-True-True-True-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[Google Drive-False-False-False-no native checksum exposed]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[SCP \xb7 SSH-True-False-False-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[SFTP \xb7 SSH-True-True-False-server extension required]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[unregistered backend-False-False-False-no native checksum exposed]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_conflict_dialog_does_not_offer_unsupported_download_resume[Google Drive]` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_conflict_dialog_does_not_offer_unsupported_download_resume[SCP \xb7 SSH]` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_contract_import_does_not_load_desktop_or_qt` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_direct_fxp_rejects_ssh_before_network_activity` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_local_routes_and_queued_holds_are_distinct_from_payload_pause` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_native_hashes_require_negotiation_and_cloud_rejects_native_digest` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-Amazon S3]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-FTP \xb7 Unencrypted]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-SCP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-SFTP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-Amazon S3]` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-FTP \xb7 Unencrypted]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-SCP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-SFTP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-Amazon S3]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-FTP \xb7 Unencrypted]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-SCP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-SFTP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-Amazon S3]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-FTP \xb7 Unencrypted]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-SCP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-SFTP \xb7 SSH]` | Passed (archived batch 13; carried forward) |
-| `tests/test_protocol_adapter.py::test_scp_resume_is_rejected_before_backend_writes` | Passed (archived batch 14; carried forward) |
-| `tests/test_protocol_adapter.py::test_sftp_hash_candidates_do_not_claim_extension_is_available` | Passed (archived batch 14; carried forward) |
+| `tests/test_protocol_adapter.py::test_adapter_delegates_operations_and_preserves_cancellation_and_errors` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_all_cloud_providers_and_local_capabilities` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTP \xb7 Unencrypted-True-True-True-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 AUTH SSL-True-True-True-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 AUTH TLS-True-True-True-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[FTPS \xb7 Implicit TLS-True-True-True-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[Google Drive-False-False-False-no native checksum exposed]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[SCP \xb7 SSH-True-False-False-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[SFTP \xb7 SSH-True-True-False-server extension required]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_backend_capabilities_are_conservative[unregistered backend-False-False-False-no native checksum exposed]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_conflict_dialog_does_not_offer_unsupported_download_resume[Google Drive]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_conflict_dialog_does_not_offer_unsupported_download_resume[SCP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_contract_import_does_not_load_desktop_or_qt` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_direct_fxp_rejects_ssh_before_network_activity` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_local_routes_and_queued_holds_are_distinct_from_payload_pause` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_native_hashes_require_negotiation_and_cloud_rejects_native_digest` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-Amazon S3]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-FTP \xb7 Unencrypted]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-SCP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[FTPS \xb7 AUTH TLS-SFTP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-Amazon S3]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-FTP \xb7 Unencrypted]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-SCP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[Google Drive-SFTP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-Amazon S3]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-FTP \xb7 Unencrypted]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-SCP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SCP \xb7 SSH-SFTP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-Amazon S3]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-FTP \xb7 Unencrypted]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-SCP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_route_and_pause_depend_on_both_endpoints[SFTP \xb7 SSH-SFTP \xb7 SSH]` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_scp_resume_is_rejected_before_backend_writes` | Passed (cloud backend modularization batch 2026-11-19) |
+| `tests/test_protocol_adapter.py::test_sftp_hash_candidates_do_not_claim_extension_is_available` | Passed (cloud backend modularization batch 2026-11-19) |
 | `tests/test_recent_reconnect.py::test_recent_requires_success_and_reconnect_targets_clicked_pane` | Passed (archived batch 16; carried forward) |
 | `tests/test_recent_reconnect.py::test_relaunch_hides_reconnect_but_retains_recent_history` | Passed (archived batch 16; carried forward) |
 | `tests/test_recent_reconnect.py::test_unsaved_reconnect_keeps_profile_and_prompts_without_saving_password` | Passed (archived batch 16; carried forward) |
@@ -614,25 +629,25 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_remote_marker_listing.py::test_remote_names_still_reject_unsafe_components[nested\\file]` | Passed (archived batch 16; carried forward) |
 | `tests/test_remote_marker_listing.py::test_upload_conflict_listing_with_server_marker[False]` | Passed (archived batch 16; carried forward) |
 | `tests/test_remote_marker_listing.py::test_upload_conflict_listing_with_server_marker[True]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_fxp_cancel_interrupts_blocked_control_read[False]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_fxp_cancel_interrupts_blocked_control_read[True]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_fxp_destination_waits_for_source_before_preliminary_reply` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[False-CPSV]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[False-SSCN]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[True-CPSV]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[True-SSCN]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_relay_atomic_upload_preserves_conflict_path[True]` | Passed (archived batch 17; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ftp-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-ftp]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-tls]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[False-tls-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ftp-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-ftp]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-tls]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_bytes_resume[True-tls-ssh]` | Passed (archived batch 16; carried forward) |
-| `tests/test_remote_routes.py::test_relay_cancel_before_upload` | Passed (archived batch 16; carried forward) |
+| `tests/test_remote_routes.py::test_fxp_cancel_interrupts_blocked_control_read[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_fxp_cancel_interrupts_blocked_control_read[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_fxp_destination_waits_for_source_before_preliminary_reply` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[False-CPSV]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[False-SSCN]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[True-CPSV]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_protected_fxp_real_bytes[True-SSCN]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_atomic_upload_preserves_conflict_path[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ftp-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-ftp]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[False-ssh-tls]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[False-tls-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ftp-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-ftp]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[True-ssh-tls]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_bytes_resume[True-tls-ssh]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_remote_routes.py::test_relay_cancel_before_upload` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_remote_shortcuts.py::test_local_plus_file_remains_a_file` | Passed (archived batch 17; carried forward) |
 | `tests/test_remote_shortcuts.py::test_remote_shortcut_double_click_uses_exact_server_name[False]` | Passed (archived batch 17; carried forward) |
 | `tests/test_remote_shortcuts.py::test_remote_shortcut_double_click_uses_exact_server_name[True]` | Passed (archived batch 17; carried forward) |
@@ -732,37 +747,37 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_compare_menu.py::test_compare_options_and_selection` | Passed (archived batch 03; carried forward) |
 | `tests/test_compare_menu.py::test_listing_change_clears_comparison_and_filter_survives` | Passed (archived batch 03; carried forward) |
 | `tests/test_compare_menu.py::test_pane_filter_toolbar_can_expand` | Passed (previous targeted batch; carried forward) |
-| `tests/test_complete_markers.py::test_only_empty_remote_complete_markers_are_skipped[False]` | Passed (archived batch 03; carried forward) |
-| `tests/test_complete_markers.py::test_only_empty_remote_complete_markers_are_skipped[True]` | Passed (archived batch 03; carried forward) |
+| `tests/test_complete_markers.py::test_only_empty_remote_complete_markers_are_skipped[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_complete_markers.py::test_only_empty_remote_complete_markers_are_skipped[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_copy_names_context.py::test_copy_names_for_one_folder_and_select_all_in_right_pane` | Passed (archived batch 05; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Overwrite]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Rename]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Resume]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Skip]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Overwrite]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Rename]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Resume]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Skip]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Overwrite]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Rename]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Resume]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Skip]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_cancelled_resume_never_overwrites` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[larger-download]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[larger-fxp]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[larger-upload]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[same-download]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[same-fxp]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[same-upload]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[smaller-download]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[smaller-fxp]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_default_conflict_actions[smaller-upload]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_download_resume_failure_preserves_target` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_file_exists_ui_persistence` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_recursive_conflicts_do_not_reapply_manual_skip` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_rejected_upload_resume_overwrite_fallback[False]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_rejected_upload_resume_overwrite_fallback[True]` | Passed (archived batch 07; carried forward) |
-| `tests/test_file_exists.py::test_rename_avoids_existing_numbered_file_and_partial` | Passed (archived batch 07; carried forward) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Overwrite]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Rename]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Resume]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[ab-Auto Skip]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Overwrite]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Rename]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Resume]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdef-Auto Skip]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Overwrite]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Rename]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Resume]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_all_actions_for_all_size_relations[abcdefghi-Auto Skip]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_cancelled_resume_never_overwrites` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[larger-download]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[larger-fxp]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[larger-upload]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[same-download]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[same-fxp]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[same-upload]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[smaller-download]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[smaller-fxp]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_default_conflict_actions[smaller-upload]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_download_resume_failure_preserves_target` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_file_exists_ui_persistence` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_recursive_conflicts_do_not_reapply_manual_skip` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_rejected_upload_resume_overwrite_fallback[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_rejected_upload_resume_overwrite_fallback[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_file_exists.py::test_rename_avoids_existing_numbered_file_and_partial` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_folder_activation.py::test_double_click_enters_real_remote_folder[False]` | Passed (archived batch 07; carried forward) |
 | `tests/test_folder_activation.py::test_double_click_enters_real_remote_folder[True]` | Passed (archived batch 07; carried forward) |
 | `tests/test_folder_activation.py::test_folder_double_click_busy_guard` | Passed (archived batch 07; carried forward) |
@@ -787,13 +802,29 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_folder_sync.py::test_stale_preview_fails_without_overwriting[type]` | Passed (archived batch 08; carried forward) |
 | `tests/test_folder_sync.py::test_two_way_conflicts_are_explicit_and_recovery_keeps_guard` | Passed (archived batch 08; carried forward) |
 | `tests/test_folder_sync.py::test_unknown_newer_conflict_stays_skipped_and_changed_pane_cannot_queue` | Passed (archived batch 08; carried forward) |
-| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Custom-LIST -a-LIST -a]` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Custom-LIST -al-LIST -al]` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Default (LIST)-LIST -al-LIST]` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Show Hidden Files-LIST -al-LIST -a]` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_list_options_layout_and_persistence` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_list_parser_preserves_names_and_detects_links` | Passed (archived batch 10; carried forward) |
-| `tests/test_list_mode.py::test_mlsd_preferred_and_selected_list_used_when_unavailable` | Passed (archived batch 10; carried forward) |
+| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Custom-LIST -a-LIST -a]` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Custom-LIST -al-LIST -al]` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Default (LIST)-LIST -al-LIST]` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_list_commands_against_ftp_server[Show Hidden Files-LIST -al-LIST -a]` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_list_options_layout_and_persistence` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_list_parser_preserves_names_and_detects_links` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_list_mode.py::test_mlsd_preferred_and_selected_list_used_when_unavailable` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_active_ftp_uses_configured_local_ip_and_port_range` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_changing_data_folder_migrates_and_merges_saved_sites` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_connect_retries_only_during_connection_setup` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_connection_rejects_invalid_active_port_range` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_http_connect_proxy_tunnels_target_without_local_dns` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_passive_listing_fallback_retries_once_in_active_mode` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_proxy_forces_passive_mode_for_active_profile` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_proxy_password_is_saved_when_options_dialog_closes` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_proxy_password_is_written_only_to_encrypted_vault` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_proxy_password_save_failure_does_not_block_dialog_close` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_proxy_profiles_switch_and_encrypt_each_password` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_site_timezone_formats_utc_mlsd_timestamps` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_socks5_proxy_keeps_target_hostname_for_remote_dns` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_options.py::test_window_new_connection_uses_proxy_and_transport_settings` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_ui.py::test_ident_options_persist_and_control_listener` | Passed (Preferences connection modularization batch 2026-11-19) |
+| `tests/test_openssl_branches.py::test_ssl_options_page_and_switch_persistence` | Passed (Preferences connection modularization batch 2026-11-19) |
 | `tests/test_listing_performance.py::test_automatic_utf8_names_roundtrip` | Passed (archived batch 11; carried forward) |
 | `tests/test_listing_performance.py::test_directory_cache_bounded_by_entries` | Passed (archived batch 11; carried forward) |
 | `tests/test_listing_performance.py::test_encoding_selection[Automatic-211 End-cp1251]` | Passed (archived batch 10; carried forward) |
@@ -818,13 +849,13 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_sort.py::test_reference_defaults_and_independent_controls` | Passed (archived batch 19; carried forward) |
 | `tests/test_sort.py::test_separate_links_and_tie_order` | Passed (archived batch 19; carried forward) |
 
-## Workspace, layout, and accessibility (173 tests: 173 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Workspace, layout, and accessibility (175 tests: 175 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
 | `tests/test_accessibility.py::test_builtin_theme_text_contrast_and_focus_styles` | Passed (archived batch 01; carried forward) |
 | `tests/test_accessibility.py::test_logs_do_not_trap_tab_and_workspace_height_has_keyboard_control` | Passed (archived batch 01; carried forward) |
-| `tests/test_accessibility.py::test_options_pages_scroll_at_large_fonts_and_close_stays_visible` | Passed (archived batch 01; carried forward) |
+| `tests/test_accessibility.py::test_options_pages_scroll_at_large_fonts_and_close_stays_visible` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_accessibility.py::test_site_fields_follow_visual_keyboard_order_and_password_is_protected` | Passed (archived batch 01; carried forward) |
 | `tests/test_accessibility.py::test_read_only_text_and_static_labels_can_be_selected_and_copied` | Passed (copy/hotkey batch 2026-11-18) |
 | `tests/test_hotkeys.py::test_manager_lists_actions_scopes_and_searches` | Passed (copy/hotkey batch 2026-11-18) |
@@ -832,13 +863,13 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_hotkeys.py::test_conflicting_shortcuts_are_explained_and_not_applied` | Passed (copy/hotkey batch 2026-11-18) |
 | `tests/test_hotkeys.py::test_key_sequence_editor_can_clear_selected_shortcut` | Passed (copy/hotkey batch 2026-11-18) |
 | `tests/test_accessibility.py::test_visible_controls_have_screen_reader_names` | Passed (copy/hotkey follow-up 2026-11-18) |
-| `tests/test_colors.py::test_background_ftp_listings_keep_pane_identity_and_redact` | Passed (archived batch 03; carried forward) |
-| `tests/test_colors.py::test_defaults_and_independent_themes` | Passed (release validation 2026-11-16) |
-| `tests/test_colors.py::test_legacy_selection_and_invalid_colors_fall_back` | Passed (archived batch 03; carried forward) |
-| `tests/test_colors.py::test_log_categories_recolor_existing_text_and_background` | Passed (archived batch 03; carried forward) |
-| `tests/test_colors.py::test_picker_cancel_and_custom_color` | Passed (archived batch 03; carried forward) |
-| `tests/test_colors.py::test_queue_persists_pane_identity_and_accepts_old_descriptions` | Passed (archived batch 03; carried forward) |
-| `tests/test_colors.py::test_trace_listener_receives_only_redacted_messages` | Passed (archived batch 03; carried forward) |
+| `tests/test_colors.py::test_background_ftp_listings_keep_pane_identity_and_redact` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_defaults_and_independent_themes` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_legacy_selection_and_invalid_colors_fall_back` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_log_categories_recolor_existing_text_and_background` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_picker_cancel_and_custom_color` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_queue_persists_pane_identity_and_accepts_old_descriptions` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_colors.py::test_trace_listener_receives_only_redacted_messages` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_column_sizing.py::test_double_clicking_a_column_divider_fits_that_column` | Passed (archived batch 03; carried forward) |
 | `tests/test_column_sizing.py::test_every_pane_and_queue_divider_is_draggable` | Passed (archived batch 03; carried forward) |
 | `tests/test_column_sizing.py::test_fit_and_manual_width_survive_refresh_and_window_resize` | Passed (release validation 2026-11-16) |
@@ -863,15 +894,15 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_conflict_dialog.py::test_serialized_choices_apply_remaining_and_cancel` | Passed (archived batch 04; carried forward) |
 | `tests/test_conflict_dialog.py::test_sync_preserves_approved_conflict_and_hashes` | Passed (archived batch 04; carried forward) |
 | `tests/test_conflict_dialog.py::test_verification_failure_is_not_automatically_retried` | Passed (archived batch 04; carried forward) |
-| `tests/test_display.py::test_completion_flash_honors_option` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_controls_defaults_and_persistence` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_download_listing_timer_keeps_selection` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_folder_icons_turn_dark_and_refresh_with_theme` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_indicator_separator_and_selection` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_local_hidden_address_size_and_focus` | Passed (release validation 2026-11-16) |
-| `tests/test_display.py::test_sites_grouping_recent_and_menu_visibility` | Passed (release validation 2026-11-16) |
-| `tests/test_display.py::test_toolbar_disconnect_targets_its_own_pane` | Passed (archived batch 05; carried forward) |
-| `tests/test_display.py::test_tray_visibility_animation_and_safe_fallback` | Passed (archived batch 05; carried forward) |
+| `tests/test_display.py::test_completion_flash_honors_option` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_controls_defaults_and_persistence` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_download_listing_timer_keeps_selection` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_folder_icons_turn_dark_and_refresh_with_theme` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_indicator_separator_and_selection` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_local_hidden_address_size_and_focus` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_sites_grouping_recent_and_menu_visibility` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_toolbar_disconnect_targets_its_own_pane` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_display.py::test_tray_visibility_animation_and_safe_fallback` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_docking.py::test_dock_float_tab_hide_restore_and_return_preserves_widgets` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_docking.py::test_docking_lock_and_reset` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_docking.py::test_docking_restores_in_new_window` | Passed (panel/window persistence batch 2026-11-18) |
@@ -907,13 +938,13 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_header_rows.py::test_bad_saved_order_and_external_drop_rejected` | Passed (archived batch 09; carried forward) |
 | `tests/test_header_rows.py::test_move_drop_keyboard_and_restore` | Passed (archived batch 09; carried forward) |
 | `tests/test_header_rows.py::test_shared_rows_height_and_icons_persist` | Passed (archived batch 09; carried forward) |
-| `tests/test_layout.py::test_captions_and_tab_style` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_defaults_and_persistence` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_native_tabs_and_dropdown_navigation` | Passed (layout fixes batch 2026-11-18; native tab bar remains hidden while workspace navigation is shown) |
-| `tests/test_layout.py::test_pane_tabs_busy_guard_and_large_icons` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_portrait_layout_and_site_local_order` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_toolbar_paint_and_panel_buffer_switches` | Passed (release validation 2026-11-16) |
-| `tests/test_layout.py::test_wrapping_selection_closing_width_and_bottom` | Passed (release validation 2026-11-16) |
+| `tests/test_layout.py::test_captions_and_tab_style` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_defaults_and_persistence` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_native_tabs_and_dropdown_navigation` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_pane_tabs_busy_guard_and_large_icons` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_portrait_layout_and_site_local_order` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_toolbar_paint_and_panel_buffer_switches` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_layout.py::test_wrapping_selection_closing_width_and_bottom` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_local_drive_menu.py::test_drive_failure_leaves_recent_paths_usable` | Passed (archived batch 11; carried forward) |
 | `tests/test_local_drive_menu.py::test_drive_list_refreshes_and_does_not_leak_into_remote_menu` | Passed (archived batch 11; carried forward) |
 | `tests/test_local_drive_menu.py::test_local_dropdown_drives_folders_and_navigation` | Passed (archived batch 11; carried forward) |
@@ -939,35 +970,21 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_mouse.py::test_text_viewer_rejects_binary_invalid_and_large[binary]` | Passed (archived batch 12; carried forward) |
 | `tests/test_mouse.py::test_text_viewer_rejects_binary_invalid_and_large[invalid_utf8]` | Passed (archived batch 12; carried forward) |
 | `tests/test_mouse.py::test_text_viewer_rejects_binary_invalid_and_large[oversize]` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_active_ftp_uses_configured_local_ip_and_port_range` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_changing_data_folder_migrates_and_merges_saved_sites` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_connect_retries_only_during_connection_setup` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_connection_rejects_invalid_active_port_range` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_http_connect_proxy_tunnels_target_without_local_dns` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_passive_listing_fallback_retries_once_in_active_mode` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_proxy_forces_passive_mode_for_active_profile` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_proxy_password_is_saved_when_options_dialog_closes` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_proxy_password_is_written_only_to_encrypted_vault` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_proxy_password_save_failure_does_not_block_dialog_close` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_proxy_profiles_switch_and_encrypt_each_password` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_site_timezone_formats_utc_mlsd_timestamps` | Passed (archived batch 13; carried forward) |
-| `tests/test_options.py::test_socks5_proxy_keeps_target_hostname_for_remote_dns` | Passed (archived batch 12; carried forward) |
-| `tests/test_options.py::test_window_new_connection_uses_proxy_and_transport_settings` | Passed (archived batch 13; carried forward) |
 | `tests/test_panel_positions.py::test_moved_panels_and_panes_restore_on_next_window` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_panel_positions.py::test_panel_order_collapsed_log_and_bad_state` | Passed (panel/window persistence batch 2026-11-18) |
-| `tests/test_tools_menu.py::test_tools_reference_and_shortcuts` | Passed (menu regression batch 2026-11-18) |
-| `tests/test_tools_menu.py::test_tools_shared_preferences_and_layout` | Passed (menu regression batch 2026-11-18) |
+| `tests/test_tools_menu.py::test_tools_reference_and_shortcuts` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_tools_menu.py::test_tools_shared_preferences_and_layout` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_tools_menu.py::test_tools_debug_logging_starts_and_exposes_log_path` | Passed (diagnostics UI extraction batch 2026-11-19) |
 | `tests/test_ui.py::test_compare_folder_contents_marks_unique_and_different_files` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_connect_saved_site_prompts_and_remembers_password` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_drop_rejects_urls_and_honors_cancel` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_editing_site_protocol_keeps_custom_port` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_external_drop_copies_folders_and_preserves_sources` | Passed (archived batch 21; carried forward) |
-| `tests/test_ui.py::test_ident_options_persist_and_control_listener` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_import_selection_and_failed_save` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_new_site_protocol_defaults_respect_custom_port` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_pane_sites_menu_lists_imported_site_manager_profiles` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_pane_toolbar_exposes_ftp_rush_actions_and_shortcuts` | Passed (archived batch 21; carried forward) |
-| `tests/test_ui.py::test_preferences_navigation_and_connection_settings` | Passed (archived batch 21; carried forward) |
+| `tests/test_ui.py::test_preferences_navigation_and_connection_settings` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_ui.py::test_quick_connect_protocol_change_preserves_custom_port` | Passed (archived batch 21; carried forward) |
 | `tests/test_ui.py::test_reference_style_shell_exposes_quick_connect_and_classic_work_areas` | Passed (release validation 2026-11-16) |
 | `tests/test_ui.py::test_single_connection_site_serializes_queue_jobs` | Passed (archived batch 21; carried forward) |
@@ -1031,7 +1048,6 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_openssl_branches.py::test_package_checksum_failure_preserves_selection` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_branches.py::test_real_official_package_extract_probe_and_select` | Skipped (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_branches.py::test_release_filter_and_checksums` | Passed (OpenSSL branch update 2026-11-18) |
-| `tests/test_openssl_branches.py::test_ssl_options_page_and_switch_persistence` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_annotated_tag_is_resolved_and_invalid_commit_rejected` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_corrupt_download_does_not_change_selection` | Passed (OpenSSL branch update 2026-11-18) |
 | `tests/test_openssl_updates.py::test_daily_checks_and_no_downgrade` | Passed (OpenSSL branch update 2026-11-18) |
@@ -1083,7 +1099,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_app_updates.py::test_windows_updater_directory_acl_blocks_inheritance_and_low_integrity_writes` | Passed (release validation 2026-11-16) |
 | `tests/test_app_updates.py::test_available_release_downloads_automatically_without_prompt` | Passed (updater workflow batch 2026-11-16) |
 | `tests/test_app_updates.py::test_verified_download_is_held_until_application_exit` | Passed (updater workflow batch 2026-11-16) |
-## Automation, diagnostics, and CLI (48 tests: 48 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Automation, diagnostics, and CLI (49 tests: 49 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -1102,60 +1118,61 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_associations.py::test_remote_binary_edit_upload_conflict_and_cleanup[False]` | Passed (archived batch 01; carried forward) |
 | `tests/test_associations.py::test_remote_binary_edit_upload_conflict_and_cleanup[True]` | Passed (archived batch 01; carried forward) |
 | `tests/test_associations.py::test_view_sessions_are_distinct_never_upload_and_close_can_cancel` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_atomic_save_failure_retains_previous_script` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_busy_queue_defers_schedules` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_cancel_running_script_stops_before_next_step` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_corrupt_configuration_is_preserved` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_due_schedule_claim_and_no_duplicate_start` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_editor_reorders_saves_and_cancel_does_not_mutate` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_failure_stops_steps_disables_schedule_and_redacts` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_ftp_script_live_transfer_commands_and_failure[False]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_ftp_script_live_transfer_commands_and_failure[True]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_one_time_run_is_consumed_and_manual_run_preserves_schedule` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_persistence_restart_interruption_and_second_instance_lock` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_schema_paths_and_repeat_coalescing` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines0]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines1]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines2]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines3]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines4]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines5]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines6]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines7]` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_wizard_close_waits_for_test_and_does_not_open_workspace` | Passed (archived batch 01; carried forward) |
-| `tests/test_automation.py::test_wizard_test_invalidation_and_new_workspace` | Passed (release validation 2026-11-16) |
+| `tests/test_automation.py::test_atomic_save_failure_retains_previous_script` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_busy_queue_defers_schedules` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_cancel_running_script_stops_before_next_step` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_corrupt_configuration_is_preserved` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_due_schedule_claim_and_no_duplicate_start` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_editor_reorders_saves_and_cancel_does_not_mutate` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_failure_stops_steps_disables_schedule_and_redacts` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_ftp_script_live_transfer_commands_and_failure[False]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_ftp_script_live_transfer_commands_and_failure[True]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_one_time_run_is_consumed_and_manual_run_preserves_schedule` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_persistence_restart_interruption_and_second_instance_lock` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_schema_paths_and_repeat_coalescing` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines0]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines1]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines2]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines3]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines4]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines5]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines6]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_scripts_reject_prompted_or_credential_commands[lines7]` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_wizard_close_waits_for_test_and_does_not_open_workspace` | Passed (automation script extraction batch 2026-11-19) |
+| `tests/test_automation.py::test_wizard_test_invalidation_and_new_workspace` | Passed (automation script extraction batch 2026-11-19) |
 | `tests/test_cli_api.py::test_cli_api_auth_listing_transfers_queue_json_and_exit_codes` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_rush_compat.py::test_queue_script_maps_download_fxp_and_bookmark_paths` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_rush_compat.py::test_queue_script_resolves_paths_and_uses_transfer_queue` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_rush_compat.py::test_rush_cmdline_forwards_script_and_path_parameters` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_rush_compat.py::test_transfer_parser_accepts_flags_parameters_and_pascal_quotes` | Passed (RushApp compatibility batch 2026-11-18) |
 | `tests/test_rush_compat.py::test_transfer_parser_rejects_unknown_flags_options_and_extra_code` | Passed (RushApp compatibility batch 2026-11-18) |
-| `tests/test_diagnostics.py::test_missing_certificate_path_is_identified` | Passed (archived batch 05; carried forward) |
-| `tests/test_diagnostics.py::test_redact_echoed_passwords_private_keys_and_log_injection` | Passed (archived batch 05; carried forward) |
-| `tests/test_diagnostics.py::test_ssh_diagnostics_and_global_failure_do_not_dump_exception_secrets` | Passed (archived batch 05; carried forward) |
-| `tests/test_diagnostics.py::test_tls_failure_log_has_stage_and_certificate_reason` | Passed (archived batch 05; carried forward) |
-| `tests/test_diagnostics.py::test_verified_tls_control_and_data_logged_without_payload` | Passed (archived batch 05; carried forward) |
+| `tests/test_diagnostics.py::test_missing_certificate_path_is_identified` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_debug_logging_supports_frozen_ssl_module_without_file_attribute` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_redact_echoed_passwords_private_keys_and_log_injection` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_ssh_diagnostics_and_global_failure_do_not_dump_exception_secrets` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_tls_failure_log_has_stage_and_certificate_reason` | Passed (diagnostics UI extraction batch 2026-11-19) |
+| `tests/test_diagnostics.py::test_verified_tls_control_and_data_logged_without_payload` | Passed (diagnostics UI extraction batch 2026-11-19) |
 
 ## Release, packaging, and deployment (14 tests: 14 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
-| `tests/test_deployments.py::test_changed_backup_blocks_rollback` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_deployment_and_rollback_preserve_originals_and_other_files[False]` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_deployment_and_rollback_preserve_originals_and_other_files[True]` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_deployment_queue_roundtrip_and_evidence` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_interrupted_write_retains_backup_and_cannot_replay` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_later_remote_edits_block_rollback` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_revision_path_traversal_is_rejected` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_stale_local_preview_never_overwrites_remote` | Passed (archived batch 05; carried forward) |
-| `tests/test_deployments.py::test_unsupported_native_hash_uses_readback` | Passed (archived batch 05; carried forward) |
+| `tests/test_deployments.py::test_changed_backup_blocks_rollback` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_deployment_and_rollback_preserve_originals_and_other_files[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_deployment_and_rollback_preserve_originals_and_other_files[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_deployment_queue_roundtrip_and_evidence` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_interrupted_write_retains_backup_and_cannot_replay` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_later_remote_edits_block_rollback` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_revision_path_traversal_is_rejected` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_stale_local_preview_never_overwrites_remote` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_deployments.py::test_unsupported_native_hash_uses_readback` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_release_tools.py::test_failed_signing_never_claims_verification` | Passed (archived batch 16; carried forward) |
 | `tests/test_release_tools.py::test_linux_signature_verified` | Passed (archived batch 16; carried forward) |
 | `tests/test_release_tools.py::test_macos_notarization_and_gatekeeper` | Passed (archived batch 16; carried forward) |
 | `tests/test_release_tools.py::test_native_backend_digest_must_match` | Passed (archived batch 16; carried forward) |
 | `tests/test_release_tools.py::test_windows_signs_then_verifies` | Passed (archived batch 16; carried forward) |
 
-## Core behavior and integration (153 tests: 153 passed, 0 failed, 0 skipped, 0 pending, 0 deferred)
+## Core behavior and integration (153 tests: 152 passed, 1 failed, 0 skipped, 0 pending, 0 deferred)
 
 | Test | Status |
 |---|---|
@@ -1242,45 +1259,46 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_job_model.py::test_model_is_usable_without_qt` | Passed (archived batch 10; carried forward) |
 | `tests/test_job_model.py::test_snapshot_preserves_guarded_job_metadata` | Passed (archived batch 10; carried forward) |
 | `tests/test_job_model.py::test_validated_identity_states_and_changes` | Passed (archived batch 10; carried forward) |
-| `tests/test_misc.py::test_bad_crc_preserves_completed_target[False]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_bad_crc_preserves_completed_target[True]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_crc_artifacts_cleanup_preserves_foreign_contents` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_crc_queue_retries_only_bad_file[False]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_crc_queue_retries_only_bad_file[True]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_empty_folders_and_same_parent` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_enter_created_remote_folder` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_manifest_rejects_escape[../outside]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_manifest_rejects_escape[/absolute]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_manifest_rejects_escape[C:\\outside]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_manifest_rejects_escape[sub/../../outside]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_misc_preferences` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_new_tabs_and_quick_connect` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_remove_only_empty_targets_without_source` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_sfv_precedence_and_first_filename` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_verified_download_and_timestamp[False]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_verified_download_and_timestamp[True]` | Passed (archived batch 11; carried forward) |
-| `tests/test_misc.py::test_xcrc_and_unsupported_cached` | Passed (archived batch 11; carried forward) |
+| `tests/test_misc.py::test_bad_crc_preserves_completed_target[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_bad_crc_preserves_completed_target[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_crc_artifacts_cleanup_preserves_foreign_contents` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_crc_queue_retries_only_bad_file[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_crc_queue_retries_only_bad_file[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_empty_folders_and_same_parent` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_enter_created_remote_folder` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_manifest_rejects_escape[../outside]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_manifest_rejects_escape[/absolute]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_manifest_rejects_escape[C:\\outside]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_manifest_rejects_escape[sub/../../outside]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_misc_preferences` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_new_tabs_and_quick_connect` | Failed (deployment/transfer verification batch 2026-11-19; existing workspace-mode persistence assertion) |
+| `tests/test_misc.py::test_remove_only_empty_targets_without_source` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_sfv_precedence_and_first_filename` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_verified_download_and_timestamp[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_verified_download_and_timestamp[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_misc.py::test_xcrc_and_unsupported_cached` | Passed (deployment/transfer modularization batch 2026-11-19) |
 | `tests/test_path_dropdown.py::test_bookmarks_and_recent_items_navigate_and_guard_stale_scope` | Passed (archived batch 13; carried forward) |
 | `tests/test_path_dropdown.py::test_corrupt_history_and_disconnected_menu` | Passed (archived batch 13; carried forward) |
 | `tests/test_path_dropdown.py::test_dropdown_keyboard_and_editable_path` | Passed (archived batch 13; carried forward) |
 | `tests/test_path_dropdown.py::test_recents_deduplicate_cap_and_keep_sites_separate` | Passed (archived batch 13; carried forward) |
 | `tests/test_resize_lifetime.py::test_pending_column_resize_dies_with_closed_workspace` | Passed (archived batch 17; carried forward) |
-| `tests/test_skip_rules.py::test_ftp_recursive_skip[False]` | Passed (archived batch 19; carried forward) |
-| `tests/test_skip_rules.py::test_ftp_recursive_skip[True]` | Passed (archived batch 18; carried forward) |
-| `tests/test_skip_rules.py::test_queue_marks_skips_without_failure[False]` | Passed (archived batch 19; carried forward) |
-| `tests/test_skip_rules.py::test_queue_marks_skips_without_failure[True]` | Passed (archived batch 19; carried forward) |
-| `tests/test_skip_rules.py::test_recursive_skip_local[Auto Transfer-expected1]` | Passed (archived batch 18; carried forward) |
-| `tests/test_skip_rules.py::test_recursive_skip_local[Both-expected0]` | Passed (archived batch 18; carried forward) |
-| `tests/test_skip_rules.py::test_recursive_skip_local[Manual Transfer-expected2]` | Passed (archived batch 18; carried forward) |
-| `tests/test_skip_rules.py::test_skip_list_ui_and_import_transaction` | Passed (archived batch 19; carried forward) |
-| `tests/test_skip_rules.py::test_skip_modes_masks_and_folder_scope` | Passed (archived batch 18; carried forward) |
-| `tests/test_skip_rules.py::test_skip_selected_root_preserves_destination` | Passed (archived batch 18; carried forward) |
-| `tests/test_themes.py::test_coordinated_themes_preserve_custom_colors_and_update_existing_widgets` | Passed (archived batch 20; carried forward) |
-| `tests/test_themes.py::test_header_modes_and_white_command_contrast` | Passed (archived batch 20; carried forward) |
-| `tests/test_themes.py::test_legacy_dark_migration_and_compact_add_button` | Passed (release validation 2026-11-16) |
-| `tests/test_themes.py::test_reselecting_preset_restores_header_and_color_defaults` | Passed (archived batch 20; carried forward) |
-| `tests/test_themes.py::test_theme_persistence_and_system_palette_restore` | Passed (archived batch 20; carried forward) |
-| `tests/test_themes.py::test_theme_text_contrast` | Passed (archived batch 20; carried forward) |
+| `tests/test_skip_rules.py::test_ftp_recursive_skip[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_ftp_recursive_skip[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_queue_marks_skips_without_failure[False]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_queue_marks_skips_without_failure[True]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_recursive_skip_local[Auto Transfer-expected1]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_recursive_skip_local[Both-expected0]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_recursive_skip_local[Manual Transfer-expected2]` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_skip_list_ui_and_import_transaction` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_skip_modes_masks_and_folder_scope` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_skip_rules.py::test_skip_selected_root_preserves_destination` | Passed (deployment/transfer modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_coordinated_themes_preserve_custom_colors_and_update_existing_widgets` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_header_modes_and_white_command_contrast` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_legacy_dark_migration_and_compact_add_button` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_reselecting_preset_restores_header_and_color_defaults` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_theme_persistence_and_system_palette_restore` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_theme_text_contrast` | Passed (preferences display modularization batch 2026-11-19) |
+| `tests/test_themes.py::test_theme_activation_does_not_apply_a_changed_selection_twice` | Passed (preferences display modularization batch 2026-11-19) |
 | `tests/test_toolbar_icons.py::test_remote_local_icon_tracks_mode` | Passed (archived batch 20; carried forward) |
 | `tests/test_toolbar_icons.py::test_toolbar_descriptions_themes_and_direction` | Passed (archived batch 20; carried forward) |
 | `tests/test_toolbar_visibility.py::test_named_hide_restore_and_shared_rows` | Passed (layout fixes batch 2026-11-18) |
@@ -1300,7 +1318,7 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_view_options.py::test_sftp_numeric_ownership` | Passed (archived batch 22; carried forward) |
 | `tests/test_view_options.py::test_workspace_columns_selection_and_live_status` | Passed (left-sidebar rendering batch 2026-11-18) |
 | `tests/test_view_options.py::test_workspace_overview_fills_sidebar_width` | Passed (left-sidebar rendering batch 2026-11-18) |
-| `tests/test_window_initializer.py::test_smoke_window_isolates_settings_initializes_services_and_wires_widgets` | Passed (archived batch 22; carried forward) |
+| `tests/test_window_initializer.py::test_smoke_window_isolates_settings_initializes_services_and_wires_widgets` | Passed (diagnostics UI extraction batch 2026-11-19) |
 | `tests/test_window_positions.py::test_dialog_geometry_is_remembered_per_window_type` | Passed (panel/window persistence batch 2026-11-18) |
 | `tests/test_window_positions.py::test_folder_successes_hide_then_group_clears[Download]` | Passed (archived batch 22; carried forward) |
 | `tests/test_window_positions.py::test_folder_successes_hide_then_group_clears[Upload]` | Passed (archived batch 22; carried forward) |
@@ -1314,3 +1332,177 @@ The following IDs were in the archived list but are no longer in today's collect
 | `tests/test_workspace_site_names.py::test_connection_updates_own_workspace_and_refresh_keeps_manual_name` | Passed (release validation 2026-11-16) |
 | `tests/test_workspace_site_names.py::test_connections_do_not_replace_workspace_names` | Passed (archived batch 23; carried forward) |
 | `tests/test_workspace_site_names.py::test_failed_connection_does_not_rename_workspace` | Passed (archived batch 23; carried forward) |
+
+## Incremental queue capacity stress (2026-11-19)
+
+Named batches used `tests/test_queue_incremental_tmp.py` with the buffered folder planner. Each size asserted bounded visible queue rows and exact item count after exporting and reloading the complete snapshot. The harness was temporary and removed after the runs; it made no application or permanent test changes. All sizes passed; no failing size found. Largest passing size: 150,000 items. Continue at 155,000.
+
+| Size | Result | Planning seconds | Snapshot MiB |
+|---:|---|---:|---:|
+| 5,000 | Passed | 1.563 | 4.84 |
+| 10,000 | Passed | 2.750 | 9.66 |
+| 15,000 | Passed | 1.281 | 14.48 |
+| 20,000 | Passed | 1.797 | 19.30 |
+| 25,000 | Passed | 2.156 | 24.12 |
+| 30,000 | Passed | 2.468 | 28.94 |
+| 35,000 | Passed | 2.750 | 33.77 |
+| 40,000 | Passed | 3.094 | 38.59 |
+| 45,000 | Passed | 3.469 | 43.41 |
+| 50,000 | Passed | 4.171 | 48.23 |
+| 55,000 | Passed | 4.688 | 53.31 |
+| 60,000 | Passed | 6.265 | 58.16 |
+| 65,000 | Passed | 5.078 | 63.00 |
+| 70,000 | Passed | 5.437 | 67.84 |
+| 75,000 | Passed | 5.610 | 72.69 |
+| 80,000 | Passed | 6.094 | 77.53 |
+| 85,000 | Passed | 6.344 | 82.38 |
+| 90,000 | Passed | 6.672 | 87.22 |
+| 95,000 | Passed | 7.031 | 92.07 |
+| 100,000 | Passed | 7.546 | 96.91 |
+| 105,000 | Passed | 7.437 | 101.27 |
+| 110,000 | Passed | 7.968 | 106.11 |
+| 115,000 | Passed | 8.156 | 110.94 |
+| 120,000 | Passed | 8.562 | 115.78 |
+| 125,000 | Passed | 8.890 | 120.61 |
+| 130,000 | Passed | 20.750 | 125.45 |
+| 135,000 | Passed | 21.703 | 130.28 |
+| 140,000 | Passed | 23.453 | 135.12 |
+| 145,000 | Passed | 24.375 | 139.95 |
+| 150,000 | Passed | 21.688 | 144.79 |
+
+Batch 1: 5,000–100,000, 20 passed in 411.24 seconds. Batch 2: 105,000–150,000, 10 passed in 459.28 seconds. The 5,000-item baseline was also rerun individually and passed (1.671 seconds planning; 4.84 MiB snapshot). Pytest emitted two pre-existing Python deprecation warnings (`asyncore`/`asynchat`).
+
+Batch 3 (2026-11-19): incremental queue capacity, 155,000–200,000 items in 5,000-item steps. All 10 passed; no first failing size found. Exact exported snapshot counts matched the planned item count at every step and the bounded visible queue row assertion held.
+
+| Size | Result | Planning seconds | Snapshot MiB |
+|---:|---|---:|---:|
+| 155,000 | Passed | 22.454 | 149.62 |
+| 160,000 | Passed | 20.734 | 154.46 |
+| 165,000 | Passed | 22.297 | 159.29 |
+| 170,000 | Passed | 22.797 | 164.13 |
+| 175,000 | Passed | 23.687 | 168.96 |
+| 180,000 | Passed | 24.843 | 173.80 |
+| 185,000 | Passed | 26.093 | 178.63 |
+| 190,000 | Passed | 38.875 | 183.47 |
+| 195,000 | Passed | 39.390 | 188.30 |
+| 200,000 | Passed | 42.984 | 193.14 |
+
+Batch duration: 755.99 seconds. Pytest emitted the same two Python `asyncore`/`asynchat` deprecation warnings.
+
+Batch 4 (2026-11-19): incremental queue capacity, 205,000–230,000 items in 5,000-item steps. All 6 passed; exact exported snapshot counts matched each planned size and bounded visible queue rows held. Largest passing size is now 230,000; no failing size found. Continue at 235,000.
+
+| Size | Result | Planning seconds | Snapshot MiB |
+|---:|---|---:|---:|
+| 205,000 | Passed | 40.922 | 197.97 |
+| 210,000 | Passed | 36.093 | 202.81 |
+| 215,000 | Passed | 36.734 | 207.64 |
+| 220,000 | Passed | 38.906 | 212.48 |
+| 225,000 | Passed | 39.687 | 217.31 |
+| 230,000 | Passed | 37.328 | 222.15 |
+
+Batch duration: 533.85 seconds. Pytest emitted the same two Python `asyncore`/`asynchat` deprecation warnings.
+
+Capacity-map closure (2026-11-19): per user direction, stop the incremental stress map at 230,000 files. All measured sizes from 5,000 through 230,000 in 5,000-file increments passed. No failing capacity was found; larger sizes are intentionally not scheduled.
+
+## Clean full desktop regression checkpoint (2026-11-19)
+
+The full desktop suite collected 1,148 tests. The clean run used the project test environment with Qt offscreen and the rclone no-browser override, so OAuth listener tests did not open a visible browser. At the user's request, pytest was interrupted after the last reported progress marker reached 56%; 28 failure markers had appeared at that checkpoint. The process was responsive but slow and used about 7 GB at its last resource check.
+
+No JUnit XML or per-test completion list was saved by the interrupted run (`build/test-batches/full-desktop-2026-11-19.xml` was not created). Therefore this attempt is not included in the current pass/fail totals, and the exact identities of those 28 failures are not available. The safe resume is to rerun the suite from the beginning with a live result report enabled, using `QT_QPA_PLATFORM=offscreen`, `RCLONE_CONFIG_AUTH_NO_BROWSER=true`, and `.venv-test/Scripts/python.exe -m pytest -q --junitxml=build/test-batches/full-desktop-resume.xml`. The collection inventory was temporary and removed; prior individual test history above remains intact.
+
+## Full desktop regression resume attempt (2026-11-20)
+
+Reran the 1,148-test desktop suite with `QT_QPA_PLATFORM=offscreen`,
+`RCLONE_CONFIG_AUTH_NO_BROWSER=true`, and JUnit reporting. The recorded
+`.venv-test` interpreter was absent, so the available `.venv` environment was
+used. Pytest reached approximately 83%; eleven failure markers had appeared
+and several tests were skipped. The run was interrupted after it remained in a
+single CPU-active test for several minutes with no progress markers. Pytest did
+not write `build/test-batches/full-desktop-resume.xml`, so identities and
+tracebacks for the failures are unavailable and this attempt is not included
+in pass/fail totals. For the next diagnostic run, use verbose output alongside
+JUnit reporting so the active test is visible during slow sections; do not
+count this interrupted attempt as a completed suite.
+
+The follow-up verbose diagnostic attempt on 2026-11-20 collected 1,116 tests
+(the current checkout count) and reached approximately 15%. All reported tests
+passed through `tests/test_conflict_dialog.py`; it was interrupted to change to
+named test batches as directed. `build/test-batches/full-desktop-diagnostic.xml`
+was not written, so the partial run is not counted in suite totals.
+
+## 25-test desktop diagnostic batches (2026-11-20)
+
+Each batch stores the exact collected node IDs in `fluxftp/build/test-batches/`
+and a JUnit result file there. Run with Qt offscreen and rclone's no-browser
+override. Only completed 25-test batches are included in these totals.
+
+| Batch | Tests | Result | Duration | Coverage / artifacts |
+|---:|---:|---|---:|---|
+| 01 | 25 | Passed | 49.32s | First 25 collected node IDs; `desktop-batch-01-tests.txt`, `desktop-batch-01.xml` |
+| 02 | 25 | Passed | 39.24s | Collected node IDs 26–50; `desktop-batch-02-tests.txt`, `desktop-batch-02.xml` |
+| 03 | 25 | Passed | 11.04s | Collected node IDs 51–75; `desktop-batch-03-tests.txt`, `desktop-batch-03.xml` |
+| 04 | 25 | Passed | 29.46s | Collected node IDs 76–100; `desktop-batch-04-tests.txt`, `desktop-batch-04.xml` |
+| 05 | 25 | Passed | 32.60s | Collected node IDs 101–125; `desktop-batch-05-tests.txt`, `desktop-batch-05.xml` |
+| 06 | 25 | Passed | 80.04s | Collected node IDs 126–150; `desktop-batch-06-tests.txt`, `desktop-batch-06.xml` |
+| 07 | 25 | Passed | 61.86s | Collected node IDs 151–175; `desktop-batch-07-tests.txt`, `desktop-batch-07.xml` |
+| 08 | 25 | Passed | 33.68s | Collected node IDs 176–200; `desktop-batch-08-tests.txt`, `desktop-batch-08.xml` |
+| 09 | 25 | Passed | 23.06s | Collected node IDs 201–225; `desktop-batch-09-tests.txt`, `desktop-batch-09.xml` |
+| 10 | 25 | Passed | 87.28s | Collected node IDs 226–250; `desktop-batch-10-tests.txt`, `desktop-batch-10.xml` |
+| 11 | 25 | 24 passed, 1 failed | 22.37s | Collected node IDs 251–275; `desktop-batch-11-tests.txt`, `desktop-batch-11.xml`; failure: `tests/test_edit_menu.py::test_reference_and_active_pane` expects Edit-menu order without Options, while the menu includes the Options action required by the F6/Edit integration. |
+| 12 | 25 | Passed | 61.53s | Collected node IDs 276–300; `desktop-batch-12-tests.txt`, `desktop-batch-12.xml` |
+| 13 | 25 | Passed | 3.55s | Collected node IDs 301–325; `desktop-batch-13-tests.txt`, `desktop-batch-13.xml` |
+| 14 | 25 | Passed | 118.40s | Collected node IDs 326–350; `desktop-batch-14-tests.txt`, `desktop-batch-14.xml` |
+| 15 | 25 | Passed | 127.31s | Collected node IDs 351–375; `desktop-batch-15-tests.txt`, `desktop-batch-15.xml` |
+| 16 | 25 | Passed | 26.31s | Collected node IDs 376–400; `desktop-batch-16-tests.txt`, `desktop-batch-16.xml` |
+| 17 | 25 | Passed | 26.87s | Collected node IDs 401–425; `desktop-batch-17-tests.txt`, `desktop-batch-17.xml` |
+| 18 | 25 | Passed | 1.74s | Collected node IDs 426–450; `desktop-batch-18-tests.txt`, `desktop-batch-18.xml` |
+| 19 | 25 | Passed | 21.67s | Collected node IDs 451–475; `desktop-batch-19-tests.txt`, `desktop-batch-19.xml` |
+| 20 | 25 | Passed | 23.87s | Collected node IDs 476–500; `desktop-batch-20-tests.txt`, `desktop-batch-20.xml` |
+| 21 | 25 | Passed | 40.81s | Collected node IDs 501–525; `desktop-batch-21-tests.txt`, `desktop-batch-21.xml` |
+| 22 | 25 | Passed | 42.33s | Collected node IDs 526–550; `desktop-batch-22-tests.txt`, `desktop-batch-22.xml` |
+| 23 | 25 | 24 passed, 1 skipped | 12.34s | Collected node IDs 551–575; `desktop-batch-23-tests.txt`, `desktop-batch-23.xml`; Python printed Windows fatal exception `0x80010108` in `test_real_explorer_menu_creation_and_cleanup` at `explorer_menu.py:154`, although pytest completed with exit code 0. Track as a runtime anomaly, not a pytest failure. |
+| 24 | 25 | 24 passed, 1 skipped | 9.72s | Collected node IDs 576–600; `desktop-batch-24-tests.txt`, `desktop-batch-24.xml` |
+| 25 | 25 | Passed | 60.10s | Collected node IDs 601–625; `desktop-batch-25-tests.txt`, `desktop-batch-25.xml` |
+| 26 | 25 | Passed | 1.00s | Collected node IDs 626–650; `desktop-batch-26-tests.txt`, `desktop-batch-26.xml` |
+| 27 | 25 | Passed | 44.69s | Collected node IDs 651–675; `desktop-batch-27-tests.txt`, `desktop-batch-27.xml` |
+| 28 | 25 | Passed | 90.43s | Collected node IDs 676–700; `desktop-batch-28-tests.txt`, `desktop-batch-28.xml` |
+| 29 | 25 | Passed | 34.90s | Collected node IDs 701–725; `desktop-batch-29-tests.txt`, `desktop-batch-29.xml` |
+| 30 | 25 | Passed | 25.74s | Collected node IDs 726–750; `desktop-batch-30-tests.txt`, `desktop-batch-30.xml` |
+| 31 | 25 | Passed | 43.75s | Collected node IDs 751–775; `desktop-batch-31-tests.txt`, `desktop-batch-31.xml` |
+| 32 | 25 | Passed | 3.30s | Collected node IDs 776–800; `desktop-batch-32-tests.txt`, `desktop-batch-32.xml` |
+| 33 | 25 | Passed | 11.68s | Collected node IDs 801–825; `desktop-batch-33-tests.txt`, `desktop-batch-33.xml` |
+| 34 | 25 | Passed | 26.07s | Collected node IDs 826–850; `desktop-batch-34-tests.txt`, `desktop-batch-34.xml` |
+| 35 | 25 | Passed | 9.96s | Collected node IDs 851–875; `desktop-batch-35-tests.txt`, `desktop-batch-35.xml` |
+| 36 | 25 | Passed | 15.72s | Collected node IDs 876–900; `desktop-batch-36-tests.txt`, `desktop-batch-36.xml` |
+| 37 | 25 | 24 passed, 1 skipped | 59.11s | Collected node IDs 901–925; `desktop-batch-37-tests.txt`, `desktop-batch-37.xml` |
+| 38 | 25 | Passed | 11.14s | Collected node IDs 926–950; `desktop-batch-38-tests.txt`, `desktop-batch-38.xml` |
+| 39 | 25 | Passed | 107.61s | Collected node IDs 951–975; `desktop-batch-39-tests.txt`, `desktop-batch-39.xml` |
+| 40 | 25 | Passed | 11.88s | Collected node IDs 976–1000; `desktop-batch-40-tests.txt`, `desktop-batch-40.xml` |
+| 41 | 25 | Passed | 25.19s | Collected node IDs 1001–1025; `desktop-batch-41-tests.txt`, `desktop-batch-41.xml` |
+| 42 | 25 | Passed | 34.33s | Collected node IDs 1026–1050; `desktop-batch-42-tests.txt`, `desktop-batch-42.xml` |
+| 43 | 25 | Passed | 19.76s | Collected node IDs 1051–1075; `desktop-batch-43-tests.txt`, `desktop-batch-43.xml` |
+| 44 | 25 | Passed | 101.74s | Collected node IDs 1076–1100; `desktop-batch-44-tests.txt`, `desktop-batch-44.xml` |
+| 45 | 16 | Passed | 81.55s | Collected node IDs 1101–1116; `desktop-batch-45-tests.txt`, `desktop-batch-45.xml` |
+
+Full diagnostic sweep complete: all 1,116 collected tests were run in 45
+batches. Totals before the focused stale-expectation fix: 1,112 passed, 1
+failed, 3 skipped. The sole failure was the stale Edit-menu expected list in
+`tests/test_edit_menu.py`; it omitted the shared Options action that is required
+in the Edit menu. Updated the expectation to include `Options…` before the
+Toolbars separator. The original 11-marker interrupted run is not reproducible
+from available artifacts; only this one failure was reproduced. Batch 11 was
+rerun after the expectation update and passed all 25 tests, as recorded below.
+
+| Batch rerun | Tests | Result | Duration | Artifacts |
+|---:|---:|---|---:|---|
+| 11 rerun | 25 | Passed | 13.50s | `desktop-batch-11-tests.txt`, `desktop-batch-11-rerun.xml` |
+
+## v0.148.0 Windows package preflight (2026-11-20)
+
+The maintained Windows package was built with local CPython 3.13.18, OpenSSL
+3.5.9, SQLite 3.54.1, and the OpenSSL 4.1.0 adapter. The bundled rclone.exe
+matches the executable SHA-256 recorded by the installed 0.147.5 package.
+Packaged startup, credential-vault, and F6 shortcut smoke checks all exited 0.
+The public ZIP passed the packaging script's archive integrity check:
+`build/public-release/windows-0.148.0/FluxFTP-0.148.0-windows-x64.zip` (SHA-256
+`fb334204fcaf3b8f31301cbc0a70dec3bc811d9861b3826c7944a65939ff2d28`).

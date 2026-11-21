@@ -135,6 +135,7 @@ def test_queue_marks_skips_without_failure(tmp_path, monkeypatch, root_skipped):
     settings = QSettings(str(tmp_path / 'queue.ini'), QSettings.Format.IniFormat)
     monkeypatch.setattr(app_module, 'settings_store', lambda: settings)
     window = app_module.Window()
+    window.paused = False
     row = QTreeWidgetItem(['folder', '', '', '', '', '', '', 'Queued'])
     window.queue.addTopLevelItem(row)
     def task(*_):
@@ -144,7 +145,7 @@ def test_queue_marks_skips_without_failure(tmp_path, monkeypatch, root_skipped):
     window.start_next()
     settle(window)
     skipped_row = row if root_skipped else window.queue.topLevelItem(1)
-    assert 'Skipped' in skipped_row.text(7)
+    assert 'Skipped' in skipped_row.text(8)
     assert skipped_row.foreground(0).color().name() == '#ff0000'
     assert 'Skipped: file.log' in window.log.toPlainText()
     assert not window.queue_batch_failed

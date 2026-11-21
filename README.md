@@ -5,14 +5,14 @@ client with synchronization, verification reports and deployment rollback.
 FluxFTP also combines two-pane workspaces, recoverable transfer queues and
 deployment tools in a Qt interface inspired by classic file-transfer clients.
 
-**Source version: 0.146.0 · License: MIT · Packages: Windows x64, Ubuntu x86_64, Debian amd64**
+**Source version: 0.148.0 · License: MIT · Packages: Windows x64, Ubuntu x86_64, Debian amd64**
 
 Download the [Windows x64 ZIP](https://github.com/Taoism/FluxFTP/releases/latest),
 the [Ubuntu/Debian x86_64 portable archive](https://github.com/Taoism/FluxFTP/releases/latest),
 or the [Debian 13 amd64 installer](https://github.com/Taoism/FluxFTP/releases/latest).
 Extract the Windows ZIP and run `FluxFTP.exe`; extract the Linux archive and run
 `./FluxFTP`. On Debian 13 or newer, install the `.deb` with
-`sudo apt install ./fluxftp_0.146.0-1_amd64.deb`. SHA-256 checksums are provided
+`sudo apt install ./fluxftp_0.148.0-1_amd64.deb`. SHA-256 checksums are provided
 with each release. Packages are unsigned.
 
 See [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) for the coordinated
@@ -24,6 +24,14 @@ workspaces, connections, transfers, trust, cloud, automation and every settings 
 [Open the FluxFTP Help Center](docs/help/) for a searchable guide to connections,
 transfers, FXP, cloud storage, automation, and troubleshooting. The same articles
 are available offline from **Help → Help Index** (F1).
+
+### Collecting Debian debug logs
+
+To capture application, connection, Qt, and runtime diagnostics, choose **Tools →
+Enable Debug Logging…**. FluxFTP adds **Copy debug log path** and **Open debug logs
+folder** controls to the status bar. Logging runs for the current session; passwords
+are omitted, but host names and file paths may appear in the log, so review it before
+sharing. From a terminal, `fluxftp --debug` starts logging immediately.
 
 This repository also contains source code and tests. See
 [Building from source](docs/BUILDING.md) to run or package a development build.

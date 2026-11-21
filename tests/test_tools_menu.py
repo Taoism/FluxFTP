@@ -6,7 +6,7 @@ from test_queue import window
 
 def test_tools_reference_and_shortcuts(window, monkeypatch):
     assert [a.text() if not a.isSeparator() else '---' for a in window.tools_menu.actions()] == [
-        'Queue', 'Transfer History…', 'JSON API Access…', 'Unified Bandwidth Management…', '---', 'Site Manager…', 'Certification Checker…', 'Connection Diagnostics…', 'SSHFS Mounts…', 'Add to site manager…', '---', 'Command',
+        'Queue', 'Transfer History…', 'JSON API Access…', 'Unified Bandwidth Management…', '---', 'Site Manager…', 'Certification Checker…', 'Enable Debug Logging…', 'Connection Diagnostics…', 'SSHFS Mounts…', 'Add to site manager…', '---', 'Command',
         'Command Designer…', 'Send Raw Command…', '---', 'Compare folder contents\tCtrl+D',
         'Synchronize Folders…', 'Deployment Profiles…', 'View RAW Directory…', '---', 'Watch-and-upload Folders…', 'Script Designer…', 'Scheduled Automation…', '---', 'Languages', '---',
         'Layout', '---', 'Hotkey Manager…', 'Manual Download from Site…', 'TFTP Transfer…', '---',
@@ -50,3 +50,29 @@ def test_tools_shared_preferences_and_layout(window):
     commands.update()
     assert next(a for a, k, v, _ in commands.choices if k == 'Transfer/mode' and v == 'Auto').isChecked()
     assert not commands.paste.isEnabled()
+
+
+def test_tools_debug_logging_starts_and_exposes_log_path(window):
+    from fluxftp import diagnostics
+    import sys
+
+    previous_hook = sys.excepthook
+    try:
+        window.tools_commands.actions['Enable Debug Logging…'].trigger()
+        path = diagnostics.log_path
+        assert path is not None and path.is_file()
+        assert path.parent.name == 'logs'
+        text = path.read_text('utf-8')
+        assert 'Debug logging enabled from the Tools menu.' in text
+        assert 'Qt runtime: version=' in text
+        assert 'screens=' in text
+        from PySide6.QtCore import qWarning
+        qWarning('diagnostic test warning')
+        assert 'Qt runtime [default]: diagnostic test warning' in path.read_text('utf-8')
+        assert window._debug_folder_button.text() == 'Open debug logs folder'
+        window._debug_copy_button.click()
+        assert window.app_instance.clipboard().text() == str(path)
+        assert not window.tools_commands.debug_logging_action.isEnabled()
+    finally:
+        diagnostics.close_debug()
+        assert sys.excepthook is previous_hook

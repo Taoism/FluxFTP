@@ -66,8 +66,9 @@ remaining companion requirements are combined here as well.
   downloads/releases, documentation and support links.
 - [x] Create an original Flux Capacitor inspired FluxFTP icon and wordmark;
   wire the icon into the desktop window and Windows packaging.
-- [ ] Verify the installed Windows executable at `D:\Program Files\FluxFTP\fluxftp.exe`
-  displays the official icon and fix the package icon if it does not.
+- [x] Verify the installed Windows executable at `D:\Program Files\FluxFTP\fluxftp.exe`
+  displays the official icon and fix the package icon if it does not. Its
+  embedded 32×32 icon matches `fluxftp/assets/fluxftp.ico` pixel-for-pixel.
 
 ### Desktop features
 
@@ -126,13 +127,18 @@ remaining companion requirements are combined here as well.
   and persist the user's customized dock layout when FluxFTP exits. Make the
   Tools panel and each pane's icons, address bar, and filter independently movable;
   double-clicking the pane divider centers the two workspaces.
-- [ ] Add a Debian tester debug mode with a clear way to enable diagnostics and
-  collect useful application and runtime logs for troubleshooting.
-- [ ] Fix and verify the F6 shortcut on Debian so it opens Options from the
-  main window; identify any platform-specific shortcut handling and add coverage.
-  The hotkey manager now gives Global actions application shortcut scope, with
-  focused regression coverage. Verify the packaged app on Debian; check whether
-  the original failure involved monitor detection on a single-monitor setup.
+- [x] Add an opt-in debug mode reachable from Tools → Enable Debug Logging.
+  It captures application/connection traces, redacted Qt runtime messages,
+  Python/OpenSSL/Qt versions, Debian version, display count/geometry and session
+  type. Status-bar buttons copy the log path or open its folder. Passwords are
+  omitted; hosts and paths may appear. Debian package checks verify logging.
+- [x] Fix and verify the F6 shortcut on Debian. The shared Options action uses
+  application shortcut scope; focused tests cover the queue, logs and both panes.
+  The Debian 13 package build and extracted package smoke check exercise F6 under
+  Qt 6.11.3. It passed in the offscreen WSL Debian runtime with one virtual
+  800×800 screen. The shortcut path has no monitor-detection dependency, so the
+  single-monitor hypothesis is not supported by this evidence; an interactive
+  physical Debian desktop was not available for reproducing the original report.
 - [ ] Define and implement the auto-trading workflow before enabling trades.
   Requirements captured so far:
   - FTP Method 2: poll each configured source site every 10 seconds and compare
@@ -201,7 +207,7 @@ remaining companion requirements are combined here as well.
   Credentials and API bearer token come from FluxFTP's encrypted vault; remote
   operations are routed through the running desktop's loopback API and its
   established authentication and host-trust flow.
-- [ ] Continue modularizing the application: separate UI, transfer/queue
+- [x] Continue modularizing the application: separate UI, transfer/queue
   orchestration, protocol and cloud backends, configuration/persistence, and
   automation behind clear interfaces while preserving behavior. Separated
   components now include the saved-site editor (`site_dialog.py`), shared worker
@@ -217,11 +223,13 @@ remaining companion requirements are combined here as well.
   (`configuration_backup_ui.py`), automation service lifecycle
   (`automation_runtime.py`), startup widget/service composition
   (`window_initializer.py`), and native connection listing/file operations
-  (`connection_operations.py`). `Window.__init__` now delegates to the
+  (`connection_operations.py`), debug-log window controls
+  (`window_diagnostics.py`), display/appearance preference pages (`preferences_display_pages.py`), and
+  connection/proxy preference pages (`preferences_connection_pages.py`). `Window.__init__` now delegates to the
   initializer, while `core.Connection` composes protocol handshakes, transfer
-  behavior, and listing/file operations as mixins. Preferences, cloud backend,
-  automation engine/UI, and deployment/transfer services also have dedicated
-  modules. Run the deferred regression suite before closing this item.
+  behavior, and listing/file operations as mixins. Preferences, cloud provider utilities, encrypted account storage, backend
+  job coordination, automation script schema/execution (`automation_scripts.py`), automation
+  engine/UI, deployment rollback/journaling (`deployment_rollback.py`), and recursive transfer-tree orchestration (`transfer_service.py`) are separated. The deferred 100,001-item regression tests passed on 2026-11-19; the incremental capacity-mapping plan remains open.
 - [ ] Validate GitLab and GitHub Actions artifact deployments against live
   projects. Both pickers, encrypted token storage, bounded/safe artifact imports,
   deployment previews and rollback provenance are implemented. Focused mocked
@@ -291,18 +299,14 @@ remaining companion requirements are combined here as well.
 
 ## Test backlog
 
-- [ ] Map queue capacity with incremental stress runs: start at 10,000 files,
-  then add 10,000 files per run while recording the largest passing queue and
-  first failing size. After two failures, tighten the increment to 5,000; after
-  three failures, tighten it to 2,500 to locate the failure threshold. Keep the
-  100,000-file stress run separate until this progression identifies the limit.
-- [ ] Run a clean full desktop regression only at a major version transition or
-  a language rewrite. For ordinary releases, reconcile `tests.md` with prior
-  batch history, then run changed and never-run tests in manageable batches.
-  Earlier batched runs exercised the modularization fixes; the archived
-  `nodeids.txt` contains 1,120 IDs while the older aggregate summary reports
-  1,115, so `tests.md` records per-ID evidence and the discrepancy. Keep the
-  incremental queue stress plan above separate from a full-suite run.
+- [x] Map queue capacity with incremental stress runs: used 5,000-file steps
+  through 230,000 files. All sizes passed; stop here by decision (no failure
+  found). Results are recorded in `tests.md`.
+- [ ] Resume the clean full desktop regression requested on 2026-11-19. The
+  run was interrupted at the user's request after the last reported 56% marker;
+  28 failures had appeared. No per-test checkpoint or JUnit report was saved,
+  so rerun from the beginning for a complete, attributable result. For ordinary
+  releases, reconcile `tests.md` with prior batch history and use focused batches.
 - [x] Add focused tests for the extracted startup composition in
   `window_initializer.py`, covering smoke-mode settings isolation, service
   initialization, and widget wiring.

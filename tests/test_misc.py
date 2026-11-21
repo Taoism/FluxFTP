@@ -190,7 +190,7 @@ def test_crc_queue_retries_only_bad_file(window, servers, tmp_path, monkeypatch,
     (folder / 'files.sfv').write_text(f'bad.bin {checksum:08X}\ngood.bin {checksum:08X}\n')
     options = TransferOptions(crc_auto=True, crc_retries=2)
     connections = []
-    def connect(*args):
+    def connect(*args, **kwargs):
         if any(j.get('crc_job') for j in window.queue_jobs) and repair:
             (folder / 'bad.bin').write_bytes(b'good')
         connections.append(True)

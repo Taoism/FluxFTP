@@ -116,9 +116,36 @@ def test_theme_text_contrast():
             assert (b + .05) / (a + .05) >= 4.5
 
 
+def test_theme_activation_does_not_apply_a_changed_selection_twice(window, monkeypatch):
+    style_calls = []
+    color_calls = []
+    monkeypatch.setattr(PreferencesDialog, '_apply_style',
+        lambda _self, value: style_calls.append(value))
+    monkeypatch.setattr(PreferencesDialog, '_set_color_theme',
+        lambda _self, scope, value: color_calls.append((scope, value)))
+    dialog = PreferencesDialog(window)
+
+    dialog.theme_combo.setCurrentText('Black')
+    dialog.theme_combo.textActivated.emit('Black')
+    assert style_calls == ['Black']
+    QApplication.processEvents()
+    dialog.theme_combo.textActivated.emit('Black')
+    assert style_calls == ['Black', 'Black']
+
+    combo = dialog.color_themes['remote']
+    combo.setCurrentText('Midnight')
+    combo.textActivated.emit('Midnight')
+    assert color_calls == [('remote', 'Midnight')]
+    QApplication.processEvents()
+    combo.textActivated.emit('Midnight')
+    assert color_calls == [('remote', 'Midnight'), ('remote', 'Midnight')]
+    dialog.close()
+
+
 def test_reselecting_preset_restores_header_and_color_defaults(window):
     dialog = PreferencesDialog(window)
     dialog.theme_combo.setCurrentText('Black')
+    QApplication.processEvents()
     dialog.header_theme_combo.setCurrentText('Light')
     window.preferences.setValue('Layout/custom_active_font', True)
     window.preferences.setValue('Layout/active_color', '#ff0000')
@@ -130,6 +157,7 @@ def test_reselecting_preset_restores_header_and_color_defaults(window):
     dialog.theme_combo.setCurrentText('System')
     combo = dialog.color_themes['remote']
     combo.setCurrentText('Black')
+    QApplication.processEvents()
     window.preferences.setValue('Colors/remote/even', '#ffffff')
     combo.textActivated.emit('Black')
     assert color_value(window.preferences, 'remote', 'even') == PALETTES['Black']['base']

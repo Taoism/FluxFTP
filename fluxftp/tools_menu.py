@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QStyle
 from .queue_menu import QueueMenu
 from .command_menu import CommandMenu
 from .compare_menu import CompareMenu
+from . import diagnostics
 
 
 class ToolsMenu(QObject):
@@ -40,6 +41,7 @@ class ToolsMenu(QObject):
         self.add('Site Manager…', window.manage_sites, 'F3', QStyle.StandardPixmap.SP_DirOpenIcon)
         from .certification import show_certification
         self.add('Certification Checker…', lambda: show_certification(window))
+        self.debug_logging_action = self.add('Enable Debug Logging…', window.start_debug_logging)
         from .connection_diagnostics import show_diagnostics
         self.add('Connection Diagnostics…', lambda: show_diagnostics(window))
         from .sshfs_mounts import SSHFSMounts
@@ -152,6 +154,10 @@ class ToolsMenu(QObject):
             self.window.paste_local_files(pane)
 
     def update(self):
+        logging_enabled = diagnostics.log_path is not None
+        self.debug_logging_action.setText('Debug Logging Active' if logging_enabled
+                                          else 'Enable Debug Logging…')
+        self.debug_logging_action.setEnabled(not logging_enabled)
         for action, key, value, default in self.choices:
             action.setChecked(self.window.preferences.value(key, default, type=str) == value)
         self.window.edit_commands.update()

@@ -91,3 +91,14 @@ def test_missing_certificate_path_is_identified(servers, debug_log, tmp_path):
     assert "Failure during loading TLS trust / local certificate files: FileNotFoundError" in text
     assert "missing-ca.pem" in text
     assert "private-login-secret" not in text
+
+
+def test_debug_logging_supports_frozen_ssl_module_without_file_attribute(tmp_path, monkeypatch):
+    import _ssl
+
+    monkeypatch.delattr(_ssl, '__file__', raising=False)
+    try:
+        path = diagnostics.configure_debug(tmp_path / 'frozen.log')
+        assert 'SSL module: <built-in or frozen>' in path.read_text('utf-8')
+    finally:
+        diagnostics.close_debug()

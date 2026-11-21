@@ -17,6 +17,7 @@ from .transfer_options import RateLimiter, TransferOptions
 
 def initialize_window(self, smoke, style, settings_factory, standard_paths):
     self._smoke_test = smoke
+    self.standard_paths = standard_paths
     self.setWindowTitle("FluxFTP — File transfer workspace")
     self.resize(1600, 900)
     self.preferences = settings_factory()

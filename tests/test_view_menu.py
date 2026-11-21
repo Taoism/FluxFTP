@@ -74,8 +74,12 @@ def test_function_key_commands_include_f6_options(window, monkeypatch):
 
     opened = []
     monkeypatch.setattr('fluxftp.preferences.PreferencesDialog.exec', lambda _dialog: opened.append(True))
-    QTest.keyClick(window.queue, Qt.Key.Key_F6)
-    assert opened == [True]
+    targets = (window.queue, window.log, window.current_panes()[0].tree,
+               window.current_panes()[1].tree)
+    for index, target in enumerate(targets, 1):
+        target.setFocus()
+        QTest.keyClick(target, Qt.Key.Key_F6)
+        assert len(opened) == index
 
 
 def test_panel_shortcuts_reveal_focus_and_restore_collapsed_panels(window):

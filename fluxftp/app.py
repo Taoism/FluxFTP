@@ -7,13 +7,13 @@ import sys
 import ssl
 import time
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import timezone
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal, QStandardPaths, QTimer, QSettings
 from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QLineEdit, QComboBox, QSpinBox, QCheckBox, QSplitter,
+    QLabel, QLineEdit, QComboBox, QSpinBox, QCheckBox, QSplitter,
     QHeaderView, QAbstractItemView, QTabWidget, QPlainTextEdit, QMessageBox,
     QInputDialog, QToolBar, QStyle)
 
@@ -49,6 +49,7 @@ from .window_chrome import WindowChrome
 from .configuration_backup_ui import ConfigurationBackupActions
 from .window_workers import WindowWorkers
 from .window_connections import WindowConnections
+from .window_diagnostics import WindowDiagnostics
 from .workspace_splitter import WorkspaceSplitter
 from . import __version__
 
@@ -99,7 +100,11 @@ def human(n):
     return f"{n:.0f} PB"
 
 
-class Window(DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmOptions, FileMenu, Workspaces, TransferQueue, ConfigurationPersistence, ConfigurationBackupActions, WindowChrome, WindowWorkers, WindowConnections, QMainWindow, QueueManager):
+class Window(
+        DisplayOptions, ColorOptions, LayoutOptions, MouseActions, ConfirmOptions,
+        FileMenu, Workspaces, TransferQueue, ConfigurationPersistence,
+        ConfigurationBackupActions, WindowChrome, WindowWorkers, WindowConnections,
+        WindowDiagnostics, QMainWindow, QueueManager):
     # Compatibility properties keep existing menus/storage on engine-owned state.
     @property
     def queue_jobs(self):
@@ -431,6 +436,7 @@ def main():
     parser.add_argument("--smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--runtime-smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--credential-vault-smoke-test", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--f6-smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--screenshot", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument('--automation-once', action='store_true', help='Run due saved automation without opening the desktop')
     args, qt_args = parser.parse_known_args()
@@ -438,7 +444,7 @@ def main():
         from .credentials import smoke_test_system_vault
         smoke_test_system_vault()
         return
-    args.smoke_test = args.smoke_test or args.runtime_smoke_test
+    args.smoke_test = args.smoke_test or args.runtime_smoke_test or args.f6_smoke_test
     if args.log_file and not args.debug:
         parser.error("--log-file requires --debug")
     # Preserve fractional Windows display scaling (for example 125% and 150%).
@@ -465,15 +471,11 @@ def main():
         default_dir = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)) / "logs"
         path = args.log_file or default_dir / f"fluxftp-debug-{datetime.now():%Y%m%d-%H%M%S}-{os.getpid()}.log"
         try:
-            debug_path = diagnostics.configure_debug(path)
+            debug_path = diagnostics.configure_debug(path, app)
         except OSError as error:
             QMessageBox.critical(None, "Cannot create debug log", str(error))
             sys.exit(1)
-        previous_hook = sys.excepthook
-        def report_unhandled(exc_type, value, tb):
-            diagnostics.worker_failure(value)
-            previous_hook(exc_type, value, tb)
-        sys.excepthook = report_unhandled
+        diagnostics.install_exception_hook()
     from .themes import apply_application
     if not args.smoke_test:
         apply_application(app, settings_store(), STYLE)
@@ -481,11 +483,7 @@ def main():
     window.ftp_log.appendPlainText(f"FTP/FTPS SSL library: {ssl.OPENSSL_VERSION}")
     window._smoke_test = args.smoke_test
     if debug_path:
-        window.log.appendPlainText(f"Debug logging enabled: {debug_path}")
-        copy_log = QPushButton("Copy debug log path")
-        copy_log.setToolTip(str(debug_path))
-        copy_log.clicked.connect(lambda: app.clipboard().setText(str(debug_path)))
-        window.statusBar().addPermanentWidget(copy_log)
+        window.show_debug_log_controls(debug_path)
         diagnostics.logger.info("Desktop ready; reproduce the connection problem to capture diagnostics.")
     if window.preferences.value('Layout/windows/main', '', type=str):
         window.show()
@@ -504,16 +502,32 @@ def main():
             window.initialize_queue_storage(defer=True)
             window.show_saved_queue()
         QTimer.singleShot(0, recover_queue)
-    if args.smoke_test:
+    if args.f6_smoke_test:
+        def verify_f6_shortcut():
+            from PySide6.QtTest import QTest
+            action = window.tools_commands.actions['Options…']
+            action.triggered.disconnect()
+            triggered = []
+            action.triggered.connect(lambda: triggered.append(True))
+            targets = (window.queue, window.log, window.current_panes()[0].tree,
+                       window.current_panes()[1].tree)
+            for target in targets:
+                target.setFocus()
+                QTest.keyClick(target, Qt.Key.Key_F6)
+            exit_code = 0 if len(triggered) == len(targets) else 1
+            window.close()
+            app.processEvents()
+            app.exit(exit_code)
+        QTimer.singleShot(100, verify_f6_shortcut)
+    elif args.smoke_test:
         def finish():
             if args.screenshot:
                 window.grab().save("preview.png")
             window.close()
         QTimer.singleShot(500, finish)
     exit_code = app.exec()
-    if debug_path:
+    if diagnostics.log_path:
         diagnostics.logger.info("Desktop exited: code=%s", exit_code)
-        sys.excepthook = previous_hook
         diagnostics.close_debug()
     sys.exit(exit_code)
 

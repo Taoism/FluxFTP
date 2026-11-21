@@ -148,6 +148,18 @@ def main():
             capture_output=True, timeout=90)
         if smoke.returncode:
             raise RuntimeError('Installed Debian package GUI smoke check failed:\n' + smoke.stdout + smoke.stderr)
+        debug_log = Path(temporary) / 'fluxftp-debug.log'
+        shortcut = subprocess.run([str(extracted / 'opt/fluxftp/FluxFTP'), '--debug',
+                '--log-file', str(debug_log), '--f6-smoke-test'],
+            cwd=extracted / 'opt/fluxftp', env=environment, text=True,
+            capture_output=True, timeout=90)
+        if shortcut.returncode:
+            raise RuntimeError('Installed Debian package debug/F6 check failed:\n' +
+                shortcut.stdout + shortcut.stderr)
+        debug_text = debug_log.read_text('utf-8')
+        for evidence in ('SSL runtime:', 'SSL module:', 'Qt runtime:', 'screens='):
+            if evidence not in debug_text:
+                raise RuntimeError(f'Debian debug log is missing runtime evidence: {evidence}')
         rclone = subprocess.run([str(extracted / 'opt/fluxftp/_internal/cloud_tools/rclone'), 'version'],
             check=True, text=True, capture_output=True)
         if 'v1.76.0-fluxftp.3' not in rclone.stdout:
