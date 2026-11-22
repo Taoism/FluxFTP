@@ -1660,7 +1660,9 @@ its embedded manifest reports version 0.149.0 and the expected source commit.
 GitHub Actions validation run `44991042059` and published-release run
 `44991853362` passed all Windows, Ubuntu, Debian and asset-publishing jobs.
 All three downloaded public packages matched their corresponding published
-SHA-256 files:
+SHA-256 files. The installed Windows executable hash matches the verified ZIP;
+version 0.149.0 is at `D:\Program Files\FluxFTP`, with the previous 0.148.0
+installation preserved at `D:\Program Files\FluxFTP-backup-0.148.0`.
 
 | Published artifact | SHA-256 |
 |---|---|

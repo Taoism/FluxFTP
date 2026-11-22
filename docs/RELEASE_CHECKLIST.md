@@ -37,6 +37,8 @@ published-release run `44991853362` passed all Windows, Ubuntu, Debian and
 asset-publishing jobs. All three packages were downloaded after publication;
 their SHA-256 values matched the published checksum files. The Windows package
 passed startup, credential-vault and F6 shortcut smoke checks before release.
+Version 0.149.0 is installed at `D:\Program Files\FluxFTP`; the previous
+0.148.0 installation is preserved at `D:\Program Files\FluxFTP-backup-0.148.0`.
 
 | Published artifact | SHA-256 |
 |---|---|
