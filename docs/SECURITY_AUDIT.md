@@ -1,9 +1,9 @@
 # Security audit
 
-Last reviewed: 2026-11-19
+Last reviewed: 2026-11-21
 
 This review began with the published FluxFTP 0.147.4 Windows, Ubuntu and Debian
-packages. FluxFTP 0.147.5 has since replaced them; its packages were checked
+packages. FluxFTP 0.148.0 has since replaced them; its packages were checked
 against the findings below, and the maintained Windows package was installed
 locally. The review also covers the pinned Windows build environment, current Python advisories, Qt and
 miniupnpc vendor advisories, the bundled rclone backend and its Go modules, the
@@ -15,16 +15,16 @@ native libraries bundled from the Ubuntu build environment.
 
 | Component | Reviewed version | Finding | Action/status |
 | --- | --- | --- | --- |
-| miniupnpc | 2.3.5 in 0.147.5 | CVE-2026-110655 and CVE-2026-110656 describe out-of-bounds reads on crafted UPnP gateway replies through 2.3.3. Enabled active FTP connections can parse LAN gateway responses. | Windows uses a locally built 2.3.5 wheel; Linux resolves to 2.3.5. The Windows build script verifies the official source archive SHA-256 and builds a statically linked CPython 3.13 x64 extension with MSVC. UPnP discovery remains blocked for manually installed versions below 2.3.4. |
-| PySide6 / Qt | 6.11.3 in 0.147.5 | Qt 6.11.3 includes fixes for listed Qt Core, SVG and Network advisories affecting earlier 6.11 releases. Qt 6.12.0 was excluded because it contains known unresolved advisories. CVE-2026-116337 affects Qt Network HTTP response handling through Qt 6.12.0; the fix is listed in Qt 6.12.1 and as patches for 6.11. | Windows and Linux use PySide6, Essentials, Addons and shiboken6 6.11.3. Source review found no use of QNetworkAccessManager, QNetworkReply, QHttpServer or QWebSocket; no FluxFTP call path to the affected HTTP response handling was identified. Qt Network remains bundled, so track this as unpatched dependency exposure and move to a fixed PySide6 build when Qt for Python publishes one. As of this review PyPI lists PySide6 6.12.0, not 6.12.1. Recheck upstream before each release. |
+| miniupnpc | 2.3.5 in 0.148.0 | CVE-2026-110655 and CVE-2026-110656 describe out-of-bounds reads on crafted UPnP gateway replies through 2.3.3. Enabled active FTP connections can parse LAN gateway responses. | Windows uses a locally built 2.3.5 wheel; Linux resolves to 2.3.5. The Windows build script verifies the official source archive SHA-256 and builds a statically linked CPython 3.13 x64 extension with MSVC. UPnP discovery remains blocked for manually installed versions below 2.3.4. |
+| PySide6 / Qt | 6.11.3 in 0.148.0 | CVE-2026-116337 affects Qt Network HTTP response handling. Qt published two 6.11 backport patches. | FluxFTP source has no Qt Network call path. The release packagers exclude QtNetwork and associated network/TLS plugins as a mitigation. Both official patches apply to QtBase 6.11.3, and the adapted QtNetwork reply tests pass in a focused Linux source build. That build has not been validated as a drop-in replacement for the PySide6 Windows/Linux runtimes; keep the packaging exclusion until correctly configured production binaries are built and smoke-tested. The published 0.148.0 packages remain unchanged. Details and hashes: `scripts/qt-patches/6.11.3/README.md`. |
 | setuptools | 84.0.0 in Windows build tools | GHSA-xmj3-9gf7-h52w affects versions before 84.1.0 on Windows when installing a crafted legacy wheel. | Pinned to 84.2.1; pip-audit reports no known vulnerabilities in the pinned Python requirements after the update. |
 | rclone | 1.75.1-fluxftp.2 | GHSA-m97j-7x65-wh93 affects the Swift provider shipped by FluxFTP: redirects could forward credentials to another host or downgrade HTTPS to HTTP. GHSA-w33h-3qgq-8mv8 also affected stable self-update through 1.75.1. | Rebuilt as 1.76.0-fluxftp.3 from upstream commit `e982ff36668f5130d94b4f70409babb3d964df42`, retaining and adapting FluxFTP's OAuth/OneDrive patch. The release fixes both advisories. |
 | Go standard library | 1.26.10 build toolchain | GO-2026-6859 affected `net/http` through Go 1.26.10 and could crash an HTTP/1 server handling oversized request bodies concurrently. | Rebuilt the backend with Go 1.26.11. `govulncheck ./...` then reported no reachable vulnerabilities. |
-| OpenSSL 3.x / 4.x | 3.5.9 / 4.1.0 in the published Windows package | Both remain the latest releases listed by OpenSSL. Eight Low-severity advisories published on 2026-11-10 and 2026-11-17 affect these versions: CVE-2026-107493 (PEM stack use-after-free), CVE-2026-124709, CVE-2026-88822, CVE-2026-95691 (QUIC issues), CVE-2026-35190 (Suite B TLS server key-share processing), CVE-2026-88823 and CVE-2026-95692 (AES-GCM-SIV edge cases), and CVE-2026-107496 (CMS encryption with a malformed EC group). Fixes are listed for 3.5.10 / 4.1.1, which are not yet listed as released. FluxFTP uses OpenSSL for client-side FTP/FTPS; source search found no direct use of the affected PEM or CMS APIs, QUIC APIs, AES-GCM-SIV, or Suite B server configuration. This reduces apparent reachability but does not establish that every bundled consumer avoids the affected calls. | Keep 3.5.9 and 4.1.0 as the latest published builds, track these advisories as open upstream exposure, and update both channels promptly when fixed releases are published. Recheck the official release page before packaging. |
-| SQLite | 3.54.1 in 0.147.5 Windows, Ubuntu and Debian | The 0.147.4 Linux tarball and Debian package contained Ubuntu SQLite 3.45.1-1ubuntu2.9, which Canonical marks affected by CVE-2026-119371, CVE-2026-119372 and CVE-2026-119373. | FluxFTP 0.147.5 replaces those packages. Windows uses the official SQLite 3.54.1 x64 DLL after verifying archive SHA3-256 `c2d09c8babb9399277055c057c97a53f1ffd7c5f11d0c1f2118ffdfa39f2daa4`. Linux release builds compile 3.54.1 from the official autoconf archive, record source and library hashes in `sqlite-provenance.json`, and package the library under `_internal`. Ubuntu and Debian builds and smoke checks passed. |
+| OpenSSL 3.x / 4.x | 3.5.9 / 4.1.0 in the published Windows package | OpenSSL lists fixes for eight Low-severity advisories in 3.5.10 / 4.1.1, but those releases were not yet available on 2026-11-20: CVE-2026-107493, CVE-2026-124709, CVE-2026-88822, CVE-2026-95691, CVE-2026-35190, CVE-2026-88823, CVE-2026-95692 and CVE-2026-107496. | Keep the latest published versions pending upstream security releases. Source review found no direct FluxFTP calls to the affected PEM stack, CMS, QUIC, AES-GCM-SIV or Suite B server APIs. The shared TLS library remains bundled, so this is not marked fixed; upgrade both runtime branches promptly when vendor releases are available, then rerun TLS and updater coverage. |
+| SQLite | 3.54.1 in 0.148.0 Windows, Ubuntu and Debian | The 0.147.4 Linux tarball and Debian package contained Ubuntu SQLite 3.45.1-1ubuntu2.9, which Canonical marks affected by CVE-2026-119371, CVE-2026-119372 and CVE-2026-119373. | FluxFTP 0.147.5 replaced those packages. Windows uses the official SQLite 3.54.1 x64 DLL after verifying archive SHA3-256 `c2d09c8babb9399277055c057c97a53f1ffd7c5f11d0c1f2118ffdfa39f2daa4`. Linux release builds compile 3.54.1 from the official autoconf archive, record source and library hashes in `sqlite-provenance.json`, and package the library under `_internal`. Ubuntu and Debian builds and smoke checks passed. |
 | ICU | Not shipped in the published Windows package | The build staging tree can contain ICU DLLs, but `scripts/package_windows_release.py` removes `icu.dll` and `icuuc.dll` before creating the public archive. The installed 0.147.5 package also contains neither file. | No shipped ICU DLL finding for 0.147.5. Keep checking the final staged package after packaging changes. |
-| Qt optional modules | Qt 6.11.3 | The 0.147.4 Linux tarball and Debian package included unused duplicate Qt PDF and VirtualKeyboard libraries. | FluxFTP 0.147.5 prunes the nested and root-level copies in both Linux packages; release builds and smoke checks passed. QML/Quick and other Qt modules remain bundled; their runtime necessity has not yet been confirmed. |
-| Release notices and dependency inventory | 0.147.5 Windows and Linux packages | The Windows `dependency-inventory.json` is a build-environment license inventory, not an SBOM of files actually bundled by PyInstaller. The Linux inventory covers Python distributions only and explicitly omits native libraries and other bundled files. | Notices identify Qt 6.11.3 and link matching source archives. Linux SQLite has a separate verified provenance record. A complete shipped-component SBOM and native-library version inventory remain future work. |
+| Qt optional modules | Qt 6.11.3 | The 0.147.4 Linux tarball and Debian package included unused duplicate Qt PDF and VirtualKeyboard libraries. QML/Quick libraries also ship although FluxFTP source does not import QML/Quick. | FluxFTP 0.148.0 prunes the nested and root-level PDF/VirtualKeyboard copies in Linux packages. In an isolated copy of the 0.148.0 Windows package, removing QtQml, QtQmlMeta, QtQmlModels, QtQmlWorkerScript, QtQuick and QtNetwork DLLs/bindings plus Qt Network plugins preserved packaged `--smoke-test` and `--f6-smoke-test` (exit 0). This is focused Windows evidence only; validate the packager changes in full release candidates. QtNetwork import failure is caught by PySide6's Windows initializer; QtTest remains needed by the hidden F6 smoke hook. |
+| Release notices and dependency inventory | 0.148.0 Windows and Linux packages | The Windows `dependency-inventory.json` is a build-environment license inventory, not an SBOM of files actually bundled by PyInstaller. The Linux inventory covers Python distributions only and explicitly omits native libraries and other bundled files. | Notices identify Qt 6.11.3 and link matching source archives. Windows runtime inventory records Python 3.13.18, OpenSSL 4.1.0/3.5.9, SQLite 3.54.1, rclone v1.76.0-fluxftp.3 / Go 1.26.11 and miniupnpc 2.3.5. Linux provenance records rclone and SQLite, and the archive contains Qt 6.11.3 plus bundled Ubuntu ELF libraries. A complete file-level shipped-component SBOM and version mapping for all bundled Linux native libraries remain future work. |
 
 ## Other reviewed controls
 
@@ -62,28 +62,31 @@ native libraries bundled from the Ubuntu build environment.
 - `govulncheck ./...` against the patched rclone v1.76.0 source built with Go
   1.26.11: no reachable vulnerabilities. Govulncheck reported one vulnerability
   in a required module but found no call path from the rclone code to it.
-- The 0.147.5 Windows, Ubuntu, and Debian release builds have been published;
+- The 0.147.5 Windows, Ubuntu, and Debian release builds were published;
   Windows and Linux packaged-app smoke checks and platform release workflows passed.
-- Historical 0.147.2, 0.147.3 and 0.147.4 builds are superseded by 0.147.5. The OpenSSL
-  advisory review remains deferred as requested.
-- The published Windows archive and local installation were inspected. Their
+- Historical 0.147.2 through 0.147.5 builds are superseded by 0.148.0. The
+  published 0.148.0 builds remain unchanged by the current packaging hardening.
+- The published 0.148.0 Windows archive and local installation were inspected. Their
   Qt DLL inventory contains Core, Gui, Network, OpenGL, QML, Quick, Svg, and
   Widgets; it does not contain ICU, PDF, or VirtualKeyboard DLLs.
-- The published 0.147.5 Linux tarball and Debian package were inspected. Both
+- The published 0.148.0 Linux tarball and Debian package were inspected. Both
   contain Qt 6.11.3, miniupnpc 2.3.5 and SQLite 3.54.1. The prior 0.147.4
   packages contained affected SQLite 3.45.1-1ubuntu2.9 and unused Qt PDF and
   VirtualKeyboard copies; the 0.147.5 release replaces them with patched packages.
-- OpenSSL advisory reachability review is deferred for a later pass. Continue
-  auditing native dependency versions in Linux build provenance, Qt module
-  necessity, and the Qt Network CVE-2026-116337 update path.
+- OpenSSL advisories are no longer deferred: source review found no direct
+  FluxFTP calls to the affected APIs, but shared TLS libraries remain bundled.
+  Upgrade the Python and Qt TLS runtime branches when OpenSSL publishes fixed
+  releases. Continue validating the Qt Network mitigation/backport in release
+  candidates and mapping bundled Linux native libraries to exact versions.
 - The Linux SQLite 3.54.1 source build passed against extracted copies of both
-  published 0.147.5 package formats. Source hash verification, runtime version, disabled
+  published 0.148.0 package formats. Source hash verification, runtime version, disabled
   FTS3/FTS5 compile options, library hash/provenance agreement, and packaged
-  `--smoke-test` passed for both. The public 0.147.5 Linux packages carry the
+  `--smoke-test` passed for both. The public 0.148.0 Linux packages carry the
   verified SQLite 3.54.1 library.
 - The Linux bundle includes OpenSSL shared libraries, but their exact package
-  versions and advisories remain deferred as requested. A full native-library
-  inventory and review of other bundled Ubuntu libraries are still open.
+  versions and source mapping have not yet been reconciled against the Windows
+  advisory review. A full native-library inventory and review of other bundled
+  Ubuntu libraries are still open.
 
 ## Sources
 

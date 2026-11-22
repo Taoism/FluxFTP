@@ -7,14 +7,17 @@ class AutomationRuntime:
         from .automation import Automation
         from .folder_monitor import FolderMonitor
         from .watch_upload import WatchUploads
+        from .trading_service import TradingService
 
         self.window = window
         window.automation = Automation(window)
         window.folder_monitor = FolderMonitor(window)
         window.watch_uploads = WatchUploads(window)
+        window.trading_service = TradingService(window)
 
     def shutdown(self):
         window = self.window
         window.automation.shutdown()
         window.folder_monitor.shutdown()
         window.watch_uploads.shutdown()
+        window.trading_service.shutdown()

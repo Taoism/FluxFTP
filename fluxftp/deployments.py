@@ -11,6 +11,22 @@ from .transfer_reliability import digest
 from .watch_upload import excluded
 
 
+TEXT_SNAPSHOT_EXTENSIONS = frozenset({'.astro', '.cjs', '.cfg', '.conf', '.css', '.env.example', '.gql',
+    '.graphql', '.html', '.htm', '.ini', '.js', '.json', '.jsx', '.less', '.md', '.mdx', '.mjs',
+    '.php', '.properties', '.py', '.rst', '.sass', '.scss', '.sh', '.sql', '.svelte', '.toml', '.ts',
+    '.tsx', '.txt', '.vue', '.xml', '.yaml', '.yml'})
+MAX_TEXT_SNAPSHOT_FILE = 256 * 1024
+MAX_TEXT_SNAPSHOT_TOTAL = 8 * 1024 * 1024
+
+
+def _text_snapshot_candidate(relative, size):
+    if size < 0 or size > MAX_TEXT_SNAPSHOT_FILE:
+        return False
+    name = Path(relative).name.casefold()
+    return (not Path(name).suffix or Path(name).suffix in TEXT_SNAPSHOT_EXTENSIONS or name.endswith('.env.example') or
+            name in {'.htaccess', 'dockerfile', 'makefile'})
+
+
 
 
 def preview(profile, connection, cancel):
@@ -52,7 +68,7 @@ def execute(window, connection, job, worker):
         raise PreviewChanged('This deployment revision already started. Inspect its rollback preview or create a fresh deployment preview.')
     directory.mkdir(parents=True)
     journal = dict(version=1, created=time.time(), state='running', plan=plan,
-                   site=asdict(connection.site), entries={})
+                   site=asdict(connection.site), entries={}, source_text={})
     manifest = directory / 'manifest.json'
     atomic_json(manifest, journal)
     from .verification_reports import tracked_file, evidence
@@ -85,6 +101,16 @@ def execute(window, connection, job, worker):
             if lookup(connection, plan['profile']['destination'], relative) != file['destination']:
                 raise PreviewChanged('Deployment destination changed since preview: ' + relative)
             entry = dict(backup=f'{index:05d}.backup', before_sha256=None, state='prepared')
+            if _text_snapshot_candidate(relative, file['source']['size']):
+                current_bytes = Path(src).read_bytes()
+                existing_total = sum(len(value.encode('utf-8')) for value in journal['source_text'].values())
+                if (len(current_bytes) == file['source']['size'] and
+                        digest(None, src, 'SHA-256', worker.cancel) == file['source_sha256'] and
+                        existing_total + len(current_bytes) <= MAX_TEXT_SNAPSHOT_TOTAL):
+                    try:
+                        journal['source_text'][relative] = current_bytes.decode('utf-8-sig')
+                    except UnicodeDecodeError:
+                        pass
             if file['destination']:
                 backup = directory / entry['backup']
                 with binary_connection(connection): connection.transfer(backup, dst, False, worker.cancel, lambda *_: None)

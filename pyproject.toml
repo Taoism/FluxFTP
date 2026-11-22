@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fluxftp"
-version = "0.148.0"
+version = "0.149.0"
 description = "A modern two-pane FTP, FTPS and SFTP desktop client"
 readme = "README.md"
 license = "MIT"
@@ -27,7 +27,8 @@ include = ["fluxftp*"]
 
 [tool.setuptools.package-data]
 fluxftp = ["assets/cloud-providers/*.svg", "assets/cloud-providers/*.png", "assets/fluxftp-*.svg",
-           "assets/connection-states/light/*.svg", "assets/connection-states/dark/*.svg"]
+           "assets/connection-states/light/*.svg", "assets/connection-states/dark/*.svg",
+           "assets/trading-adapters/*.py", "assets/trading-adapters/*.mrc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

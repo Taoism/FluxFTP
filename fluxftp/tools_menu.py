@@ -57,10 +57,13 @@ class ToolsMenu(QObject):
         self.add('Synchronize Folders…', lambda: show_sync(window))
         from .deployment_ui import show_deployments
         self.add('Deployment Profiles…', lambda: show_deployments(window))
+        from .workspace_presets import show_workspace_presets
+        self.add('Workspace Presets…', lambda: show_workspace_presets(window), 'Ctrl+Alt+W')
         self.add('View RAW Directory…')
         self.menu.addSeparator()
         from .automation_runtime import AutomationRuntime
         window.automation_runtime = AutomationRuntime(window)
+        self.add('Auto Trading…', window.trading_service.show)
         self.add('Watch-and-upload Folders…', window.watch_uploads.show)
         self.add('Script Designer…', window.automation.show)
         self.add('Scheduled Automation…', window.automation.show)

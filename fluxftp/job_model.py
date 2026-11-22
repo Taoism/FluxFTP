@@ -99,4 +99,13 @@ def queue_descriptor(values, workspace):
         item[key] = asdict(site) if is_dataclass(site) else site
     for key in ('queue_group', 'sync', 'watch', 'deployment'):
         if values.get(key): item[key] = values[key]
+    if values.get('trade_id'):
+        trade_id = values['trade_id']
+        if not isinstance(trade_id, str) or not re.fullmatch('[0-9a-f]{64}', trade_id):
+            raise ValueError('Invalid auto-trade ID.')
+        item['trade_id'] = trade_id
+    if values.get('trade_conflict'):
+        if values['trade_conflict'] not in ('fail', 'skip', 'rename') or not item.get('trade_id'):
+            raise ValueError('Invalid auto-trade conflict policy.')
+        item['trade_conflict'] = values['trade_conflict']
     return item

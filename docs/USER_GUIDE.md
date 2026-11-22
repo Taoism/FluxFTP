@@ -74,7 +74,16 @@ Actions artifact as its local source. GitLab needs an HTTPS server, project ID o
 path, branch or tag, and a token with read API access. GitHub needs an
 `owner/repository`, branch or tag, and a token with Actions read access. Choose a
 successful pipeline/workflow run and its artifact. Tokens are stored in the
-encrypted credential vault. Archives are size-limited and safely extracted;
+encrypted credential vault. Use **Sign in with GitLab/GitHub** to open the
+provider's one-time-code authorization page; select **Remember sign-in on this
+device** to keep the token for later. The OAuth application ID must be entered
+once per provider/server and is kept in FluxFTP preferences. Register a GitLab
+OAuth application with the `device_code` grant and `read_api` scope. For GitHub,
+register a GitHub App, enable device flow, and grant Actions read permission.
+Providers can expire/revoke tokens; sign in again if a saved token stops working.
+FluxFTP rotates expiring GitHub access tokens with their saved refresh token;
+sign in again when the refresh token expires or is revoked. Manual tokens remain
+supported. Archives are size-limited and safely extracted;
 unsafe paths, links, special files and case-insensitive duplicates are rejected.
 The saved profile and rollback journal retain provider, project/repository,
 ref, run/pipeline, commit and artifact provenance.

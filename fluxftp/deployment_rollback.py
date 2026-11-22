@@ -53,6 +53,17 @@ def read_revision(directory):
     journal = json.loads(path.read_text('utf-8'))
     validate_job(journal['plan'])
     if not isinstance(journal.get('entries'), dict): raise ValueError('Invalid deployment journal entries.')
+    snapshots = journal.get('source_text', {})
+    if not isinstance(snapshots, dict) or len(snapshots) > len(journal['plan']['files']):
+        raise ValueError('Invalid deployment text snapshots.')
+    total = 0
+    allowed = {item['relative'] for item in journal['plan']['files']}
+    for relative, content in snapshots.items():
+        if relative not in allowed or not isinstance(content, str) or len(content.encode('utf-8')) > 256 * 1024:
+            raise ValueError('Invalid deployment text snapshot entry.')
+        total += len(content.encode('utf-8'))
+        if total > 8 * 1024 * 1024:
+            raise ValueError('Deployment text snapshots exceed the size limit.')
     return journal
 
 

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from fluxftp.queue_engine import QueueEngine, QueuePolicy
+from fluxftp.queue_engine import QueueEngine, QueuePolicy, schedule_key
 
 
 def job(name='file', **values):
@@ -18,6 +18,14 @@ def job(name='file', **values):
 
 
 WORKSPACE = object()
+
+
+def test_automatic_jobs_rank_after_user_jobs_without_manual_reordering():
+    manual = job('ordinary.zip')
+    automatic = job('ordinary.zip', automatic=True)
+
+    assert schedule_key(manual) < schedule_key(automatic)
+    assert schedule_key(job('trade.zip', automatic=True, manual_order=0)) < schedule_key(manual)
 
 
 def site(**values):

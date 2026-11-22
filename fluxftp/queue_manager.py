@@ -245,6 +245,7 @@ class QueueManager(BufferedQueue):
             yield snapshot(self, job)
 
     def make_queue_task(self, job):
+        from dataclasses import replace
         from .queue_prepare import expansion_template, expanded
         ordered_folder = job.get('route') in ('Upload', 'Download') and job.get('directory')
         # Plan queued transfers before sending so small files across the entire
@@ -320,11 +321,22 @@ class QueueManager(BufferedQueue):
                         from .crc_check import CRCMismatch
                         source.crc_root = job.get('crc_root') or (job['src'] if job['directory'] else posixpath.dirname(job['src']) or '/')
                     try:
+                        conflict_handler = lambda details: self.conflicts.ask(details, worker.cancel)
+                        if job.get('trade_id'):
+                            policy = job.get('trade_conflict', 'fail')
+                            def conflict_handler(details):
+                                if policy == 'fail':
+                                    raise ValueError('Auto trade stopped because destination content already exists.')
+                                if policy == 'rename':
+                                    return 'Auto Rename'
+                                if str(details.get('match_status', '')).startswith('Content matches ('):
+                                    return 'Auto Skip'
+                                raise ValueError('Auto trade cannot skip unverified destination content.')
                         result = transfer_tree(*connections, job['src'], job['dst'], job['directory'], worker.cancel,
                             worker.report, job['resume'], depth=1 if job.get('automatic') else 0, options=job['options'],
                             skipped=skipped_file, renamed=renamed_file, planned=planned,
                             skipped_directories=skipped_directories,
-                            conflict=lambda details: self.conflicts.ask(details, worker.cancel), notice=messages.append,
+                            conflict=conflict_handler, notice=messages.append,
                             file_started=file_started if job['streaming_folder'] else None)
                     except CRCMismatch as error:
                         crc_errors.append(dict(src=error.remote, dst=error.local, message=str(error)))

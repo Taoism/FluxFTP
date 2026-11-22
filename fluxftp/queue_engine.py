@@ -38,7 +38,9 @@ def site_key(site):
 
 def schedule_key(job, rules=DEFAULT_RULES):
     order = job.get('manual_order')
-    return (0, order) if order is not None else (1, priority_rank(job.get('name', ''), rules))
+    if order is not None:
+        return 0, order
+    return (2 if job.get('automatic') else 1, priority_rank(job.get('name', ''), rules))
 
 
 class QueueEngine:

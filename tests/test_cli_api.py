@@ -14,6 +14,9 @@ from fluxftp.api_server import ControlAPI
 from fluxftp.app import Window
 from fluxftp.connection_model import Entry, Site
 
+# Keep the test API away from FluxFTP/V's live listener on port 8765.
+TEST_CONTROL_API_PORT = 0  # Let the OS choose an available loopback port.
+
 
 def run_cli(argv):
     output, error, code = io.StringIO(), io.StringIO(), []
@@ -42,7 +45,7 @@ def run_cli(argv):
 def test_cli_api_auth_listing_transfers_queue_json_and_exit_codes(monkeypatch, tmp_path, capsys):
     app = QApplication.instance() or QApplication([])
     window = Window(smoke=True)
-    api = ControlAPI(window, port=0)
+    api = ControlAPI(window, port=TEST_CONTROL_API_PORT)
     original_api = cli.API
     original_token = cli._token
     cli.API = f"http://127.0.0.1:{api.server.server_address[1]}"
@@ -136,5 +139,81 @@ def test_cli_api_auth_listing_transfers_queue_json_and_exit_codes(monkeypatch, t
         api.close()
         cli.API = original_api
         cli._token = original_token
+        window.close()
+        app.processEvents()
+
+
+def test_authenticated_irc_bridge_validates_client_and_forwards_event():
+    app = QApplication.instance() or QApplication([])
+    window = Window(smoke=True)
+    api = ControlAPI(window, port=TEST_CONTROL_API_PORT)
+    seen = []
+    original_trading_service = window.trading_service
+    class TradingStub:
+        def handle_irc_message(self, **payload):
+            seen.append(payload)
+            return True, 'accepted'
+    window.trading_service = TradingStub()
+    payload = dict(network='trades', channel='#release', sender='bot', message='!trade Movie',
+                   event_id='unique-message', source_client='adiirc')
+    try:
+        assert api._execute('POST', '/v1/trading/irc-event', payload) == (202, {
+            'accepted': True, 'message': 'accepted'})
+        assert seen == [payload]
+        payload['source_client'] = 'arbitrary-client'
+        try:
+            api._execute('POST', '/v1/trading/irc-event', payload)
+        except ValueError as error:
+            assert 'source_client must be hexchat or adiirc' in str(error)
+        else:
+            raise AssertionError('Unrecognized IRC bridge clients must be rejected.')
+    finally:
+        window.trading_service = original_trading_service
+        api.close()
+        window.close()
+        app.processEvents()
+
+
+def test_hexchat_form_bridge_accepts_dedicated_bridge_token():
+    import threading
+    import time
+    from urllib.parse import urlencode
+
+    app = QApplication.instance() or QApplication([])
+    window = Window(smoke=True)
+    api = ControlAPI(window, port=TEST_CONTROL_API_PORT)
+    seen = []
+    original_trading_service = window.trading_service
+    class TradingStub:
+        def handle_irc_message(self, **payload):
+            seen.append(payload)
+            return True, 'accepted'
+    window.trading_service = TradingStub()
+    response = []
+    payload = dict(network='trades', channel='#release', sender='bot', message='!trade Movie',
+                   event_id='hexchat-message', source_client='hexchat')
+    def send():
+        body = urlencode(payload).encode('utf-8')
+        request = Request(f"http://127.0.0.1:{api.server.server_address[1]}/v1/trading/irc-event",
+            data=body, method='POST', headers={'Authorization': 'Bearer ' + api.bridge_token,
+            'Content-Type': 'application/x-www-form-urlencoded'})
+        try:
+            with urlopen(request, timeout=3) as result:
+                response.append((result.status, json.loads(result.read())))
+        except Exception as error:
+            response.append(error)
+    thread = threading.Thread(target=send)
+    try:
+        thread.start()
+        deadline = time.monotonic() + 3
+        while thread.is_alive() and time.monotonic() < deadline:
+            app.processEvents()
+            time.sleep(0.005)
+        thread.join(timeout=0.1)
+        assert response == [(202, {'accepted': True, 'message': 'accepted'})]
+        assert seen == [payload]
+    finally:
+        window.trading_service = original_trading_service
+        api.close()
         window.close()
         app.processEvents()

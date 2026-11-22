@@ -8,13 +8,96 @@ import uuid
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QHBoxLayout,
     QLineEdit, QComboBox, QPushButton, QLabel, QTreeWidget, QTreeWidgetItem,
-    QDialogButtonBox, QFileDialog, QInputDialog, QMessageBox)
+    QDialogButtonBox, QFileDialog, QInputDialog, QMessageBox, QPlainTextEdit)
 
 from .automation import saved_connection
 from .deployments import validate_profile, preview, revision_path, read_revision, rollback_preview
 from .gitlab_artifact_dialog import GitLabArtifactDialog
 from .github_artifact_dialog import GitHubArtifactDialog
 from .sync_profiles import atomic_json
+from .deployment_compare import compare_revisions, text_diff
+
+
+class CompareDeploymentDialog(QDialog):
+    """Show changed paths and saved text diffs for two deployment revisions."""
+    def __init__(self, window, revisions):
+        super().__init__(window)
+        self.window = window
+        self.revisions = revisions
+        self.setWindowTitle('Compare Deployment Revisions')
+        self.resize(1100, 760)
+        layout = QVBoxLayout(self)
+        selectors = QHBoxLayout()
+        self.first = QComboBox()
+        self.second = QComboBox()
+        self.first.setAccessibleName('First deployment revision')
+        self.second.setAccessibleName('Second deployment revision')
+        for combo in (self.first, self.second):
+            combo.addItem('Select a deployment revision', '')
+            for identity, label, _journal in revisions:
+                combo.addItem(label, identity)
+            selectors.addWidget(combo, 1)
+        self.compare_button = QPushButton('Compare')
+        selectors.addWidget(self.compare_button)
+        layout.addLayout(selectors)
+        self.status = QLabel('Choose two revisions to compare their deployment plans.')
+        self.status.setWordWrap(True)
+        layout.addWidget(self.status)
+        self.files = QTreeWidget()
+        self.files.setHeaderLabels(['Relative path', 'Comparison'])
+        self.files.setRootIsDecorated(False)
+        self.files.setAccessibleName('Changed files between deployment revisions')
+        self.files.currentItemChanged.connect(self.show_diff)
+        layout.addWidget(self.files, 2)
+        self.diff = QPlainTextEdit()
+        self.diff.setReadOnly(True)
+        self.diff.setAccessibleName('Configuration or website text diff')
+        layout.addWidget(self.diff, 3)
+        self.close_button = QPushButton('Close')
+        self.close_button.clicked.connect(self.accept)
+        layout.addWidget(self.close_button)
+        self.compare_button.clicked.connect(self.compare)
+
+    def journal(self, identity):
+        return next(journal for key, _label, journal in self.revisions if key == identity)
+
+    def compare(self):
+        first_id, second_id = self.first.currentData(), self.second.currentData()
+        self.files.clear()
+        self.diff.clear()
+        self._text = ({}, {})
+        if not first_id or not second_id or first_id == second_id:
+            self.status.setText('Choose two different deployment revisions.')
+            return
+        first, second = self.journal(first_id), self.journal(second_id)
+        first_profile = first['plan']['profile']
+        second_profile = second['plan']['profile']
+        if (first_profile['site'], first_profile['destination']) != (
+                second_profile['site'], second_profile['destination']):
+            self.status.setText('Choose revisions for the same saved site and destination folder.')
+            return
+        rows, first_text, second_text = compare_revisions(first, second)
+        self._text = (first_text, second_text)
+        self.files.clear()
+        for row in rows:
+            item = QTreeWidgetItem([row['relative'], row['status']])
+            item.setData(0, Qt.ItemDataRole.UserRole, row['relative'])
+            self.files.addTopLevelItem(item)
+        self.status.setText(f'{len(rows)} planned file path(s) compared: {first_profile["name"]} → {second_profile["name"]}. '
+            'A file missing from one deployment plan was not necessarily deleted; deployments preserve destination-only files.')
+        if rows:
+            self.files.setCurrentItem(self.files.topLevelItem(0))
+        else:
+            self.diff.clear()
+            self.status.setText('No changed file paths appear in these deployment plans.')
+
+    def show_diff(self, item, _previous):
+        if item is None or not hasattr(self, '_text'):
+            self.diff.clear()
+            return
+        relative = item.data(0, Qt.ItemDataRole.UserRole)
+        first_text, second_text = self._text
+        self.diff.setPlainText(text_diff(relative, first_text.get(relative), second_text.get(relative)))
 
 
 class ProfileEditor(QDialog):
@@ -50,7 +133,8 @@ class ProfileEditor(QDialog):
         github_button.clicked.connect(self.import_github_artifact)
         form.addRow(github_button)
         note = QLabel('Changed files overwrite the destination only after preview approval. Previous files are backed up locally. '
-            'Destination-only files and empty folders are retained. Checksum readback may download files when native hashes are unavailable.')
+            'Destination-only files and empty folders are retained. Revision journals keep bounded UTF-8 snapshots of small '
+            'configuration and site text files for comparison. Checksum readback may download files when native hashes are unavailable.')
         note.setWordWrap(True)
         form.addRow(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -140,12 +224,13 @@ class DeploymentDialog(QDialog):
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
         buttons = QHBoxLayout()
-        self.preview_button, self.rollback_button, self.queue_button, self.close_button = [QPushButton(t) for t in
-            ('Preview deployment', 'Preview rollback…', 'Queue approved plan', 'Close')]
-        for button in (self.preview_button, self.rollback_button, self.queue_button, self.close_button): buttons.addWidget(button)
+        self.preview_button, self.rollback_button, self.compare_button, self.queue_button, self.close_button = [QPushButton(t) for t in
+            ('Preview deployment', 'Preview rollback…', 'Compare revisions…', 'Queue approved plan', 'Close')]
+        for button in (self.preview_button, self.rollback_button, self.compare_button, self.queue_button, self.close_button): buttons.addWidget(button)
         layout.addLayout(buttons)
         self.preview_button.clicked.connect(self.start)
         self.rollback_button.clicked.connect(self.select_rollback)
+        self.compare_button.clicked.connect(self.select_comparison)
         self.queue_button.clicked.connect(self.enqueue)
         self.close_button.clicked.connect(self.reject)
         self.profile.currentTextChanged.connect(self.invalidate)
@@ -178,7 +263,7 @@ class DeploymentDialog(QDialog):
         self.controls()
 
     def controls(self):
-        for control in (self.profile, self.preview_button, self.rollback_button, *self.edit_buttons): control.setEnabled(not self.worker)
+        for control in (self.profile, self.preview_button, self.rollback_button, self.compare_button, *self.edit_buttons): control.setEnabled(not self.worker)
         self.queue_button.setEnabled(not self.worker and self.plan is not None)
 
     def save(self, profiles):
@@ -283,6 +368,30 @@ class DeploymentDialog(QDialog):
             return
         chosen, ok = QInputDialog.getItem(self, 'Preview rollback', 'Deployment revision', choices, 0, False)
         if ok: self.start(revision=revisions[choices.index(chosen)][1])
+
+    def select_comparison(self):
+        root = self.window.sites_file.parent / 'deployments'
+        revisions = []
+        if root.exists():
+            for path in sorted(root.iterdir(), key=lambda candidate: candidate.name, reverse=True):
+                try:
+                    journal = read_revision(revision_path(self.window, path.name))
+                    profile = journal['plan']['profile']
+                    provenance = profile.get('github') or profile.get('gitlab') or {}
+                    commit = provenance.get('commit_sha', '')[:12]
+                    origin = f' · {commit}' if commit else ''
+                    label = (f'{time.strftime("%Y-%m-%d %H:%M", time.localtime(journal["created"]))} · '
+                             f'{profile["name"]} · {profile["site"]}:{profile["destination"]} · '
+                             f'{journal["state"]}{origin} · {path.name[:12]}')
+                    revisions.append((path.name, label, journal))
+                except (OSError, ValueError, KeyError, TypeError):
+                    continue
+        if len(revisions) < 2:
+            self.status.setText('At least two valid deployment revisions are needed for comparison.')
+            return
+        dialog = CompareDeploymentDialog(self.window, revisions[:100])
+        dialog.exec()
+        dialog.deleteLater()
 
     def enqueue(self):
         if not self.plan or self.worker: return

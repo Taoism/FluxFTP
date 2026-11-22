@@ -1,9 +1,11 @@
 """Picker for successful GitLab pipeline jobs with downloadable artifacts."""
 from __future__ import annotations
 
-from PySide6.QtCore import QThread, Signal
+import hashlib
+from PySide6.QtCore import QThread, Signal, QUrl, QTimer
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QHBoxLayout, QLineEdit,
-    QComboBox, QPushButton, QLabel, QDialogButtonBox, QMessageBox)
+    QComboBox, QPushButton, QLabel, QDialogButtonBox, QMessageBox, QCheckBox)
 
 from urllib.parse import quote
 
@@ -26,6 +28,9 @@ class _GitLabWorker(QThread):
 
 
 class GitLabArtifactDialog(QDialog):
+    oauth_provider = 'gitlab'
+    oauth_settings_key = 'gitlab_artifact_oauth_client_id'
+    provider_name = 'GitLab'
     def __init__(self, window, parent=None):
         super().__init__(parent or window)
         self.window = window
@@ -37,6 +42,7 @@ class GitLabArtifactDialog(QDialog):
         self.worker = None
         self.pending_accept = False
         self.pending_close = False
+        self.oauth_flow = None
         self.setWindowTitle('Import GitLab Pipeline Artifact')
         self.resize(740, 430)
         layout = QVBoxLayout(self)
@@ -49,15 +55,23 @@ class GitLabArtifactDialog(QDialog):
         self.token = QLineEdit()
         self.token.setEchoMode(QLineEdit.EchoMode.Password)
         self.token.setPlaceholderText('Token with read_api access (saved encrypted after successful connection)')
+        self.oauth_client_id = QLineEdit()
+        self.oauth_client_id.setPlaceholderText('OAuth application ID (device_code grant, read_api scope)')
+        self.oauth_remember = QCheckBox('Remember sign-in on this device')
+        self.oauth_remember.setChecked(True)
         form.addRow('GitLab server (HTTPS)', self.server)
         form.addRow('Project', self.project_input)
         form.addRow('Branch or tag', self.ref)
         form.addRow('Access token', self.token)
+        form.addRow('OAuth application ID', self.oauth_client_id)
+        form.addRow('', self.oauth_remember)
         layout.addLayout(form)
         actions = QHBoxLayout()
         self.find_button = QPushButton('Find successful pipelines')
         self.jobs_button = QPushButton('Load artifact jobs')
         self.import_button = QPushButton('Import selected artifact')
+        self.sign_in_button = QPushButton('Sign in with GitLab…')
+        actions.addWidget(self.sign_in_button)
         actions.addWidget(self.find_button)
         actions.addWidget(self.jobs_button)
         actions.addWidget(self.import_button)
@@ -77,8 +91,11 @@ class GitLabArtifactDialog(QDialog):
         self.find_button.clicked.connect(self.find_pipelines)
         self.jobs_button.clicked.connect(self.load_jobs)
         self.import_button.clicked.connect(self.import_artifact)
+        self.sign_in_button.clicked.connect(self.sign_in)
         self.server.editingFinished.connect(self.load_saved_token)
+        self.server.editingFinished.connect(self.load_oauth_client_id)
         self.load_saved_token()
+        self.load_oauth_client_id()
         self.jobs_button.setEnabled(False)
         self.import_button.setEnabled(False)
 
@@ -89,6 +106,62 @@ class GitLabArtifactDialog(QDialog):
             self.token.setText(self.window.credential_vault.get(token_id(self.server.text())))
         except (ValueError, RuntimeError):
             self.token.clear()
+
+    def oauth_client_id_key(self):
+        if self.oauth_provider == 'gitlab':
+            try:
+                server = normalize_url(self.server.text()).casefold()
+            except ValueError:
+                server = self.server.text().strip().casefold()
+            digest = hashlib.sha256(server.encode('utf-8')).hexdigest()
+            return self.oauth_settings_key + ':' + digest
+        return self.oauth_settings_key
+
+    def load_oauth_client_id(self):
+        self.oauth_client_id.setText(self.window.preferences.value(self.oauth_client_id_key(), ''))
+
+    def sign_in(self):
+        from .artifact_oauth import request_device_code
+        try:
+            base = normalize_url(self.server.text())
+            client_id = self.oauth_client_id.text().strip()
+            if not client_id:
+                raise ValueError('Enter the OAuth application ID registered on this GitLab server.')
+            self.window.preferences.setValue(self.oauth_client_id_key(), client_id)
+        except (ValueError, RuntimeError) as error:
+            QMessageBox.warning(self, 'GitLab sign-in failed', str(error))
+            return
+        self.status.setText('Requesting a one-time GitLab sign-in code…')
+        self._begin(lambda: request_device_code(self.oauth_provider, base, client_id), self._oauth_code_ready,
+                    self.provider_name + ' sign-in failed')
+
+    def _oauth_code_ready(self, flow):
+        self.oauth_flow = flow
+        QDesktopServices.openUrl(QUrl(flow['verification_uri']))
+        QMessageBox.information(self, 'Authorize FluxFTP with ' + self.provider_name,
+            f"{self.provider_name} opened in your browser. Enter this one-time code:\n\n{flow['user_code']}\n\n"
+            f"The code expires in about {flow['expires_in'] // 60 or 1} minute(s).")
+        QTimer.singleShot(0, self._start_oauth_poll)
+
+    def _start_oauth_poll(self):
+        from .artifact_oauth import poll_device_token
+        flow = self.oauth_flow
+        if not flow:
+            return
+        self.status.setText('Waiting for ' + self.provider_name + ' authorization…')
+        self._begin(lambda: poll_device_token(flow, structured=self.oauth_provider == 'github'), self._oauth_token_ready,
+                    self.provider_name + ' sign-in failed')
+
+    def _oauth_token_ready(self, secret):
+        try:
+            base = self.oauth_flow['base_url']
+            if self.oauth_remember.isChecked():
+                self.window.credential_vault.set(token_id(base), secret)
+            self.token.setText(secret)
+            self.status.setText(self.provider_name + ' sign-in succeeded. Load pipelines to verify project access.')
+        except RuntimeError as error:
+            self.token.setText(secret)
+            self.status.setText('Signed in for this session; encrypted saving failed: ' + str(error))
 
     def find_pipelines(self):
         base, project_ref, ref, secret = (self.server.text(), self.project_input.text().strip(),
@@ -114,8 +187,9 @@ class GitLabArtifactDialog(QDialog):
         self._begin(lookup, self._pipelines_loaded, 'GitLab pipeline lookup failed')
 
     def _pipelines_loaded(self, result):
-        self.client, self.project, pipelines = result
-        self.token.setText(self.client.token)
+        self.client, self.project, pipelines = result[:3]
+        saved_token = result[3] if len(result) > 3 else ''
+        self.token.setText(saved_token or self.client.token)
         try:
             if not pipelines:
                 raise ValueError('No successful pipelines were found for that branch or tag.')
@@ -204,6 +278,7 @@ class GitLabArtifactDialog(QDialog):
         if self.worker:
             return
         self.find_button.setEnabled(False)
+        self.sign_in_button.setEnabled(False)
         self.jobs_button.setEnabled(False)
         self.import_button.setEnabled(False)
         worker = self.worker = _GitLabWorker(function)
@@ -221,6 +296,7 @@ class GitLabArtifactDialog(QDialog):
         if worker:
             worker.deleteLater()
         self.find_button.setEnabled(True)
+        self.sign_in_button.setEnabled(True)
         self.jobs_button.setEnabled(bool(self.pipelines))
         self.import_button.setEnabled(bool(self.jobs))
         if self.pending_accept:

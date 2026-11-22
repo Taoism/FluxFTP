@@ -1,6 +1,6 @@
 """Transfer submission and queue lifecycle operations for the desktop window."""
 import os
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -36,7 +36,8 @@ class TransferQueue:
         source = SimpleNamespace(mode="Local", site=None, password="", busy=False, join=sources.__getitem__)
         self.enqueue_items(source, dest, entries, start=start)
 
-    def enqueue_items(self, source, dest, entries, start=None, confirmed=False):
+    def enqueue_items(self, source, dest, entries, start=None, confirmed=False,
+                      automatic=False, trade_id='', trade_conflict='fail'):
         split = dest.parentWidget()
         if source.busy or dest.busy or not entries:
             return
@@ -46,6 +47,10 @@ class TransferQueue:
         route = "FXP" if source_remote and dest_remote else "Upload" if dest_remote else "Download" if source_remote else "Copy"
         try:
             options = transfer_settings(self.preferences, source.site if source_remote else None, dest.site if dest_remote else None)
+            if trade_id:
+                if not isinstance(trade_id, str) or len(trade_id) != 64 or trade_conflict not in ('fail', 'skip', 'rename'):
+                    raise ValueError('Invalid auto-trade queue metadata.')
+                options = replace(options, conflict_prompt=True)
             names = [options.filename(entry.name, route) for entry in entries]
             compared = [name.casefold() for name in names] if not dest_remote and os.name == "nt" else names
             if len(compared) != len(set(compared)):
@@ -106,7 +111,10 @@ class TransferQueue:
                 "source_side": int(getattr(source, "number", 1)), "destination_side": int(getattr(dest, "number", 2)),
                 "src": src, "dst": dst, "directory": entry.is_dir, "resume": resume,
                 "name": entry.name, "options": options, "state": "queued", "retries": 0, "held": start is False,
+                "automatic": bool(automatic),
             }
+            if trade_id:
+                job.update(trade_id=trade_id, trade_conflict=trade_conflict)
             if selection_buffer is not None and not entry.is_dir:
                 selection_buffer.append(dict(src=src, dst=dst, name=entry.name, size=entry.size,
                     directory=False, resume=resume, state='queued', retries=0, held=start is False,

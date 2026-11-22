@@ -24,6 +24,22 @@ def test_full_storage_roundtrip_without_qt(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+def test_trade_queue_metadata_roundtrips_and_is_validated(tmp_path):
+    data = descriptor(tmp_path)
+    data.update(trade_id='a' * 64, trade_conflict='rename', automatic=True)
+    path = tmp_path/'trade-queue.json'
+    write_queue(path, [data])
+    item = read_queue(path)[0]
+    assert item['trade_id'] == 'a' * 64
+    assert item['trade_conflict'] == 'rename'
+    assert item['automatic'] is True
+
+    data['trade_conflict'] = 'delete'
+    write_queue(path, [data])
+    with pytest.raises(ValueError, match='auto-trade conflict policy'):
+        read_queue(path)
+
+
 def test_pinned_spool_snapshot_survives_removal_and_owner_close(tmp_path):
     spool = DiskBuffer()
     for i in (1, 2): spool.append(descriptor(tmp_path, i))

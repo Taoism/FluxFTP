@@ -106,6 +106,9 @@ def test_deployment_editor_exposes_github_actions_import(monkeypatch):
         assert dialog.server.text() == "https://github.com"
         assert dialog.server.isReadOnly()
         assert dialog.project_input.placeholderText() == "owner/repository"
+        assert dialog.sign_in_button.text() == "Sign in with GitHub…"
+        assert dialog.oauth_client_id.placeholderText().startswith('GitHub App client ID')
+        assert dialog.oauth_remember.isChecked()
     finally:
         if dialog:
             dialog.close()

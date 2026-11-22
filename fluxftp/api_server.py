@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 from PySide6.QtCore import QObject, Qt, Signal
 
 TOKEN_ID = 'control-api-token-v1'
+TRADING_BRIDGE_TOKEN_ID = 'trading-bridge-token-v1'
 MAX_BODY = 16 * 1024
 
 
@@ -34,6 +35,10 @@ class ControlAPI(QObject):
         if not self.token:
             self.token = secrets.token_urlsafe(32)
             window.credential_vault.set(TOKEN_ID, self.token)
+        self.bridge_token = window.credential_vault.get(TRADING_BRIDGE_TOKEN_ID)
+        if not self.bridge_token:
+            self.bridge_token = secrets.token_urlsafe(32)
+            window.credential_vault.set(TRADING_BRIDGE_TOKEN_ID, self.bridge_token)
         self.dispatch.connect(self._dispatch, Qt.ConnectionType.QueuedConnection)
         self.server = ThreadingHTTPServer(('127.0.0.1', port), self._handler())
         self.server.daemon_threads = True
@@ -73,8 +78,11 @@ class ControlAPI(QObject):
                 if peer not in ('127.0.0.1', '::1'):
                     self.respond(403, {'error': 'loopback clients only'})
                     return
+                parsed = urlsplit(self.path)
+                expected_token = (controller.bridge_token if parsed.path == '/v1/trading/irc-event'
+                                  else controller.token)
                 supplied = self.headers.get('Authorization', '')
-                if not supplied.startswith('Bearer ') or not hmac.compare_digest(supplied[7:], controller.token):
+                if not supplied.startswith('Bearer ') or not hmac.compare_digest(supplied[7:], expected_token):
                     self.respond(401, {'error': 'bearer token required'})
                     return
                 payload = None
@@ -84,7 +92,13 @@ class ControlAPI(QObject):
                         if length < 0 or length > MAX_BODY:
                             self.respond(413, {'error': 'request body too large'})
                             return
-                        payload = json.loads(self.rfile.read(length) or b'{}')
+                        body = self.rfile.read(length) or b'{}'
+                        if (parsed.path == '/v1/trading/irc-event'
+                                and self.headers.get_content_type() == 'application/x-www-form-urlencoded'):
+                            payload = {key: values[-1] for key, values in
+                                       parse_qs(body.decode('utf-8'), keep_blank_values=True).items()}
+                        else:
+                            payload = json.loads(body)
                         if not isinstance(payload, dict):
                             raise ValueError('JSON body must be an object')
                     except (ValueError, UnicodeError, json.JSONDecodeError):
@@ -93,7 +107,6 @@ class ControlAPI(QObject):
                 if self.command not in ('GET', 'POST'):
                     self.respond(405, {'error': 'method not allowed'})
                     return
-                parsed = urlsplit(self.path)
                 if self.command == 'GET':
                     payload = {key: values[-1] for key, values in parse_qs(parsed.query, keep_blank_values=True).items()}
                 call = _Call(self.command, parsed.path, payload)
@@ -200,6 +213,24 @@ class ControlAPI(QObject):
         if method == 'POST' and path == '/v1/rush-script':
             from .rush_compat import queue_script
             return 202, queue_script(self, payload)
+        if method in ('GET', 'POST') and path == '/v1/trading/irc-event':
+            if not isinstance(payload, dict):
+                raise ValueError('IRC event body must be a JSON object.')
+            required = ('network', 'channel', 'sender', 'message', 'event_id', 'source_client')
+            if any(not isinstance(payload.get(key), str) or not payload[key] for key in required):
+                raise ValueError('IRC event requires network, channel, sender, message, event_id and source_client.')
+            if payload['source_client'] not in ('hexchat', 'adiirc'):
+                raise ValueError('source_client must be hexchat or adiirc.')
+            if (len(payload['network']) > 128 or len(payload['channel']) > 200 or len(payload['sender']) > 128 or
+                    len(payload['message']) > 2048 or len(payload['event_id']) > 4096):
+                raise ValueError('IRC event field exceeds its size limit.')
+            service = getattr(w, 'trading_service', None)
+            if service is None:
+                return 503, {'error': 'auto-trading service is unavailable'}
+            accepted, message = service.handle_irc_message(**payload)
+            if not accepted:
+                return 400, {'accepted': False, 'error': message}
+            return 202, {'accepted': True, 'message': message}
         return 404, {'error': 'unknown endpoint'}
 
     def _endpoint(self, value, label):

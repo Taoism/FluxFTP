@@ -8,7 +8,7 @@ def test_tools_reference_and_shortcuts(window, monkeypatch):
     assert [a.text() if not a.isSeparator() else '---' for a in window.tools_menu.actions()] == [
         'Queue', 'Transfer History…', 'JSON API Access…', 'Unified Bandwidth Management…', '---', 'Site Manager…', 'Certification Checker…', 'Enable Debug Logging…', 'Connection Diagnostics…', 'SSHFS Mounts…', 'Add to site manager…', '---', 'Command',
         'Command Designer…', 'Send Raw Command…', '---', 'Compare folder contents\tCtrl+D',
-        'Synchronize Folders…', 'Deployment Profiles…', 'View RAW Directory…', '---', 'Watch-and-upload Folders…', 'Script Designer…', 'Scheduled Automation…', '---', 'Languages', '---',
+        'Synchronize Folders…', 'Deployment Profiles…', 'Workspace Presets…', 'View RAW Directory…', '---', 'Auto Trading…', 'Watch-and-upload Folders…', 'Script Designer…', 'Scheduled Automation…', '---', 'Languages', '---',
         'Layout', '---', 'Hotkey Manager…', 'Manual Download from Site…', 'TFTP Transfer…', '---',
         'Clipboard', '---', 'Transfer Mode', 'On Transfer Completed', '---',
         'Create SFV or MD5 file…', 'IP Address Translate…', '---', 'Restart UPnP service…',
@@ -17,6 +17,7 @@ def test_tools_reference_and_shortcuts(window, monkeypatch):
     assert commands.actions['Site Manager…'].shortcut().toString() == 'F3'
     assert commands.actions['Options…'].shortcut().toString() == 'F6'
     assert commands.actions['Options…'].shortcutContext() == Qt.ShortcutContext.ApplicationShortcut
+    assert commands.actions['Workspace Presets…'].shortcut().toString() == 'Ctrl+Alt+W'
     assert len([a for a in window.findChildren(QAction) if a.shortcut().toString() == 'F3']) == 1
     assert commands.actions['Script Designer…'].isEnabled()
     assert commands.actions['Scheduled Automation…'].isEnabled()

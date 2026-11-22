@@ -31,9 +31,20 @@ remaining companion requirements are combined here as well.
   Windows and Linux release builds now use locally extracted,
   checksum-pinned CPython 3.13.18 runtimes without changing system Python or
   PATH. The Windows runtime is verified with OpenSSL 3.5.9 and SQLite 3.54.1.
-  Complete the native-library inventory, track the fixed Qt
-  release, and review Qt optional module necessity. OpenSSL advisory follow-up
-  remains deferred. See `docs/SECURITY_AUDIT.md`.
+  The 2026-11-20 review confirmed the 0.148.0 Qt 6.11.3 inventory and proved
+  five unused Windows QML/Quick DLLs can be omitted for packaged startup and the
+  F6 smoke check. The next release packagers now exclude Qt Network bindings,
+  native libraries and related plugins to remove the CVE-2026-116337 code path.
+  Qt's two official 6.11 backport patches now apply to the QtBase 6.11.3 source;
+  the adapted HTTP reply tests pass on Ubuntu 24.04. A Windows packaging
+  candidate made from the 0.148.0 bundle now excludes Qt Network and passes
+  packaged startup and F6 smoke checks. Build compatible patched Windows and
+  Linux runtime artifacts and validate their TLS/startup workflows in release
+  candidates before replacing the exclusion. The published 0.148.0 packages
+  are unchanged.
+  Then update both bundled OpenSSL branches when fixed vendor releases appear
+  and complete per-file Linux native-library version/provenance mapping. See
+  `docs/SECURITY_AUDIT.md`.
 
 ### Platform builds and release
 
@@ -73,6 +84,11 @@ remaining companion requirements are combined here as well.
   embedded 32×32 icon matches `fluxftp/assets/fluxftp.ico` pixel-for-pixel.
 
 ### Desktop features
+
+- [ ] Add an opt-in local web interface so FluxFTP can be opened in a browser
+  at `http://localhost:<port>`. Reuse the desktop app's authenticated session
+  and transfer engine, keep the service bound to loopback by default, and provide
+  clear controls to start and stop the local server.
 
 - [x] Make the F6 key open Options from anywhere in the main window; show F6 on
   the Options toolbar tooltip and share the same action with Edit and Tools.
@@ -141,8 +157,19 @@ remaining companion requirements are combined here as well.
   800×800 screen. The shortcut path has no monitor-detection dependency, so the
   single-monitor hypothesis is not supported by this evidence; an interactive
   physical Debian desktop was not available for reproducing the original report.
-- [ ] Define and implement the auto-trading workflow before enabling trades.
-  Requirements captured so far:
+- [x] Define and implement the auto-trading workflow before enabling trades.
+  The accepted definitions are: "cowboy" means manual ledger submission to a
+  configured route, "rational" means rule-based discovery, and "same as
+  previous" requests no additional behavior. Implemented `.fluxftprc` TOML
+  validation and preview, bounded stable-folder manifests, durable `trade.DB`
+  state and event history, duplicate suppression, recovery controls, bounded
+  retries/backoff, queue prioritization and active-trade limits, post-transfer
+  verification, global and per-route controls, one-shot manual submission,
+  built-in TLS-first IRC, and HexChat/AdiIRC loopback bridge adapters. The global
+  switch defaults off. Configuration, state policy, adapter setup and acceptance
+  scenarios are documented in `docs/AUTO_TRADING.md`; run the focused batch
+  recorded in `tests.md` before further changes.
+  Original requirements, retained for traceability:
   - FTP Method 2: poll each configured source site every 10 seconds and compare
     directory listings to detect newly created source folders; determine a
     reliable comparison method (the initial idea was to export two `ls`
@@ -234,9 +261,14 @@ remaining companion requirements are combined here as well.
   engine/UI, deployment rollback/journaling (`deployment_rollback.py`), and recursive transfer-tree orchestration (`transfer_service.py`) are separated. The deferred 100,001-item regression tests passed on 2026-11-19; the incremental capacity-mapping plan remains open.
 - [ ] Validate GitLab and GitHub Actions artifact deployments against live
   projects. Both pickers, encrypted token storage, bounded/safe artifact imports,
-  deployment previews and rollback provenance are implemented. Focused mocked
-  client/archive tests and deployment regression tests pass; live project checks
-  remain.
+  deployment previews and rollback provenance are implemented. Both pickers now
+  offer OAuth device sign-in: FluxFTP opens the provider's verification page,
+  displays its one-time code, and can remember the resulting token in the
+  encrypted credential vault. Manual token entry remains available. OAuth
+  application client IDs must be configured; GitLab applications need the
+  `device_code` grant and `read_api` scope, and GitHub Apps need Actions read
+  permission. Focused mocked client/archive and OAuth-flow tests pass; live
+  project checks remain.
 - [x] Expose and verify the **Import GitHub Actions artifact** option in the
   0.132.0 Deployment Profile editor. The rebuilt package includes the GitHub
   client and dialog; profile-editor import and provenance tests pass. Live
@@ -249,10 +281,15 @@ remaining companion requirements are combined here as well.
   and cloud site selection. Source the providers' official brand assets and
   follow their usage, color and attribution guidance; retain readable text labels
   and accessible names alongside the marks.
-- [ ] Compare deployment revisions and show changed files, including text
-  diffs for configuration and website files.
-- [ ] Add a dedicated quick switcher for workspace presets (sites, folder
-  pairs, tabs and layout), extending existing workspace persistence.
+- [x] Compare deployment revisions and show changed files, including text
+  diffs for configuration and website files. Deployment journals now retain
+  bounded UTF-8 snapshots for changed text/config files; Deployment Profiles
+  offers a two-revision comparison with changed paths and unified text diffs.
+  Files absent from a deployment plan are labeled without implying deletion.
+- [x] Add a dedicated quick switcher for workspace presets (sites, folder
+  pairs, tabs and layout), extending existing workspace persistence. Tools →
+  Workspace Presets (Ctrl+Alt+W) saves and applies named sets, excludes
+  credentials, and confirms before replacing current tabs or queued items.
 
 ### Android and iOS companion
 

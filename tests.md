@@ -10,9 +10,119 @@ Collected on 2026-11-19: 1148 test cases.
 - Run the full suite at major version transitions (for example, `0.x` to `1.0` or `1.x` to `2.0`) and for a major language rewrite (for example, Python to Rust).
 - Before a release, check every test's history. Mark unchanged tests with a previous pass successful for the release without rerunning them; run tests that have never run and record the result; rerun tests affected by code or coverage changes. A previous failure remains failed until a rerun passes.
 - Work through the categories below in batches. Status reflects the latest recorded batch; unrun cases remain pending.
+- Local API tests bind an OS-assigned ephemeral loopback port (`port=0`) so they do not collide with V:/FluxFTP on port 8765.
 - The two 100,001-item queue stress tests passed on 2026-11-19; the separate incremental capacity map remains open in `TODO.md`.
 
 Current totals: 1145 passed, 1 failed, 2 skipped, 0 pending, 0 deferred.
+
+## Artifact provider OAuth batch (2026-11-21)
+
+Added one-time OAuth device sign-in to the GitHub Actions and GitLab pipeline
+artifact pickers. The provider opens its HTTPS verification page, FluxFTP shows
+the short-lived user code, and a successful sign-in can be kept in the encrypted
+credential vault. Client IDs are stored in user preferences; access tokens are
+only stored in the encrypted credential vault. Existing manual token entry is
+still available.
+
+```text
+.venv-test/Scripts/python.exe -m pytest -q tests/test_artifact_oauth.py tests/test_github_artifacts.py tests/test_gitlab_artifacts.py
+19 passed in 10.25s (including expiring-token refresh and rotation coverage)
+```
+
+Focused OAuth/client/archive/picker regression batch; the historical full-suite
+totals above are unchanged. Live OAuth authorization still requires registered
+provider applications and project access.
+
+The user then chose GitHub's expiring-token setting for the live setup. FluxFTP
+now requests `offline_access`, keeps the access/refresh pair only in the encrypted
+vault, and rotates both tokens when an access token nears expiry. The refresh
+path has dedicated mocked coverage in the rerun above.
+
+## CLI/API tests away from the live FluxFTP port (2026-11-21)
+
+The first attempt to pin the test listener to 8766 produced two
+`RemoteDisconnected` failures. Switched the tests to port 0, which asks Windows
+to assign an available loopback port and keeps pytest separate from V:'s
+listener on 8765. Latest result:
+
+```text
+.venv-test/Scripts/python.exe -m pytest -q tests/test_cli_api.py
+3 passed in 8.44s
+```
+
+The latest passing port-0 run supersedes the failed fixed-8766 attempt.
+
+## Auto-trading implementation batch (2026-11-21)
+
+Focused batch covering `.fluxftprc` validation and matching, ledger lifecycle,
+manifest and marker behavior, automatic queue priority and serialization, plus
+the authenticated IRC bridge including HexChat form-encoded POST intake:
+
+```text
+.venv-test/Scripts/python.exe -m pytest tests/test_auto_trading_config.py tests/test_trade_ledger.py tests/test_queue_engine.py tests/test_queue_storage_service.py tests/test_cli_api.py -q
+50 passed in 10.06s
+```
+
+An initial run had 48 passes and one teardown failure because the test replaced
+the window's trading service with a stub and did not restore it before closing;
+the test now restores the actual service, and the rerun passed. This focused
+batch does not alter the historical full-suite totals above.
+
+## Desktop features batch (2026-11-21)
+
+Added deployment revision text snapshots/comparison and workspace preset saving,
+application and switching. Test history for the affected areas:
+
+```text
+.venv-test/Scripts/python.exe -m pytest tests/test_deployment_compare.py tests/test_deployments.py -q
+12 passed in 18.84s
+
+.venv-test/Scripts/python.exe -m pytest tests/test_tools_menu.py tests/test_workspace_presets.py tests/test_deployment_compare.py -q
+8 passed in 28.67s
+
+.venv-test/Scripts/python.exe -m pytest tests/test_workspace_presets.py tests/test_deployment_compare.py tests/test_deployments.py tests/test_tools_menu.py -q
+17 passed in 53.18s
+
+.venv-test/Scripts/python.exe -m pytest tests/test_deployment_compare.py tests/test_deployments.py tests/test_workspace_presets.py tests/test_workspaces_tray.py tests/test_workspace_site_names.py tests/test_tools_menu.py -q
+36 passed in 324.76s
+
+.venv-test/Scripts/python.exe -m pytest tests/test_workspace_presets.py tests/test_workspaces_tray.py tests/test_workspace_site_names.py -q
+20 passed in 200.60s
+```
+
+An intermediate deployment run exposed that valid UTF-8 files without extensions
+were not captured for text diffs. The bounded snapshot selector now includes
+extensionless files, and the deployment batch rerun passed. These focused runs
+do not change the historical full-suite totals above. Live GitLab/GitHub project
+artifact validation remains open and requires project access and credentials.
+An earlier combined run was interrupted after the new saved-site preset test
+attempted to reconnect its remote pane. The test fixture now keeps that pane in
+Local mode while preserving its saved remote site reference; the complete
+deployment/workspace/menu batch above passes.
+
+Security review, 2026-11-20: copied the published 0.148.0 Windows package to
+`build/qt-prune-test-0.148.0`, removed QtQml, QtQmlMeta, QtQmlModels,
+QtQmlWorkerScript, QtQuick and QtNetwork DLLs/bindings, plus Qt Network plugins,
+from that isolated copy, then ran packaged `--smoke-test` and `--f6-smoke-test`.
+Both exited 0. This is a focused packaging probe, not a complete regression
+pass; the published package and local installation were not modified.
+
+Windows Qt Network packaging candidate, 2026-11-21: repackaged an isolated
+copy of the published 0.148.0 Windows bundle with the updated packager. The
+candidate ZIP contains no Qt Network DLLs, Python bindings, or Network/TLS
+plugins; archive integrity passed. Packaged `--smoke-test` and
+`--f6-smoke-test` both exited 0. This validates the Network exclusion in the
+Windows package layout; it does not validate replacement patched Qt runtime
+binaries or Linux packaging.
+
+Qt 6.11.3 CVE-2026-116337 source backport, 2026-11-21: built QtBase's
+`tst_qhttpnetworkreply` target (522 Ninja steps) on Ubuntu 24.04/GCC 13.3 with
+OpenSSL and GUI modules disabled. Batch 1 (`headerSizeLimit`,
+`statusLineSizeLimit`): 8 cases passed. Batch 2 (`parseHeaderVerification`,
+`parseEndOfHeader`): 20 cases passed. Batch 3 (`parseHeader`): 9 cases passed.
+All 37 cases passed; no failures or skips. This verifies the patched source and
+reader behavior, not production PySide6 library compatibility. Patch hashes,
+build settings, and adaptation notes are in `scripts/qt-patches/6.11.3/README.md`.
 
 The RushApp compatibility batch passed all 6 focused tests on 2026-11-18, including the existing CLI/API test extended to exercise `rush-script`, plus parser safety, upload/download/FXP routing, path parameters, and the `rush_cmdline` forwarding entry point.
 
@@ -1496,6 +1606,26 @@ rerun after the expectation update and passed all 25 tests, as recorded below.
 | Batch rerun | Tests | Result | Duration | Artifacts |
 |---:|---:|---|---:|---|
 | 11 rerun | 25 | Passed | 13.50s | `desktop-batch-11-tests.txt`, `desktop-batch-11-rerun.xml` |
+
+## v0.149.0 release validation batches (2026-11-21)
+
+Release workflow smoke batch:
+
+```text
+.venv-test/Scripts/python.exe -m pytest -q tests/test_tools_menu.py tests/test_layout.py::test_portrait_layout_and_site_local_order tests/test_compare_menu.py::test_pane_filter_toolbar_can_expand tests/test_openssl_branches.py tests/test_openssl_updates.py tests/test_workspaces_tray.py::test_session_restart_names_count_selection_and_splitters tests/test_deployments.py tests/test_github_artifacts.py tests/test_gitlab_artifacts.py tests/test_cloud.py
+78 passed, 2 skipped in 68.61s
+```
+
+New feature regression batch:
+
+```text
+.venv-test/Scripts/python.exe -m pytest -q tests/test_artifact_oauth.py tests/test_github_artifacts.py tests/test_gitlab_artifacts.py tests/test_deployment_compare.py tests/test_workspace_presets.py tests/test_auto_trading_config.py tests/test_trade_ledger.py tests/test_queue_engine.py tests/test_queue_storage_service.py tests/test_cli_api.py tests/test_deployments.py tests/test_tools_menu.py
+87 passed in 53.30s
+```
+
+Both batches ran with Qt offscreen and rclone no-browser mode. The control API
+tests continue using OS-assigned ephemeral loopback ports so they do not use
+the live port 8765.
 
 ## v0.148.0 Windows package preflight (2026-11-20)
 

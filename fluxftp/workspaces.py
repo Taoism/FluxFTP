@@ -93,6 +93,177 @@ class Workspaces:
         self.preferences.setValue('Workspaces/session', json.dumps(dict(items=items, current=self.tabs.currentIndex())))
         self.preferences.sync()
 
+    def workspace_preset_data(self, name):
+        """Capture tabs, site references, pane folders and global layout without credentials."""
+        items = []
+        for index in range(self.tabs.count()):
+            split = self.tabs.widget(index)
+            panes = []
+            for side in range(2):
+                pane = split.widget(side)
+                site = pane.site if pane.site is not None else getattr(pane, 'remote_site', None)
+                bookmark = ''
+                if site is not None:
+                    for key, profile in self.sites.items():
+                        if not isinstance(profile, dict):
+                            continue
+                        stored = self.site_from_profile(profile)
+                        if (stored.host.casefold(), stored.port, stored.username.casefold(), stored.protocol) == (
+                                site.host.casefold(), site.port, site.username.casefold(), site.protocol):
+                            bookmark = key
+                            break
+                panes.append(dict(mode=pane.mode, bookmark=bookmark,
+                    local_path=str(getattr(pane, 'local_path', '') or ''),
+                    remote_path=str(getattr(pane, 'remote_path', '') or (site.root if site else '/'))))
+            items.append(dict(name=self.tabs.tabText(index), auto_name=bool(split.property('auto_workspace_name')),
+                modes=[pane['mode'] for pane in panes], panes=panes,
+                splitter=bytes(split.saveState()).hex()))
+        layout = {}
+        for key in self.preferences.allKeys():
+            if key.startswith(('Layout/', 'Display/')) and not key.startswith('Layout/saved_layouts'):
+                layout[key] = self.preferences.value(key)
+        return dict(format=1, name=name, items=items, current=self.tabs.currentIndex(), layout=layout)
+
+    @staticmethod
+    def validate_workspace_preset(preset):
+        """Validate a persisted preset before applying any part of it."""
+        if (not isinstance(preset, dict) or preset.get('format') != 1 or
+                not isinstance(preset.get('name'), str) or not 1 <= len(preset['name']) <= 80 or
+                not isinstance(preset.get('items'), list) or not 1 <= len(preset['items']) <= 100 or
+                not isinstance(preset.get('layout', {}), dict)):
+            raise ValueError('Invalid workspace preset.')
+        names = set()
+        for item in preset['items']:
+            if (not isinstance(item, dict) or not isinstance(item.get('name'), str) or
+                    not 1 <= len(item['name']) <= 80 or any(ord(char) < 32 for char in item['name']) or
+                    item['name'].casefold() in names or not isinstance(item.get('panes'), list) or
+                    len(item['panes']) != 2 or not isinstance(item.get('splitter', ''), str) or
+                    len(item.get('splitter', '')) > 32768):
+                raise ValueError('Invalid workspace preset tab.')
+            names.add(item['name'].casefold())
+            for pane in item['panes']:
+                if (not isinstance(pane, dict) or pane.get('mode') not in ('Local', 'Remote') or
+                        not isinstance(pane.get('bookmark', ''), str) or
+                        not isinstance(pane.get('local_path', ''), str) or
+                        not isinstance(pane.get('remote_path', ''), str) or
+                        len(pane.get('local_path', '')) > 32768 or len(pane.get('remote_path', '')) > 32768):
+                    raise ValueError('Invalid workspace preset pane.')
+        for key in preset.get('layout', {}):
+            if (not isinstance(key, str) or not key.startswith(('Layout/', 'Display/')) or
+                    key.startswith('Layout/saved_layouts')):
+                raise ValueError('Workspace preset contains an unsupported layout setting.')
+        return preset
+
+    def apply_workspace_preset(self, preset):
+        """Replace current tabs after explicit approval; restore saved site references and folders."""
+        preset = self.validate_workspace_preset(preset)
+        workspaces = [self.tabs.widget(index) for index in range(self.tabs.count())]
+        if any(self.workspace_busy(split) for split in workspaces):
+            self.statusBar().showMessage('Wait for active transfers or editors before switching workspace presets.', 7000)
+            return False
+        jobs = [job for job in self.queue_jobs if job.get('workspace') in workspaces and
+                job.get('state') in ('queued', 'failed')]
+        connected = any(pane.site or pane.remote_site for split in workspaces for pane in
+                        (split.widget(0), split.widget(1)))
+        warning = 'Switching replaces the open workspace tabs.'
+        if jobs:
+            warning += f' It removes {len(jobs)} queued or failed queue item(s).'
+        if connected:
+            warning += ' Saved-site connections will be closed; the preset can reconnect its saved sites.'
+        if QMessageBox.question(self, 'Apply workspace preset', warning + ' Continue?') != QMessageBox.StandardButton.Yes:
+            return False
+        if jobs:
+            self.discard_queue_jobs(jobs)
+        self._restoring_workspaces = True
+        missing_sites = set()
+        try:
+            for split in workspaces:
+                for side in range(2):
+                    split.widget(side).set_remote(None)
+            for index in reversed(range(1, self.tabs.count())):
+                split = self.tabs.widget(index)
+                self.tabs.removeTab(index)
+                self.panel_manager.remove(split)
+                split.deleteLater()
+            first = self.tabs.widget(0)
+            for side in range(2):
+                pane = first.widget(side)
+                pane.change_mode('Local')
+                pane.navigate(pane.local_path)
+            for key, value in preset.get('layout', {}).items():
+                self.preferences.setValue(key, value)
+            if hasattr(self, 'layout_commands'):
+                self.layout_commands.apply_layout_values(preset.get('layout', {}), report=False)
+            else:
+                self.apply_layout_settings()
+            for index, item in enumerate(preset['items']):
+                if index:
+                    self.add_workspace()
+                split = self.tabs.widget(index)
+                split.setProperty('auto_workspace_name', bool(item.get('auto_name', False)))
+                self.tabs.setTabText(index, item['name'])
+                for side, pane_spec in enumerate(item['panes']):
+                    pane = split.widget(side)
+                    pane.change_mode('Local')
+                    pane.local_path = pane_spec['local_path'] or pane.local_path
+                    bookmark = pane_spec['bookmark']
+                    profile = self.sites.get(bookmark) if bookmark else None
+                    if profile and profile.get('_disabled'):
+                        missing_sites.add(bookmark + ' (disabled)')
+                        profile = None
+                    if profile:
+                        remote_profile = dict(profile)
+                        remote_profile['root'] = pane_spec['remote_path'] or '/'
+                        if pane_spec['mode'] == 'Remote':
+                            pane.connect_profile(remote_profile, bookmark)
+                            if pane.mode != 'Remote':
+                                pane.remote_site = self.site_from_profile(remote_profile)
+                                pane.remote_path = remote_profile['root']
+                                pane.remote_password = ''
+                                pane.change_mode('Remote')
+                                pane.path = remote_profile['root']
+                                pane.refresh()
+                        else:
+                            pane.remote_site = self.site_from_profile(remote_profile)
+                            pane.remote_path = remote_profile['root']
+                            try:
+                                pane.remote_password = self.get_site_password(profile)
+                            except RuntimeError:
+                                pane.remote_password = ''
+                    elif bookmark:
+                        missing_sites.add(bookmark)
+                    if pane_spec['mode'] == 'Remote' and not profile:
+                        if not bookmark:
+                            missing_sites.add(f'{item["name"]} pane {side + 1} (unsaved site)')
+                        pane.remote_site = None
+                        pane.remote_password = ''
+                        pane.change_mode('Remote')
+                        pane.path = pane_spec['remote_path'] or '/'
+                        pane.refresh()
+                    if pane_spec['mode'] == 'Local':
+                        pane.navigate(pane.local_path)
+                state = item.get('splitter', '')
+                if state:
+                    from PySide6.QtCore import QByteArray
+                    try:
+                        split._workspace_saved_state = QByteArray(bytes.fromhex(state))
+                    except ValueError:
+                        pass
+            current = preset.get('current', 0)
+            self.tabs.setCurrentIndex(current if type(current) is int and 0 <= current < self.tabs.count() else 0)
+            if hasattr(self, 'layout_commands'):
+                self.layout_commands.apply_layout_values(preset.get('layout', {}), report=False)
+            else:
+                self.apply_layout_settings()
+            self.restore_workspace_layout()
+        finally:
+            self._restoring_workspaces = False
+        self.refresh_workspace_names()
+        self.save_workspaces()
+        detail = (' Missing saved sites: ' + ', '.join(sorted(missing_sites)) + '.' if missing_sites else '')
+        self.statusBar().showMessage(f"Workspace preset ‘{preset['name']}’ applied.{detail}", 9000)
+        return True
+
     def apply_pane_order(self, split=None):
         order = self.preferences.value('Display/pane_order', 'Site then Local', type=str)
         splitters = [split] if split is not None else [self.tabs.widget(i) for i in range(self.tabs.count())]

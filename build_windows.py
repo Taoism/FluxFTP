@@ -68,6 +68,7 @@ def main():
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'fluxftp-icon.svg'}{os.pathsep}fluxftp/assets",
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'fluxftp-icon-dark.svg'}{os.pathsep}fluxftp/assets",
         "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'connection-states'}{os.pathsep}fluxftp/assets/connection-states",
+        "--add-data", f"{ROOT / 'fluxftp' / 'assets' / 'trading-adapters'}{os.pathsep}fluxftp/assets/trading-adapters",
         *[arg for name in ('_ssl.pyd', '_hashlib.pyd', 'libcrypto-4-x64.dll', 'libssl-4-x64.dll', 'adapter.json', 'manifest.json')
           for arg in ('--add-data', f"{RUNTIME_ROOT / 'ssl4-adapter' / name}{os.pathsep}ssl4-adapter")],
         "--add-binary", f"{RUNTIME_ROOT / 'rclone' / 'rclone.exe'}{os.pathsep}cloud_tools",

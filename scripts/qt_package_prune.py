@@ -14,9 +14,42 @@ UNUSED_QT_COMPONENTS = (
     '_internal/libQt6VirtualKeyboardQml.so.6',
 )
 
+QT_NETWORK_COMPONENT_NAMES = {
+    'QtNetwork.pyd',
+    'QtNetwork.so',
+    'QtNetwork.abi3.so',
+    'Qt6Network.dll',
+    'qnetworklistmanager.dll',
+    'qnetworklistmanager.so',
+    'qopensslbackend.dll',
+    'qopensslbackend.so',
+    'qschannelbackend.dll',
+    'qschannelbackend.so',
+    'qcertonlybackend.dll',
+    'qcertonlybackend.so',
+}
+
 
 def remove_unused_qt_components(bundle: Path) -> None:
     for relative in UNUSED_QT_COMPONENTS:
         path = bundle / relative
         if path.is_file() or path.is_symlink():
+            path.unlink()
+
+    internal = bundle / '_internal'
+    if not internal.is_dir():
+        return
+    for path in internal.rglob('*'):
+        if not (path.is_file() or path.is_symlink()):
+            continue
+        name = path.name
+        is_network_library = name.startswith('libQt6Network.so')
+        if is_network_library or name == 'Qt6Network.dll':
+            path.unlink()
+            continue
+        if 'PySide6' not in path.parts:
+            continue
+        is_network_binding = name.startswith('QtNetwork.') and (
+            name.endswith('.pyd') or name.endswith('.so'))
+        if name in QT_NETWORK_COMPONENT_NAMES or is_network_binding:
             path.unlink()

@@ -280,6 +280,11 @@ class LayoutMenu(QObject):
         values = self.saved_layouts().get(name)
         if not isinstance(values, dict):
             return
+        self.apply_layout_values(values, report=True, name=name)
+
+    def apply_layout_values(self, values, *, report=False, name='workspace preset'):
+        if not isinstance(values, dict):
+            return False
         for key, value in values.items():
             if key.startswith(('Layout/', 'Display/')) and not key.startswith('Layout/saved_layouts'):
                 self.window.preferences.setValue(key, value)
@@ -317,4 +322,6 @@ class LayoutMenu(QObject):
                     pass
             self.window.docking.restore_saved_dock_layout()
         self.window.save_panel_layout()
-        self.window.statusBar().showMessage(f'Layout “{name}” loaded.', 5000)
+        if report:
+            self.window.statusBar().showMessage(f'Layout “{name}” loaded.', 5000)
+        return True

@@ -135,6 +135,11 @@ def test_deployment_editor_exposes_gitlab_pipeline_import():
         assert dialog.windowTitle() == "Import GitLab Pipeline Artifact"
         assert dialog.server.text() == "https://gitlab.com"
         assert dialog.project_input.placeholderText() == "group/project or numeric project ID"
+        assert dialog.sign_in_button.text() == "Sign in with GitLab…"
+        assert dialog.oauth_remember.isChecked()
+        default_client_key = dialog.oauth_client_id_key()
+        dialog.server.setText("https://gitlab.example")
+        assert dialog.oauth_client_id_key() != default_client_key
     finally:
         if dialog:
             dialog.close()

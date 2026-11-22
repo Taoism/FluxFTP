@@ -48,6 +48,8 @@ def test_deployment_and_rollback_preserve_originals_and_other_files(servers, tmp
         assert (root / 'nested' / 'new').read_bytes() == b'new file'
         assert not (root / 'excluded.tmp').exists()
         directory = revision_path(host, plan['id'])
+        snapshot = read_revision(directory)['source_text']
+        assert snapshot == {'existing': 'new contents', 'nested/new': 'new file'}
         journal, rows = rollback_preview(directory, connection, Event())
         assert {r['action'] for r in rows} == {'Restore backup', 'Delete new file'}
         execute(host, connection, dict(deployment=dict(plan, rollback=True), options=TransferOptions()), worker)

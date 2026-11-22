@@ -11,6 +11,8 @@ import sys
 import ssl
 import zipfile
 
+from qt_package_prune import remove_unused_qt_components
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -29,6 +31,7 @@ def main():
     name = f'FluxFTP-{__version__}-windows-x64'
     stage = output / name
     shutil.copytree(source, stage)
+    remove_unused_qt_components(stage)
     # These optional plugins are not used by FluxFTP. Keep the public package
     # free of GPL-only PDF/virtual-keyboard components and Windows system ICU.
     for relative in ('_internal/PySide6/Qt6Pdf.dll', '_internal/PySide6/Qt6VirtualKeyboard.dll',

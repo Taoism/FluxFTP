@@ -9,6 +9,9 @@ from .github_artifacts import GitHubActionsClient, repository_name, token_id
 
 class GitHubArtifactDialog(GitLabArtifactDialog):
     """Reuse the asynchronous pipeline picker while adapting it to GitHub runs."""
+    oauth_provider = 'github'
+    oauth_settings_key = 'github_artifact_oauth_client_id'
+    provider_name = 'GitHub'
     def __init__(self, window, parent=None):
         super().__init__(window, parent)
         self.setWindowTitle('Import GitHub Actions Artifact')
@@ -16,11 +19,15 @@ class GitHubArtifactDialog(GitLabArtifactDialog):
         self.server.setReadOnly(True)
         self.project_input.setPlaceholderText('owner/repository')
         self.token.setPlaceholderText('Token with Actions read permission (saved encrypted after successful connection)')
+        self.oauth_client_id.setPlaceholderText('GitHub App client ID (configure Actions: read permission)')
+        self.oauth_client_id.setText(self.window.preferences.value(self.oauth_settings_key, ''))
         form = self.layout().itemAt(0).layout()
         form.labelForField(self.server).setText('GitHub')
         form.labelForField(self.project_input).setText('Repository')
         form.labelForField(self.ref).setText('Branch or tag')
         form.labelForField(self.token).setText('GitHub token')
+        form.labelForField(self.oauth_client_id).setText('GitHub App client ID')
+        self.sign_in_button.setText('Sign in with GitHub…')
         self.pipeline.setAccessibleName('Successful GitHub Actions workflow run')
         self.job.setAccessibleName('GitHub Actions artifact')
         self.status.setText('Select a repository and branch or tag, then load successful workflow runs.')
@@ -44,20 +51,30 @@ class GitHubArtifactDialog(GitLabArtifactDialog):
             if not secret:
                 secret = self.window.credential_vault.get(token_id())
             vault = self.window.credential_vault
+            client_id = self.window.preferences.value(self.oauth_settings_key, '')
         except (ValueError, RuntimeError) as error:
             QMessageBox.warning(self, 'GitHub workflow lookup failed', str(error))
             return
 
         def lookup():
-            client = GitHubActionsClient(secret)
+            from .artifact_oauth import is_github_token_record, resolve_github_access_token
+            saved_oauth = is_github_token_record(secret)
+            saved_record = [secret if saved_oauth else '']
+            def save_record(value):
+                vault.set(token_id(), value)
+                saved_record[0] = value
+            access_token = resolve_github_access_token(secret, client_id,
+                save_record)
+            client = GitHubActionsClient(access_token)
             project = client.repository(repository)
             runs = client.workflow_runs(project['full_name'], ref)
             pipelines = [{**item, 'ref': item.get('head_branch', ref), 'sha': item.get('head_sha', ''),
                           'web_url': item.get('html_url', ''), 'created_at': item.get('created_at', '')}
                          for item in runs]
-            vault.set(token_id(), secret)
+            if not saved_oauth:
+                vault.set(token_id(), secret)
             return client, {'id': project['id'], 'full_name': project['full_name'],
-                            'path_with_namespace': project['full_name'], 'web_url': project['html_url']}, pipelines
+                            'path_with_namespace': project['full_name'], 'web_url': project['html_url']}, pipelines, saved_record[0]
 
         self.status.setText('Loading successful workflow runs…')
         self._begin(lookup, self._pipelines_loaded, 'GitHub workflow lookup failed')
@@ -100,6 +117,21 @@ class GitHubArtifactDialog(GitLabArtifactDialog):
         except (KeyError, TypeError, ValueError) as error:
             self.status.setText('GitHub returned incomplete artifact provenance: ' + str(error))
             QMessageBox.warning(self, 'GitHub artifact import failed', self.status.text())
+
+    def _oauth_token_ready(self, response):
+        try:
+            from .artifact_oauth import github_token_record
+            client_id = self.window.preferences.value(self.oauth_settings_key, '')
+            if self.oauth_remember.isChecked():
+                saved = github_token_record(response, client_id)
+                self.window.credential_vault.set(token_id(), saved)
+                self.token.setText(saved)
+            else:
+                self.token.setText(response['access_token'])
+            self.status.setText('GitHub sign-in succeeded. Load workflow runs to verify repository access.')
+        except (KeyError, RuntimeError, ValueError) as error:
+            self.token.setText(response.get('access_token', '') if isinstance(response, dict) else '')
+            self.status.setText('Signed in for this session; encrypted saving failed: ' + str(error))
 
     def reject(self):
         if self.worker:

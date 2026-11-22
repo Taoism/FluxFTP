@@ -220,6 +220,18 @@ def read_queue(path, cancel=None):
             item[name] = raw[name]
         item['automatic'] = raw.get('automatic', False)
         if type(item['automatic']) is not bool: raise ValueError('Invalid automatic transfer flag.')
+        trade_id = raw.get('trade_id', '')
+        if trade_id:
+            import re
+            if not isinstance(trade_id, str) or not re.fullmatch(r'[0-9a-f]{64}', trade_id):
+                raise ValueError('Invalid auto-trade ID.')
+            item['trade_id'] = trade_id
+            conflict = raw.get('trade_conflict', 'fail')
+            if conflict not in ('fail', 'skip', 'rename'):
+                raise ValueError('Invalid auto-trade conflict policy.')
+            item['trade_conflict'] = conflict
+        elif 'trade_conflict' in raw:
+            raise ValueError('Auto-trade conflict policy requires a trade ID.')
         group = raw.get('queue_group')
         if group is not None:
             if not isinstance(group, dict) or set(group) != {'id', 'name', 'src', 'dst'} or any(
