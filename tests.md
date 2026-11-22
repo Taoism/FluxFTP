@@ -1653,11 +1653,9 @@ previous installation is preserved at `D:\Program Files\FluxFTP-backup-0.147.5`.
 
 ## v0.149.0 Windows package preflight (2026-11-21)
 
-The maintained Windows x64 package was built with the release-local temporary
-folder after the default Windows `%TEMP%` location denied the startup smoke
-check's scratch directory. The packaged startup check passed on retry, as did
-the credential-vault and F6 shortcut smoke checks. The ZIP passed its integrity
-check, contains version 0.149.0 and source commit `fd4cd9c2a2828c38e54ab58d62fac9a51fb0bb69`,
-and has SHA-256 `8a5ed7a667f0559cf4b6e590858b39b5bd954c4f31ff27a31fbf2c30e327ad87`.
+The maintained Windows x64 package was built from source commit
+`c6fb6bec78300b9f884e28f879f0b649bac24348`. Its startup, credential-vault and
+F6 shortcut smoke checks passed. The ZIP passed its integrity check and embeds
+version 0.149.0. SHA-256: `516c678aa4d41e0a7714facb99b701083ed702fba9eb27cf790657a913f9ff57`.
 
 Cross-platform publication is pending GitHub authentication and Actions builds.
