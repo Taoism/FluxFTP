@@ -1651,11 +1651,19 @@ previous installation is preserved at `D:\Program Files\FluxFTP-backup-0.147.5`.
 | `FluxFTP-0.148.0-linux-x86_64-ubuntu24.04.tar.gz` | `61796dda96f2e696dd5623d8eed2ec4e6a6e3b287f8831e878b41f7d5a661c8a` |
 | `fluxftp_0.148.0-1_amd64.deb` | `fe0cd35714bb67b8695fa96d2141f836e50d4346065a3ed928eeac95d241a67d` |
 
-## v0.149.0 Windows package preflight (2026-11-21)
+## v0.149.0 release package verification (2026-11-21)
 
 The maintained Windows x64 package was built from source commit
 `c6fb6bec78300b9f884e28f879f0b649bac24348`. Its startup, credential-vault and
-F6 shortcut smoke checks passed. The ZIP passed its integrity check and embeds
-version 0.149.0. SHA-256: `516c678aa4d41e0a7714facb99b701083ed702fba9eb27cf790657a913f9ff57`.
+F6 shortcut smoke checks passed. The Windows ZIP integrity check passed and
+its embedded manifest reports version 0.149.0 and the expected source commit.
+GitHub Actions validation run `44991042059` and published-release run
+`44991853362` passed all Windows, Ubuntu, Debian and asset-publishing jobs.
+All three downloaded public packages matched their corresponding published
+SHA-256 files:
 
-Cross-platform publication is pending GitHub authentication and Actions builds.
+| Published artifact | SHA-256 |
+|---|---|
+| `FluxFTP-0.149.0-windows-x64.zip` | `516c678aa4d41e0a7714facb99b701083ed702fba9eb27cf790657a913f9ff57` |
+| `FluxFTP-0.149.0-linux-x86_64-ubuntu24.04.tar.gz` | `31a7d735a3cef763504ba972be25cd4a994933e44b7f2cf02e76a3aec1a9f65a` |
+| `fluxftp_0.149.0-1_amd64.deb` | `92716116fdefd0c0381f4676357e6f91501bbf1fa2d9b20955acb70d12e7dfea` |
