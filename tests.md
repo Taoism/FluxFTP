@@ -1650,3 +1650,14 @@ previous installation is preserved at `D:\Program Files\FluxFTP-backup-0.147.5`.
 | `FluxFTP-0.148.0-windows-x64.zip` | `fb334204fcaf3b8f31301cbc0a70dec3bc811d9861b3826c7944a65939ff2d28` |
 | `FluxFTP-0.148.0-linux-x86_64-ubuntu24.04.tar.gz` | `61796dda96f2e696dd5623d8eed2ec4e6a6e3b287f8831e878b41f7d5a661c8a` |
 | `fluxftp_0.148.0-1_amd64.deb` | `fe0cd35714bb67b8695fa96d2141f836e50d4346065a3ed928eeac95d241a67d` |
+
+## v0.149.0 Windows package preflight (2026-11-21)
+
+The maintained Windows x64 package was built with the release-local temporary
+folder after the default Windows `%TEMP%` location denied the startup smoke
+check's scratch directory. The packaged startup check passed on retry, as did
+the credential-vault and F6 shortcut smoke checks. The ZIP passed its integrity
+check, contains version 0.149.0 and source commit `fd4cd9c2a2828c38e54ab58d62fac9a51fb0bb69`,
+and has SHA-256 `8a5ed7a667f0559cf4b6e590858b39b5bd954c4f31ff27a31fbf2c30e327ad87`.
+
+Cross-platform publication is pending GitHub authentication and Actions builds.
